@@ -65,15 +65,17 @@ def get_paths_trees(ast, labels, labelname):
                 nodes1 = get_label(cop, labelname, label1)
                 nodes2 = get_label(cop, labelname, label2)
 
-                node1 = nodes1[0]
-                node2 = nodes2[0]
-                for i in xrange(len(nodes2)):
-                    node2 = nodes2[i]
-                    cop = copy.deepcopy(ast)
-                    trees_aux.append(cop)
+                # node1 = nodes1[0]
+                # node2 = nodes2[0]
+                for x in xrange(len(nodes1)):
+                    node1 = nodes1[x]
+                    for k in xrange(len(nodes2)):
+                        node2 = nodes2[k]
+                        cop = copy.deepcopy(ast)
+                        trees_aux.append(cop)
 
-                    aux = (node1, node2)
-                    nodes_aux.append(aux)
+                        aux = (node1, node2)
+                        nodes_aux.append(aux)
 
         nodes_dict[label1] = nodes_aux
         trees_dict[label1] = trees_aux
@@ -205,4 +207,6 @@ def take_code_from_file(ast, filename, labelname):
     trees_dict, paths_dict = get_paths_trees(ast, labels, labelname)
 
     remove_bad_paths(labels, paths_dict, labelname)
-    add_ghost_assign(trees_dict, paths_dict, labels)
+    # add_ghost_assign(trees_dict, paths_dict, labels)
+
+    print_code(trees_dict,paths_dict,labels)
