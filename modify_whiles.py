@@ -1,5 +1,8 @@
-from pycparser.c_ast import While, If, Assignment, FuncCall, Break, BinaryOp, ArrayRef, StructRef, Compound
+from pycparser.c_ast import *
 
+from parse_test import *
+
+generator = c_generator.CGenerator()
 
 def modify_while(while_to_check):
     """
@@ -56,7 +59,7 @@ def whiles_to_if(extern_while_body):
     :param extern_while_body:
     :return: modified main while
     """
-    i = 0
+    i = 0;
     size = len(extern_while_body.block_items)
     list = []
     aux = None
@@ -65,14 +68,15 @@ def whiles_to_if(extern_while_body):
         element = aux.block_items[i]
 
         if isinstance(element, While) and to_modify(element):
+            coord = element.stmt.coord
             aux.block_items[i] = modify_while(element)
             list = aux.block_items[i + 1:]  # next code is part of iftrue
             extern_while_body.block_items[i + 1:] = []  # don't copy the next code
 
-            aux.block_items[i].iftrue = Compound(list, element.stmt.coord)  # current iftrue code is all the next code
+            aux.block_items[i].iftrue = Compound(list, coord)  # current iftrue code is all the next code
             whiles_to_if(aux.block_items[i].iftrue)  # apply the function on the ifftrue
 
-            break
+            break;
         if isinstance(element, If):
             # if there is any if statement which contains
             # a recv loop in iftrue or iffalse it will be modified
@@ -82,9 +86,12 @@ def whiles_to_if(extern_while_body):
 
                 if not isinstance(item, While):
                     list.append(item)
+                    if isinstance(item,If):
+                        whiles_to_if(item.iftrue)#nu stiu inca de ce trb sa pun asta aici
                 elif to_modify(item):
+                    coord = item.stmt.coord
                     aux = modify_while(item)
-                    aux.iftrue = Compound(element.iftrue.block_items[index + 1:], item.stmt.coord)
+                    aux.iftrue = Compound(element.iftrue.block_items[index + 1:], coord)
                     element.iftrue.block_items[index] = aux
                     element.iftrue.block_items[index + 1:] = []
                     whiles_to_if(element.iftrue)
@@ -95,9 +102,11 @@ def whiles_to_if(extern_while_body):
 
                     if not isinstance(item, While):
                         list.append(item)
+                        # print item
                     elif to_modify(item):
+                        coord = item.stmt.coord
                         aux = modify_while(item)
-                        aux.iftrue = Compound(element.iffalse.block_items[index + 1:], item.stmt.coord)
+                        aux.iftrue = Compound(element.iffalse.block_items[index + 1:],coord)
                         element.iffalse.block_items[index] = aux
                         element.iffalse.block_items[index + 1:] = []
                         whiles_to_if(element.iffalse)

@@ -32,6 +32,7 @@ int main()
 
         if(smth)
         {
+            z=100;
             lab = CEVA;
             i++;
             if(other)
@@ -61,7 +62,9 @@ int main()
         }
         else
         {
+            a++;
             k--;
+            lab = CEVA;
 
         }
         if (mai_mare)

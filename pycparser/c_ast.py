@@ -777,12 +777,13 @@ class FileAST(Node):
 
     attr_names = ()
 
-    def __eq__(self, other):
-        """Override the default Equals behavior"""
-        if isinstance(other, self.__class__):
-            return self.coord.line == other.coord.line and self.coord.file == other.coord.file\
-                   and self.coord.column == other.coord.column
-        return False
+
+    # def __eq__(self, other):
+    #     """Override the default Equals behavior"""
+    #     if isinstance(other, self.__class__):
+    #         return self.coord.line == other.coord.line and self.coord.file == other.coord.file\
+    #                and self.coord.column == other.coord.column
+    #     return False
 
 
 class For(Node):

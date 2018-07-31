@@ -422,7 +422,7 @@ def find_all_paths(root, source_node, dest_node):
     grandparent_list = []
     paths_list = []
     find_all_paths_util(root, source_node, dest_node, path, parent_list, grandparent_list, paths_list, False)
-    print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
+    # print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
     return paths_list
 
 
