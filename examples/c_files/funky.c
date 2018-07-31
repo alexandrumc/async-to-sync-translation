@@ -55,14 +55,14 @@ int main()
                 {
                     poate++;
                 }
-                jet++;
+                salut++;
             }
             lab = ALTCEVA;
         }
         else
         {
             k--;
-
+            lab = CEVA;
         }
         if (mai_mare)
         {
@@ -84,7 +84,7 @@ int main()
                     }
                     else
                     {
-                        plm++;
+                        boss++;
                     }
                     nush_sef--;
                 }
