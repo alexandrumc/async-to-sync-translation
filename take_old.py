@@ -207,6 +207,6 @@ def take_code_from_file(ast, filename, labelname):
     trees_dict, paths_dict = get_paths_trees(ast, labels, labelname)
 
     remove_bad_paths(labels, paths_dict, labelname)
-    # add_ghost_assign(trees_dict, paths_dict, labels)
+    add_ghost_assign(trees_dict, paths_dict, labels)
 
     print_code(trees_dict,paths_dict,labels)

@@ -52,7 +52,7 @@ void main(int pid, int leader, int num) {
                     mbox.messages[num_msg] = m;
                     mbox.num_msg++;
                 }
-                if (timeout() || mbox.num_msg > n/2)
+                if (timeout() || mbox.num_msg > n/100000)
                     break;
             }
 
@@ -84,7 +84,7 @@ void main(int pid, int leader, int num) {
                     mbox.messages[num_msg] = m;
                     mbox.num_msg++;
                 }
-                if (timeout() || mbox.num_msg > n/2)
+                if (timeout() || mbox.num_msg > n/5000)
                     break;
             }
             
@@ -109,7 +109,7 @@ void main(int pid, int leader, int num) {
                     mbox.messages[num_msg] = m;
                     mbox.num_msg++;
                 }
-                if (timeout() || mbox.num_msg > n/2)
+                if (timeout() || mbox.num_msg > n/2200)
                     break;
             }
 
@@ -131,7 +131,7 @@ void main(int pid, int leader, int num) {
                         mbox.messages[num_msg] = m;
                         mbox.num_msg++;
                     }
-                    if (timeout() || mbox.num_msg > n/2)
+                    if (timeout() || mbox.num_msg > n/100)
                         break;
                 }
 

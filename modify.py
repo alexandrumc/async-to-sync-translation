@@ -1,37 +1,51 @@
 import copy
 
-from take_old import *
+from take_lab import *
+# from take_old import *
 
 # from cod_alex import show_func_calls
-ast = parse_file(filename="examples/c_files/tpc_AMIT.c", use_cpp=False)
+
 
 
 generator = c_generator.CGenerator()
 # print(generator.visit(ast))
-generator.visit(ast)
+
 # main_function = ast.ext[1]
 
-extern_while_body = None
 
+
+
+#
+# ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
+# extern_while_body = None
+#
+# x = get_extern_while_body(ast)
+#
+# whiles_to_if(x)
+# # print generator.visit(ast)
+#
+#
+# copie = copy.deepcopy(ast)
+#
+# labels = get_labels("examples/c_files/tpc_AMIT_modificat.c", "lab")
+#
+# print labels
+#
+# trees_dict, paths_dict = get_paths_trees(copie, labels, "lab")
+# print len(trees_dict), len(paths_dict)
+#
+#
+# take_code_from_file(copie, "examples/c_files/tpc_AMIT_modificat.c", "lab")
+
+
+ast = parse_file("examples/c_files/tpc_AMIT_modificat.c",use_cpp=False)
 x = get_extern_while_body(ast)
-
 whiles_to_if(x)
-
-
-print generator.visit(ast)
-
-
-
-
+print generator.visit(x)
 copie = copy.deepcopy(ast)
+labels = get_labels("examples/c_files/tpc_AMIT_modificat.c","lab")
 
-labels = get_labels("examples/c_files/tpc_AMIT.c", "lab")
+trees_dict, paths_dict, lista = get_paths_trees(copie,labels,"lab")
 
-print labels
-
-trees_dict, paths_dict = get_paths_trees(copie, labels, "lab")
-print len(trees_dict), len(paths_dict)
-
-
-
-take_code_from_file(copie, "examples/c_files/tpc_AMIT.c", "lab")
+for tree in lista:
+     print generator.visit(get_extern_while_body(tree))

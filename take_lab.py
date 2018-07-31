@@ -51,6 +51,7 @@ def get_paths_trees(ast, labels, labelname):
 
     source_to_one_paths = []
     source_to_one_trees = []
+    lista = []
     for label1 in labels:
 
         labels_start = get_label(ast, labelname, label1)
@@ -67,20 +68,25 @@ def get_paths_trees(ast, labels, labelname):
                 for end in labels_end:
                     cop = duplicate_element(ast)
                     prune_tree(get_extern_while_body(cop),start,end,[],[])
-                    source_to_one_tuples = find_all_paths_to_label_modified(cop,start,end)
-                    source_to_one_paths = []
-                    source_to_one_trees = []
+                    assign = get_label_assign_num(cop,labelname)
+                    # print
+                    if assign <= 2:
+                        lista.append(cop)
+                        # print "copacii de la label ",label1, "pana la ", label2
+                        # source_to_one_tuples = find_all_paths_to_label_modified(cop,start,end)
+                        # source_to_one_paths = []
+                        # source_to_one_trees = []
 
-                    for tup in source_to_one_tuples:
-                        source_to_one_trees.append(tup[0])
-                        source_to_one_paths.append(tup[1])
-                source_to_all_paths.append(source_to_one_paths)
-                source_to_all_trees.append(source_to_one_trees)
+                        # for tup in source_to_one_tuples:
+                        #     source_to_one_trees.append(tup[0])
+                        #     source_to_one_paths.append(tup[1])
+                    # source_to_all_paths.append(source_to_one_paths)
+                    # source_to_all_trees.append(source_to_one_trees)
 
         trees_dict[label1] = source_to_one_trees
         paths_dict[label1] = source_to_one_paths
 
-    return trees_dict, paths_dict
+    return trees_dict, paths_dict, lista
 
 
 def remove_bad_paths(labels, paths_dict, labelname):
