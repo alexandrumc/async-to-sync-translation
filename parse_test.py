@@ -456,6 +456,16 @@ class LabelVisitor(c_ast.NodeVisitor):
                     self.label_line = node.coord.line
 
 
+class CheckLabelNumber(c_ast.NodeVisitor):
+    def __init__(self, label_name):
+        self.label_name = label_name
+        self.count_labels = 0
+
+    def visit_Assignment(self, node):
+        if node.lvalue.name == self.label_name:
+            self.count_labels += 1
+
+
 class LocateChild(c_generator.CGenerator):
     def __init__(self, node):
         c_generator.CGenerator.__init__(self)
@@ -536,6 +546,12 @@ def find_node(ast_tree, node):
     v = LocateChild(node)
     v.visit(ast_tree)
     return v.discovered_node
+
+
+def get_label_assign_num(ast_tree, label_name):
+    v = CheckLabelNumber(label_name)
+    v.visit(ast_tree)
+    return v.count_labels
 
 
 def get_label(ast_tree, label_name, label_value):
