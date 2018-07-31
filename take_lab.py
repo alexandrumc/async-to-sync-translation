@@ -46,58 +46,39 @@ def get_labels(filename, labelname):
 
 
 def get_paths_trees(ast, labels, labelname):
-    nodes_dict = {}
     trees_dict = {}
     paths_dict = {}
 
-    for i in xrange(len(labels)):
-        label1 = labels[i]
-        nodes_aux = []
-        trees_aux = []
+    source_to_one_paths = []
+    source_to_one_trees = []
+    for label1 in labels:
 
-        for j in xrange(len(labels)):
-            if j > i:
-                label2 = labels[j]
-                cop = copy.deepcopy(ast)
+        labels_start = get_label(ast, labelname, label1)
+        source_to_all_trees = []
+        source_to_all_paths = []
 
-                # trees_aux.append(cop)
-
-                # index = trees_aux.index(cop)
-
-                nodes1 = get_label(cop, labelname, label1)
-                nodes2 = get_label(cop, labelname, label2)
-
-
-                node1 = nodes1[0]
-                node2 = nodes2[0]
-                for i in xrange(len(nodes2)):
-                    node2 = nodes2[i]
-                    cop = copy.deepcopy(ast)
-                    trees_aux.append(cop)
-
-                    aux = (node1, node2)
-                    nodes_aux.append(aux)
-
-        nodes_dict[label1] = nodes_aux
-        trees_dict[label1] = trees_aux
-
-    for i in xrange(len(labels)):
-        paths = []
-        label1 = labels[i]
-        trees = trees_dict[label1]
-        nodes = nodes_dict[label1]
-
-        for k in xrange(len(nodes)):
-            label2 = nodes[k][1].rvalue.name
+        for label2 in labels[labels.index(label1) +1:]:
             # print label1, label2
-            prune_tree(get_extern_while_body(trees[k]), nodes[k][0], nodes[k][1], [], [])
-            # modificare primeste nodul, nu string
-            path = find_all_paths_to_label(trees[k], nodes[k][0], nodes[k][1])
-            paths.append(path)
 
-            # j += 1
-        paths_dict[label1] = paths
-        # print len(paths)
+            labels_end = get_label(ast,labelname,label2)
+            # source_to_one_paths = []
+            # source_to_one_trees = []
+            for start in labels_start:
+                for end in labels_end:
+                    cop = duplicate_element(ast)
+                    prune_tree(get_extern_while_body(cop),start,end,[],[])
+                    source_to_one_tuples = find_all_paths_to_label_modified(cop,start,end)
+                    source_to_one_paths = []
+                    source_to_one_trees = []
+
+                    for tup in source_to_one_tuples:
+                        source_to_one_trees.append(tup[0])
+                        source_to_one_paths.append(tup[1])
+                source_to_all_paths.append(source_to_one_paths)
+                source_to_all_trees.append(source_to_one_trees)
+
+        trees_dict[label1] = source_to_one_trees
+        paths_dict[label1] = source_to_one_paths
 
     return trees_dict, paths_dict
 
@@ -105,28 +86,25 @@ def get_paths_trees(ast, labels, labelname):
 def remove_bad_paths(labels, paths_dict, labelname):
     for x in labels:
         paths = paths_dict[x]
+        to_remove = []
+
         for i in xrange(len(paths)):
-            to_remove = []
-            for j in xrange(len(paths[i])):
-                num = 0
+            path = paths[i]
+            num = 0
+            for elem in path:
+                # print "elem : \n", elem
+                # num = 0
+                if isinstance(elem, Assignment) and elem.lvalue.name == labelname:
+                    num +=1
+            if num > 2:
+                # print "am de sters"
+                to_remove.append(path)
+        for z in to_remove:
+            paths.remove(z)
 
-                for k in xrange(len(paths[i][j])):
-                    aux = paths[i][j][k]
-                    if isinstance(aux, Assignment) and aux.lvalue.name == labelname:
-                        num += 1
-                if num > 2:
-                    to_remove.append(paths[i][j])
-            for x in to_remove:
-                if x in paths[i]:
-                    paths[i].remove(x)
+        # print "nr de pathuri de sters este ", len(to_remove), "labelul este", x
+        # print "\n\n"
 
-
-def take_code(trees, paths):
-    code = []
-    for i in xrange(len(paths)):
-        cod = get_code_paths_list(paths[i], trees[i])
-        code.append(cod)
-    return code
 
 
 
@@ -205,18 +183,27 @@ def add_ghost_assign(trees_dict, paths_dict, labels):
             add_assign_in_path(paths[i], to_add_in_path)
 
 
+
+def print_code(labels,trees_dict,paths_dict):
+    for x in labels:
+        trees = trees_dict[x]
+        paths = paths_dict[x]
+        # print len(trees), len(paths)
+        for i in xrange(len(paths)):
+            tree = trees[i]
+            path = paths[i]
+            generate_c_code_from_one_path(path, tree)
+
 def take_code_from_file(ast, filename, labelname):
     labels = get_labels(filename, labelname)
 
     trees_dict, paths_dict = get_paths_trees(ast, labels, labelname)
 
     remove_bad_paths(labels, paths_dict, labelname)
-    add_ghost_assign(trees_dict, paths_dict, labels)
+    # add_ghost_assign(trees_dict, paths_dict, labels)
 
-    for x in labels:
-        trees = trees_dict[x]
-        paths = paths_dict[x]
-        for i in xrange(len(trees)):
-            generate_c_code_from_paths(paths[i], trees[i])
+    print_code(labels,trees_dict,paths_dict)
+
+
 
 

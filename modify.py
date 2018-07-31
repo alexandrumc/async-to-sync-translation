@@ -31,15 +31,38 @@ labels = get_labels("examples/c_files/funky.c", "lab")
 print labels
 
 trees_dict, paths_dict = get_paths_trees(copie, labels, "lab")
+print len(trees_dict), len(paths_dict)
 #
 # print len(paths_dict), len(trees_dict)
+trees = trees_dict[labels[0]]
+paths = paths_dict[labels[0]]
+#
+print type(trees), type(trees[0])
+#
+print type(paths), type(paths[0]), type(paths[0][0])
+
+# take_code_from_file(copie)
+
+# for x in labels:
+#     trees = trees_dict[x]
+#     paths = paths_dict[x]
+#     print len(trees), len(paths)
+#     for i in xrange(len(trees)):
+#         tree = trees[i]
+#         path = paths[i]
+#         generate_c_code_from_paths(path, tree)
+                # print "\n\nElement\n\n"
+            # print find_node(tree, elem)
+        # break
+    # break
 
 
+#
 
 take_code_from_file(copie, "examples/c_files/funky.c", "lab")
 
-trees = trees_dict[labels[0]]
-paths = paths_dict[labels[0]]
+# trees = trees_dict[labels[0]]
+# paths = paths_dict[labels[0]]
 
 # print generator.visit(trees[0])
 

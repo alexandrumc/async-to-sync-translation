@@ -782,6 +782,13 @@ def generate_c_code_from_paths(paths_list, ast):
         print "\n\n\n\n NEW CODE \n\n\n\n"
         print(gen.visit(get_extern_while(ast)))
 
+def generate_c_code_from_one_path(path, ast):
+   gen = PathGenerator(path)
+   print "\n\n\n\n NEW CODE \n\n\n\n"
+   print(gen.visit(get_extern_while(ast)))
+
+
+
 
 def generate_c_code_from_paths_and_trees(tuples):
     for pair in tuples:
