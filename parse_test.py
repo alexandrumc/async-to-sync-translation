@@ -891,11 +891,11 @@ if __name__ == "__main__":
     generate_c_code_from_paths(paths_list, ast)
     
     """
-    ast = parse_file(filename="/Users/alexandrum/ENS/pycparser/examples/c_files/funky.c", use_cpp=False)
-    ast.show()
+    ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
+    #ast.show()
 
-    label1_list = get_label(ast, "lab", "FIRST_ROUND")
-    label2_list = get_label(ast, "lab", "SECOND_ROUND")
+    label1_list = get_label(ast, "lab", "THIRD_ROUND")
+    label2_list = get_label(ast, "lab", "FOURTH_ROUND")
     #print label1_list
     #print label2_list
 
@@ -909,9 +909,12 @@ if __name__ == "__main__":
         for dest in label2_list:
             aux_ast = duplicate_element(ast)
             whiles_to_if(get_extern_while_body(aux_ast))
-            prune_tree(get_extern_while_body(aux_ast), source, dest, [], [])
-            #aux_ast.show()
-            paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
-            generate_c_code_from_paths_and_trees(paths_list)
+            destination = []
+            prune_tree(get_extern_while_body(aux_ast), source, dest, destination, [])
+            if destination:
+                print generator.visit(get_extern_while_body(aux_ast))
+            #print "\n\nPAUZA\n\n"
+            #paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
+            #generate_c_code_from_paths_and_trees(paths_list)
 
 
