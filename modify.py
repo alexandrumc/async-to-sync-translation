@@ -1,6 +1,6 @@
 import copy
 
-from take_lab import *
+from take_old import *
 
 # from cod_alex import show_func_calls
 ast = parse_file(filename="examples/c_files/funky.c", use_cpp=False)
@@ -41,23 +41,7 @@ print type(trees), type(trees[0])
 #
 print type(paths), type(paths[0]), type(paths[0][0])
 
-# take_code_from_file(copie)
 
-# for x in labels:
-#     trees = trees_dict[x]
-#     paths = paths_dict[x]
-#     print len(trees), len(paths)
-#     for i in xrange(len(trees)):
-#         tree = trees[i]
-#         path = paths[i]
-#         generate_c_code_from_paths(path, tree)
-                # print "\n\nElement\n\n"
-            # print find_node(tree, elem)
-        # break
-    # break
-
-
-#
 
 take_code_from_file(copie, "examples/c_files/funky.c", "lab")
 
