@@ -34,6 +34,7 @@ int main()
         {
             z=100;
             i++;
+            lab = CEVA;
             if(other)
             {
                 m++;

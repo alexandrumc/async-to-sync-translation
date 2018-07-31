@@ -295,7 +295,11 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                     new_tree = duplicate_element(tree)
                     new_child = find_node(new_tree, child)
 
-                    new_child.cond = UnaryOp('!', child.cond, child.coord)
+                    gen = c_generator.CGenerator()
+                    condition = ''
+                    condition += gen.visit(child.cond)
+
+                    new_child.cond = ID(condition, child.coord)
                     new_child.iffalse = Compound([], new_child.iftrue.coord)
                     new_child.iftrue = None
 
@@ -375,7 +379,11 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                         new_tree = duplicate_element(tree)
                         new_child = find_node(new_tree, child)
 
-                        new_child.cond = UnaryOp('!', child.cond, child.coord)
+                        gen = c_generator.CGenerator()
+                        condition = ''
+                        condition += gen.visit(child.cond)
+
+                        new_child.cond = ID(condition, child.coord)
                         new_child.iffalse = Compound([], new_child.iftrue.coord)
                         new_child.iftrue = None
 
@@ -635,8 +643,7 @@ class PathGenerator(c_generator.CGenerator):
                 else:
                     print "n.iftrue not in path"
                 """
-                if n.iffalse is not None and n.iffalse in self.path \
-                        and n.iftrue is not None:
+                if n.iffalse is not None and n.iffalse in self.path:
                     s += '!'
 
                 s += self.visit(n.cond)
@@ -798,18 +805,11 @@ def generate_c_code_from_paths(paths_list, ast):
         print "\n\n\n\n NEW CODE \n\n\n\n"
         print(gen.visit(get_extern_while(ast)))
 
+
 def generate_c_code_from_one_path(path, ast):
    gen = PathGenerator(path)
    print "\n\n\n\n NEW CODE \n\n\n\n"
    print(gen.visit(get_extern_while(ast)))
-
-
-
-
-def generate_c_code_from_one_path(path, ast):
-    gen = PathGenerator(path)
-    print "\n\n\n\n NEW CODE \n\n\n\n"
-    print(gen.visit(get_extern_while(ast)))
 
 
 def generate_c_code_from_paths_and_trees(tuples):
@@ -892,7 +892,7 @@ if __name__ == "__main__":
     
     """
     ast = parse_file(filename="/Users/alexandrum/ENS/pycparser/examples/c_files/funky.c", use_cpp=False)
-    #ast.show()
+    ast.show()
 
     label1_list = get_label(ast, "lab", "FIRST_ROUND")
     label2_list = get_label(ast, "lab", "SECOND_ROUND")
@@ -910,7 +910,7 @@ if __name__ == "__main__":
             aux_ast = duplicate_element(ast)
             whiles_to_if(get_extern_while_body(aux_ast))
             prune_tree(get_extern_while_body(aux_ast), source, dest, [], [])
-            print generator.visit(get_extern_while_body(aux_ast))
+            #aux_ast.show()
             paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
             generate_c_code_from_paths_and_trees(paths_list)
 
