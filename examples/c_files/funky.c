@@ -33,7 +33,6 @@ int main()
         if(smth)
         {
             z=100;
-            lab = CEVA;
             i++;
             if(other)
             {

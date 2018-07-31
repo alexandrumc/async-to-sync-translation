@@ -231,13 +231,14 @@ class ArrayRef(Node):
 
 
 class Assignment(Node):
-    __slots__ = ('op', 'lvalue', 'rvalue', 'coord', '__weakref__')
+    __slots__ = ('op', 'lvalue', 'rvalue', 'coord', '__weakref__', 'trace_counter')
 
-    def __init__(self, op, lvalue, rvalue, coord=None):
+    def __init__(self, op, lvalue, rvalue, coord=None, trace_counter=None):
         self.op = op
         self.lvalue = lvalue
         self.rvalue = rvalue
         self.coord = coord
+        self.trace_counter = trace_counter
 
     def children(self):
         nodelist = []
@@ -256,7 +257,10 @@ class Assignment(Node):
     def __eq__(self, other):
         """Override the default Equals behavior"""
         if isinstance(other, self.__class__):
-            return self.coord.line == other.coord.line and self.coord.file == other.coord.file\
+            if self.trace_counter and other.trace_counter:
+                return self.trace_counter == other.trace_counter
+            else:
+                return self.coord.line == other.coord.line and self.coord.file == other.coord.file\
                    and self.coord.column == other.coord.column
         return False
 

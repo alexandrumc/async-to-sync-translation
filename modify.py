@@ -41,6 +41,8 @@ take_code_from_file(copie, "examples/c_files/funky.c", "lab")
 trees = trees_dict[labels[0]]
 paths = paths_dict[labels[0]]
 
+print type(trees), type(trees[0])
+print type(paths), type(paths[0]), type(paths[0][0])
 # print generator.visit(trees[0])
 
 

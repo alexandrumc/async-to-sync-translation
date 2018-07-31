@@ -217,6 +217,7 @@ def take_code_from_file(ast, filename, labelname):
         trees = trees_dict[x]
         paths = paths_dict[x]
         for i in xrange(len(trees)):
+            print type(paths[i]), type(paths[i][0])
             generate_c_code_from_paths(paths[i], trees[i])
 
 

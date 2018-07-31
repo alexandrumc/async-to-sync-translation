@@ -1,6 +1,6 @@
 from pycparser.c_ast import *
+from pycparser import c_generator
 
-from parse_test import *
 
 generator = c_generator.CGenerator()
 
