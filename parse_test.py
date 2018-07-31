@@ -598,6 +598,31 @@ class PathGenerator(c_generator.CGenerator):
             s = 'if ('
             self.visit_condition = True
             if n.cond:
+                """
+                if n.iffalse is None:
+                    print "n.iffalse e None"
+                else:
+                    print "n.iffalse nu e None"
+
+                if n.iftrue is None:
+                    print "n.iftrue e None"
+                else:
+                    print "n.iftrue nu e None"
+
+                if n.iffalse in self.path:
+                    print "n.iffalse in path"
+                else:
+                    print "n.iffalse not in path"
+
+                if n.iftrue in self.path:
+                    print "n.iftrue in path"
+                else:
+                    print "n.iftrue not in path"
+                """
+                if n.iffalse is not None and n.iffalse in self.path \
+                    and n.iftrue is None and n.iftrue not in self.path:
+                    s += '!'
+
                 s += self.visit(n.cond)
             self.visit_condition = False
             s += ')\n'
@@ -840,12 +865,16 @@ if __name__ == "__main__":
     ast = parse_file(filename="/Users/alexandrum/ENS/pycparser/examples/c_files/funky.c", use_cpp=False)
     #ast.show()
 
-    label1_list = get_label(ast, "lab", "FIRST_ROUND")
-    label2_list = get_label(ast, "lab", "ALTCEVA")
+    label1_list = get_label(ast, "lab", "LAST_ROUND")
+    label2_list = get_label(ast, "lab", "SECOND_ROUND")
     #print label1_list
     #print label2_list
 
     #print ast
+
+    #get_labels("/Users/alexandrum/ENS/pycparser/examples/c_files/funky.c", "lab")
+
+    paths_list = []
 
     for source in label1_list:
         for dest in label2_list:
@@ -853,11 +882,7 @@ if __name__ == "__main__":
             whiles_to_if(get_extern_while_body(aux_ast))
             prune_tree(get_extern_while_body(aux_ast), source, dest, [], [])
             print generator.visit(get_extern_while_body(aux_ast))
-            paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
-            generate_c_code_from_paths_and_trees(paths_list)
+            #paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
+            #generate_c_code_from_paths_and_trees(paths_list)
 
-    """
-    for path in paths_list:
-        print path[0]
-        print "\n\n\n\n\nAOLEEEEEEEEU\n\n\n\n\n"
-    """
+
