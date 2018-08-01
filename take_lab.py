@@ -47,10 +47,10 @@ def get_paths_trees(ast, labels, labelname):
     trees_dict = {}
     paths_dict = {}
 
-    trees_list = []
+
 
     for label1 in labels:
-
+        trees_list = []
         labels_start = get_label(ast, labelname, label1)
         source_to_all_trees = []
         source_to_all_paths = []
@@ -88,10 +88,9 @@ def get_paths_trees(ast, labels, labelname):
                     # source_to_all_paths.append(source_to_one_paths)
                     # source_to_all_trees.append(source_to_one_trees)
 
-        # trees_dict[label1] = source_to_one_trees
-        # paths_dict[label1] = source_to_one_paths
+        trees_dict[label1] = trees_list
 
-    return trees_list
+    return trees_dict
 
 
 def remove_bad_paths(labels, paths_dict, labelname):
@@ -114,7 +113,7 @@ def remove_bad_paths(labels, paths_dict, labelname):
             paths.remove(z)
 
 
-def add_assign_in_tree(tree, change_conds = False):
+def add_assign_in_tree(tree, change_conds=False):
     to_add = []
     # list = tree.children()
     if tree is not None:  # nu am idee unde ajunge aici pe None
@@ -153,9 +152,9 @@ def add_assign_in_tree(tree, change_conds = False):
 
                     to_add.append((i + len(to_add), assign))
 
-                add_assign_in_tree(tree.block_items[i].iftrue,change_conds)
+                add_assign_in_tree(tree.block_items[i].iftrue, change_conds)
                 if tree.block_items[i].iffalse is not None:
-                    add_assign_in_tree(tree.block_items[i].iffalse,change_conds)
+                    add_assign_in_tree(tree.block_items[i].iffalse, change_conds)
 
     for index, element in to_add:
         tree.block_items.insert(index, element)
@@ -169,9 +168,11 @@ def add_assign_in_path(path, to_add):
                 path[i].insert(index, k[1])
 
 
-def add_ghost_assign(trees_list,change_conds = False):
-    for i in xrange(len(trees_list)):
-        add_assign_in_tree(get_extern_while_body(trees_list[i]),change_conds)
+def add_ghost_assign(trees_dict,labels, change_conds=False):
+    for x in labels:
+        trees_list = trees_dict[x]
+        for i in xrange(len(trees_list)):
+            add_assign_in_tree(get_extern_while_body(trees_list[i]), change_conds)
 
 
 def print_code_from_dicts(labels, trees_dict, paths_dict):
@@ -185,14 +186,18 @@ def print_code_from_dicts(labels, trees_dict, paths_dict):
             generate_c_code_from_one_path(path, tree)
 
 
-def print_code_from_trees_only(trees_list):
-    for tree in trees_list:
-        print generator.visit(get_extern_while_body(tree))
+def print_code_from_trees_only(trees_dict,labels):
+    gen = TreeGenerator()
+    for x in labels:
+        trees_list = trees_dict[x]
+        print x
+        for tree in trees_list:
+            print gen.visit(get_extern_while_body(tree))
 
 
 def take_code_from_file(ast, filename, labelname):
     labels = get_labels(filename, labelname)
 
-    trees_list = get_paths_trees(ast, labels, labelname)
-    add_ghost_assign(trees_list)
-    print_code_from_trees_only(trees_list)
+    trees_dict = get_paths_trees(ast, labels, labelname)
+    add_ghost_assign(trees_dict, labels,True)
+    print_code_from_trees_only(trees_dict,labels)
