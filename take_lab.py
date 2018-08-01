@@ -25,8 +25,6 @@ def take_code_between_lines(lca, line1, line2):
             take_code_between_lines(lca, line1, line2)
 
 
-
-
 def get_labels(filename, labelname):
     labels = []
     lab = labelname + "="
@@ -49,29 +47,36 @@ def get_paths_trees(ast, labels, labelname):
     trees_dict = {}
     paths_dict = {}
 
-    source_to_one_paths = []
-    source_to_one_trees = []
-    lista = []
+    trees_list = []
+
     for label1 in labels:
 
         labels_start = get_label(ast, labelname, label1)
         source_to_all_trees = []
         source_to_all_paths = []
 
-        for label2 in labels[labels.index(label1) +1:]:
+        for label2 in labels[labels.index(label1) + 1:]:
             # print label1, label2
 
-            labels_end = get_label(ast,labelname,label2)
+            labels_end = get_label(ast, labelname, label2)
             # source_to_one_paths = []
             # source_to_one_trees = []
             for start in labels_start:
                 for end in labels_end:
                     cop = duplicate_element(ast)
-                    prune_tree(get_extern_while_body(cop),start,end,[],[])
-                    assign = get_label_assign_num(cop,labelname)
-                    # print
-                    if assign <= 2:
-                        lista.append(cop)
+                    # prune_tree(get_extern_while_body(cop),start,end,[],[])
+
+                    dest_list = []
+                    source_list = []
+                    prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
+
+                    if dest_list and source_list:
+                        assign = get_label_assign_num(cop, labelname)
+                        if assign <= 2:
+                            trees_list.append(cop)
+                        else:
+                            pass
+
                         # print "copacii de la label ",label1, "pana la ", label2
                         # source_to_one_tuples = find_all_paths_to_label_modified(cop,start,end)
                         # source_to_one_paths = []
@@ -83,10 +88,10 @@ def get_paths_trees(ast, labels, labelname):
                     # source_to_all_paths.append(source_to_one_paths)
                     # source_to_all_trees.append(source_to_one_trees)
 
-        trees_dict[label1] = source_to_one_trees
-        paths_dict[label1] = source_to_one_paths
+        # trees_dict[label1] = source_to_one_trees
+        # paths_dict[label1] = source_to_one_paths
 
-    return trees_dict, paths_dict, lista
+    return trees_list
 
 
 def remove_bad_paths(labels, paths_dict, labelname):
@@ -101,7 +106,7 @@ def remove_bad_paths(labels, paths_dict, labelname):
                 # print "elem : \n", elem
                 # num = 0
                 if isinstance(elem, Assignment) and elem.lvalue.name == labelname:
-                    num +=1
+                    num += 1
             if num > 2:
                 # print "am de sters"
                 to_remove.append(path)
@@ -109,18 +114,10 @@ def remove_bad_paths(labels, paths_dict, labelname):
             paths.remove(z)
 
 
-
-
-
-
-
-
-
-def add_assign_in_tree(tree, path, add_in_path):
-    # list = (tree.block_items)
+def add_assign_in_tree(tree, change_conds = False):
     to_add = []
     # list = tree.children()
-    if tree is not None:#nu am idee unde ajunge aici pe None
+    if tree is not None:  # nu am idee unde ajunge aici pe None
         for i, item in enumerate(tree.block_items):
             if isinstance(item, If):
                 if isinstance(item.cond, BinaryOp):
@@ -128,46 +125,40 @@ def add_assign_in_tree(tree, path, add_in_path):
                     if isinstance(item.cond.left, StructRef):
                         old_var = "old_" + item.cond.left.name.name
 
-                        assign = Assignment("=", ID(old_var), ID(item.cond.left.name.name),item.coord)
+                        assign = Assignment("=", ID(old_var), ID(item.cond.left.name.name), item.coord)
 
-                        # item.cond.left.name.name = old_var
+                        if change_conds:
+                            item.cond.left.name.name = old_var
 
-                        aux = (item, assign)
-                        add_in_path.append(aux)
                         to_add.append((i + len(to_add), assign))
                         # pun + len(to_add) pentru ca daca adaug prima data un assign la pozitia 5, practic pozitia
                         # se incrementeaza
                     else:
                         old_var = "old_" + item.cond.left.name
-                        assign = Assignment("=", ID(old_var), ID(item.cond.left.name),item.coord)
+                        assign = Assignment("=", ID(old_var), ID(item.cond.left.name), item.coord)
 
-                        # item.cond.left.name = old_var
+                        if change_conds:
+                            item.cond.left.name = old_var
 
-                        aux = (item, assign)
-                        add_in_path.append(aux)
                         to_add.append((i + len(to_add), assign))
 
                 else:
 
                     old_var = "old_" + item.cond.name
                     # print "aaaa", type(item.cond.name)
-                    assign = Assignment("=", ID(old_var), ID(item.cond.name),item.coord)
+                    assign = Assignment("=", ID(old_var), ID(item.cond.name), item.coord)
 
-                    # item.cond.name = old_var
-
-                    aux = (item, assign)
-                    add_in_path.append(aux)
+                    if change_conds:
+                        item.cond.left.name = old_var
 
                     to_add.append((i + len(to_add), assign))
 
-                add_assign_in_tree(tree.block_items[i].iftrue, path, add_in_path)
+                add_assign_in_tree(tree.block_items[i].iftrue,change_conds)
                 if tree.block_items[i].iffalse is not None:
-                    add_assign_in_tree(tree.block_items[i].iffalse, path, add_in_path)
+                    add_assign_in_tree(tree.block_items[i].iffalse,change_conds)
 
     for index, element in to_add:
         tree.block_items.insert(index, element)
-
-    return add_in_path
 
 
 def add_assign_in_path(path, to_add):
@@ -178,18 +169,12 @@ def add_assign_in_path(path, to_add):
                 path[i].insert(index, k[1])
 
 
-def add_ghost_assign(trees_dict, paths_dict, labels):
-    for label in labels:
-        trees = trees_dict[label]
-        paths = paths_dict[label]
-
-        for i in xrange(len(paths)):
-            to_add_in_path = add_assign_in_tree(get_extern_while_body(trees[i]), paths[i], [])
-            add_assign_in_path(paths[i], to_add_in_path)
+def add_ghost_assign(trees_list,change_conds = False):
+    for i in xrange(len(trees_list)):
+        add_assign_in_tree(get_extern_while_body(trees_list[i]),change_conds)
 
 
-
-def print_code(labels,trees_dict,paths_dict):
+def print_code_from_dicts(labels, trees_dict, paths_dict):
     for x in labels:
         trees = trees_dict[x]
         paths = paths_dict[x]
@@ -199,15 +184,15 @@ def print_code(labels,trees_dict,paths_dict):
             path = paths[i]
             generate_c_code_from_one_path(path, tree)
 
+
+def print_code_from_trees_only(trees_list):
+    for tree in trees_list:
+        print generator.visit(get_extern_while_body(tree))
+
+
 def take_code_from_file(ast, filename, labelname):
     labels = get_labels(filename, labelname)
 
-    trees_dict, paths_dict = get_paths_trees(ast, labels, labelname)
-
-    # remove_bad_paths(labels, paths_dict, labelname)
-    # add_ghost_assign(trees_dict, paths_dict, labels)
-
-    print_code(labels,trees_dict,paths_dict)
-
-
-
+    trees_list = get_paths_trees(ast, labels, labelname)
+    add_ghost_assign(trees_list)
+    print_code_from_trees_only(trees_list)
