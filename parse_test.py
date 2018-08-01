@@ -695,6 +695,28 @@ class PathGenerator(c_generator.CGenerator):
         return ''
 
 
+class TreeGenerator(c_generator.CGenerator):
+    def __init__(self):
+        c_generator.CGenerator.__init__(self)
+
+    def visit_If(self, n):
+        s = 'if ('
+        if n.cond:
+            if n.iffalse is not None and n.iftrue is None:
+                s += '!('
+            s += self.visit(n.cond)
+            if n.iffalse is not None and n.iftrue is None:
+                s += ')'
+        s += ')\n'
+        if n.iftrue:
+            s += self._generate_stmt(n.iftrue, add_indent=True)
+        if n.iffalse:
+            if n.iftrue is not None:
+                s += self._make_indent() + 'else\n'
+            s += self._generate_stmt(n.iffalse, add_indent=True)
+        return s
+
+
 class LinesFinder(c_generator.CGenerator):
     def __init__(self, lower_bound, upper_bound):
         c_generator.CGenerator.__init__(self)
@@ -894,8 +916,8 @@ if __name__ == "__main__":
     ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
     #ast.show()
 
-    label1_list = get_label(ast, "lab", "THIRD_ROUND")
-    label2_list = get_label(ast, "lab", "FOURTH_ROUND")
+    label1_list = get_label(ast, "lab", "FIRST_ROUND")
+    label2_list = get_label(ast, "lab", "SECOND_ROUND")
     #print label1_list
     #print label2_list
 
@@ -905,6 +927,8 @@ if __name__ == "__main__":
 
     paths_list = []
 
+    gen = TreeGenerator()
+
     for source in label1_list:
         for dest in label2_list:
             aux_ast = duplicate_element(ast)
@@ -913,7 +937,7 @@ if __name__ == "__main__":
             source_list = []
             prune_tree(get_extern_while_body(aux_ast), source, dest, dest_list, source_list)
             if dest_list and source_list:
-                print generator.visit(get_extern_while_body(aux_ast))
+                print gen.visit(get_extern_while_body(aux_ast))
             #print "\n\nPAUZA\n\n"
             #paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
             #generate_c_code_from_paths_and_trees(paths_list)
