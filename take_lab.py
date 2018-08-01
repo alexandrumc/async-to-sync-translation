@@ -33,12 +33,14 @@ def get_labels(filename, labelname):
     for each in lines:
         if labelname in each:
             aux = each.replace(" ", "")
+            aux = aux[aux.index(labelname):]
             if "\n" in aux:
                 aux = aux.replace("\n", "")
             aux = aux.replace(lab, "")
             aux = aux.replace(";", "")
-            if aux not in labels and "old" not in aux:
-                labels.append(aux)
+            if aux.endswith("ROUND"):
+                if aux not in labels and "old" not in aux:
+                    labels.append(aux)
 
     return labels
 
@@ -195,7 +197,7 @@ def print_code_from_trees_only(trees_dict,labels):
         # print x
         for tree in trees_list:
             code_for_label.append(gen.visit(get_extern_while_body(tree)))
-            # print gen.visit(get_extern_while_body(tree))
+            print gen.visit(get_extern_while_body(tree))
 
         code[x] = code_for_label
     return code
@@ -204,6 +206,6 @@ def take_code_from_file(ast, filename, labelname):
     labels = get_labels(filename, labelname)
 
     trees_dict = get_paths_trees(ast, labels, labelname)
-    add_ghost_assign(trees_dict, labels,True)
+    # add_ghost_assign(trees_dict, labels,True)
     code = print_code_from_trees_only(trees_dict,labels)
     return code

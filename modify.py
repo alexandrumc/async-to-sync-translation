@@ -30,15 +30,7 @@ copie = copy.deepcopy(ast)
 labels = get_labels("examples/c_files/tpc_AMIT_modificat.c", "lab")
 code = take_code_from_file(copie,"examples/c_files/tpc_AMIT_modificat.c","lab")
 
-cod_runda_first = code[labels[0]]
-
-for bucata in cod_runda_first:
-    print bucata
-
-def nu_stiu_ce_fac(test):
-    list_aux = test.split("\n")
-    new_code = []
-    for elem in list_aux:
-        new_code.append(elem)
+print labels
+# print code
 
 

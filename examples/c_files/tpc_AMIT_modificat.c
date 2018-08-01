@@ -1,7 +1,7 @@
 typedef struct _msg {
 	int payload;
 	int count;
-	int lab;
+	int eticheta;
 	int response;
 } msg;
 
@@ -17,8 +17,7 @@ void main(int pid, int leader, int num) {
 
 		lab = FIRST_ROUND;
 
-		if (pid == leader)
-		{
+		if (pid == leader) {
 			msg *m = (msg *) malloc(sizeof(msg));
 			m->count = count;
 			m->lab = lab;
@@ -27,19 +26,16 @@ void main(int pid, int leader, int num) {
 			send(m, to_all);
 		}
 
-		while (1)
-		{
+		while (1) {
 			m = recv();
-			if (m.lab == FIRST_ROUND && m.count == count)
-			{
+			if (m.lab == FIRST_ROUND && m.count == count) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
 			if (timeout() || mbox.num_msg == 1)
 				break;
 		}
-		if (m.payload)
-		{
+		if (m.payload) {
 			response = Y / N;
 			current_command = m.payload;
 		}
@@ -52,12 +48,10 @@ void main(int pid, int leader, int num) {
 
 		num_mbox = 0;
 
-		if (pid == leader)
-		{
+		if (pid == leader) {
 			while (1) {
 				m = recv();
-				if (m.lab == SECOND_ROUND && m.count == count)
-				{
+				if (m.lab == SECOND_ROUND && m.count == count) {
 					mbox.messages[num_msg] = m;
 					mbox.num_msg++;
 				}
@@ -74,8 +68,7 @@ void main(int pid, int leader, int num) {
 
 		lab = THIRD_ROUND;
 
-		if (pid == leader)
-		{
+		if (pid == leader) {
 			msg *m = (msg *) malloc(sizeof(msg));
 			m->payload = commit;
 			send(m, to_all);
@@ -86,11 +79,9 @@ void main(int pid, int leader, int num) {
 
 		retry = random;
 
-		while (1)
-		{
+		while (1) {
 			m = recv();
-			if (m.lab == THIRD_ROUND && m.count == count)
-			{
+			if (m.lab == THIRD_ROUND && m.count == count) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
@@ -99,10 +90,9 @@ void main(int pid, int leader, int num) {
 
 		}
 
-		if (m.payload = Commit)
-		{
+		if (m.payload = Commit) {
 			log[count] = current_command;
-        }
+		}
 
 		lab = FOURTH_ROUND;
 
@@ -114,12 +104,10 @@ void main(int pid, int leader, int num) {
 
 		num_mbox = 0;
 
-		if (pid == leader)
-		{
+		if (pid == leader) {
 			while (1) {
 				m = recv();
-				if (m.lab == FOURTH_ROUND_ROUND && m.count == count)
-				{
+				if (m.lab == FOURTH_ROUND_ROUND && m.count == count) {
 					mbox.messages[num_msg] = m;
 					mbox.num_msg++;
 				}
@@ -128,8 +116,8 @@ void main(int pid, int leader, int num) {
 					break;
 			}
 			count = count + 1;
-		} else{
-		count = count + 1;
+		} else {
+			count = count + 1;
 		}
 
 		lab = AUX_ROUND;
