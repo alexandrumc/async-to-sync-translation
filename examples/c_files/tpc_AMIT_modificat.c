@@ -95,6 +95,8 @@ void main(int pid, int leader, int num) {
             else {
                 count = count + 1;
             }
+
+            lab = AUX_ROUND;
         }
         else {
 
@@ -142,6 +144,7 @@ void main(int pid, int leader, int num) {
                     send(ack);
 
                     count = count + 1;
+                    lab = AUX_ROUND;
                 }
                 else {
                     count = count + 1;
