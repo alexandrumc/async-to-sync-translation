@@ -27,14 +27,18 @@ whiles_to_if(x)
 
 copie = copy.deepcopy(ast)
 
-# labels = get_labels("examples/c_files/tpc_AMIT_modificat.c", "lab")
-take_code_from_file(copie,"examples/c_files/tpc_AMIT_modificat.c","lab")
+labels = get_labels("examples/c_files/tpc_AMIT_modificat.c", "lab")
+code = take_code_from_file(copie,"examples/c_files/tpc_AMIT_modificat.c","lab")
 
-# print labels
+cod_runda_first = code[labels[0]]
 
-# trees_list = get_paths_trees(copie, labels, "lab")
-# add_ghost_assign(trees_list)
+for bucata in cod_runda_first:
+    print bucata
 
-# for tree in trees_list:
-#     print generator.visit(get_extern_while_body(tree))
+def nu_stiu_ce_fac(test):
+    list_aux = test.split("\n")
+    new_code = []
+    for elem in list_aux:
+        new_code.append(elem)
+
 

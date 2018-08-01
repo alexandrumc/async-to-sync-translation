@@ -187,17 +187,23 @@ def print_code_from_dicts(labels, trees_dict, paths_dict):
 
 
 def print_code_from_trees_only(trees_dict,labels):
+    code = {}
     gen = TreeGenerator()
     for x in labels:
+        code_for_label  = []
         trees_list = trees_dict[x]
-        print x
+        # print x
         for tree in trees_list:
-            print gen.visit(get_extern_while_body(tree))
+            code_for_label.append(gen.visit(get_extern_while_body(tree)))
+            # print gen.visit(get_extern_while_body(tree))
 
+        code[x] = code_for_label
+    return code
 
 def take_code_from_file(ast, filename, labelname):
     labels = get_labels(filename, labelname)
 
     trees_dict = get_paths_trees(ast, labels, labelname)
     add_ghost_assign(trees_dict, labels,True)
-    print_code_from_trees_only(trees_dict,labels)
+    code = print_code_from_trees_only(trees_dict,labels)
+    return code

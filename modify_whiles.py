@@ -76,11 +76,11 @@ def whiles_to_if(extern_while_body):
             aux.block_items[i].iftrue = Compound(list, coord)  # current iftrue code is all the next code
             whiles_to_if(aux.block_items[i].iftrue)  # apply the function on the ifftrue
 
-            break;
+            break
         if isinstance(element, If):
             # if there is any if statement which contains
             # a recv loop in iftrue or iffalse it will be modified
-            p = len(element.iftrue.block_items)
+            # p = len(element.iftrue.block_items)
             # print p
             for index, item in enumerate(element.iftrue.block_items):
 

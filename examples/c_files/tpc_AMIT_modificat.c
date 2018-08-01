@@ -1,158 +1,138 @@
-int filter_cr1 (int* m) {
-    if ((*m) == 1) {
-        return 1;
-    }
-    return 0;
-}
-
-int filter_cr2 (int* m) {
-    if ((*m) == 2) {
-        return 1;
-    }
-    return 0;
-}
-
-int filter_c1 (int* m) {
-    if ((*m) == 3) {
-        return 1;
-    }
-    return 0;
-}
-
-int filter_c2 (int* m) {
-    if ((*m) == 4) {
-        return 1;
-    }
-    return 0;
-}
+typedef struct _msg {
+	int payload;
+	int count;
+	int lab;
+	int response;
+} msg;
 
 void main(int pid, int leader, int num) {
+	int response;
+	int count = 1;
 
+	int current_command;
 
-    while (1) {
+	int *log;
 
+	while (1) {
 
-        lab = FIRST_ROUND;
-        
+		lab = FIRST_ROUND;
 
-        if (pid == leader) {
-            send(to_all);
+		if (pid == leader)
+		{
+			msg *m = (msg *) malloc(sizeof(msg));
+			m->count = count;
+			m->lab = lab;
+			m->payload = in();
 
-            lab = SECOND_ROUND;
+			send(m, to_all);
+		}
 
-            num_mbox = 0;
+		while (1)
+		{
+			m = recv();
+			if (m.lab == FIRST_ROUND && m.count == count)
+			{
+				mbox.messages[num_msg] = m;
+				mbox.num_msg++;
+			}
+			if (timeout() || mbox.num_msg == 1)
+				break;
+		}
+		if (m.payload)
+		{
+			response = Y / N;
+			current_command = m.payload;
+		}
 
-            retry = random;
+		lab = SECOND_ROUND;
 
-            while(1)
-            {
-                m = recv();
-                if (filter(m) != 10)
-                {
-                    mbox.messages[num_msg] = m;
-                    mbox.num_msg++;
-                }
-                if (timeout() || mbox.num_msg > n/100000)
-                    break;
-            }
+		msg *m = (msg *) malloc(sizeof(msg));
+		m->response = response;
+		send(m, leader);
 
-            if (num_mbox == num) {
-                commit = 1;
-                lab = THIRD_ROUND;
+		num_mbox = 0;
 
-                send(commit_message);
-            }
-            else {
-                commit = 0;
-                lab = THIRD_ROUND;
+		if (pid == leader)
+		{
+			while (1) {
+				m = recv();
+				if (m.lab == SECOND_ROUND && m.count == count)
+				{
+					mbox.messages[num_msg] = m;
+					mbox.num_msg++;
+				}
+				if (timeout() || mbox.num_msg == n / 100000)
+					break;
+			}
 
-               send(rollbacl_message);
-            }
+			commit = 1;
+			for (i = 0; i < mbox.len; i++) {
+				if (mbox.messages[i].response == NO)
+					commit = 0;
+			}
+		}
 
-            lab = FOURTH_ROUND;
+		lab = THIRD_ROUND;
 
+		if (pid == leader)
+		{
+			msg *m = (msg *) malloc(sizeof(msg));
+			m->payload = commit;
+			send(m, to_all);
 
-            num_mbox = 0;
-            
-            retry = random;            
+		}
 
-            while(1)
-            {
-                m = recv();
-                if (filter(m) != 10)
-                {
-                    mbox.messages[num_msg] = m;
-                    mbox.num_msg++;
-                }
-                if (timeout() || mbox.num_msg > n/5000)
-                    break;
-            }
-            
-            if (num_mbox == num) {
+		num_mbox = 0;
 
-                count = count + 1;
-            }
-            else {
-                count = count + 1;
-            }
+		retry = random;
 
-            lab = AUX_ROUND;
+		while (1)
+		{
+			m = recv();
+			if (m.lab == THIRD_ROUND && m.count == count)
+			{
+				mbox.messages[num_msg] = m;
+				mbox.num_msg++;
+			}
+			if (timeout() || mbox.num_msg > n / 100)
+				break;
+
+		}
+
+		if (m.payload = Commit)
+		{
+			log[count] = current_command;
         }
-        else {
 
-            num_mbox = 0;
-            
-            retry = random;  
+		lab = FOURTH_ROUND;
 
-            while(1){
-                m = recv();
-                if (filter(m) != 10)
-                {
-                    mbox.messages[num_msg] = m;
-                    mbox.num_msg++;
-                }
-                if (timeout() || mbox.num_msg > n/2200)
-                    break;
-            }
+		msg *m = (msg *) malloc(sizeof(msg));
+		m->count = count;
+		m->lab = lab;
 
-            if (num_mbox >= 1) {
-                lab = SECOND_ROUND;
+		send(m, leader);
 
-                send(agreement_or_abort_to_leader);
+		num_mbox = 0;
 
-                lab = THIRD_ROUND;
+		if (pid == leader)
+		{
+			while (1) {
+				m = recv();
+				if (m.lab == FOURTH_ROUND_ROUND && m.count == count)
+				{
+					mbox.messages[num_msg] = m;
+					mbox.num_msg++;
+				}
 
-                num_mbox = 0;
-            
-                retry = random;    
+				if (timeout() || mbox.num_msg > n / 5000)
+					break;
+			}
+			count = count + 1;
+		} else{
+		count = count + 1;
+		}
 
-                while(1) {
-                    m = recv();
-                    if (filter(m) != 10)
-                    {
-                        mbox.messages[num_msg] = m;
-                        mbox.num_msg++;
-                    }
-                    if (timeout() || mbox.num_msg > n/100)
-                        break;
-                }
+		lab = AUX_ROUND;
+	}
 
-                if (num_mbox >= 1) {
-                    lab = FOURTH_ROUND;
-
-
-                    send(ack);
-
-                    count = count + 1;
-                    lab = AUX_ROUND;
-                }
-                else {
-                    count = count + 1;
-                }
-            }
-            else {
-                count = count + 1;
-            }
-        } 
-    }
 }
