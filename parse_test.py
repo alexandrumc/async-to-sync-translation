@@ -909,9 +909,10 @@ if __name__ == "__main__":
         for dest in label2_list:
             aux_ast = duplicate_element(ast)
             whiles_to_if(get_extern_while_body(aux_ast))
-            destination = []
-            prune_tree(get_extern_while_body(aux_ast), source, dest, destination, [])
-            if destination:
+            dest_list = []
+            source_list = []
+            prune_tree(get_extern_while_body(aux_ast), source, dest, dest_list, source_list)
+            if dest_list and source_list:
                 print generator.visit(get_extern_while_body(aux_ast))
             #print "\n\nPAUZA\n\n"
             #paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
