@@ -258,8 +258,8 @@ def find_all_paths_util(current_node, source_node, dest_node, path, parent_list,
             grandparent_list.pop()
 
 
-def find_all_paths_util_modified(current_node, source_node, dest_node, path, parent_list, grandparent_list,
-                                 paths_list, source_reached, tree, last_if):
+def find_all_paths_util_modified(current_node, source_node, dest_node, path, parent_list, grandparent_list, paths_list,
+                                 source_reached, tree, last_if, depht, lastif_depth):
     to_delete = []
     ok = True
     if current_node is not None:
@@ -284,13 +284,19 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 pl2 = parent_list[:]
                 gp2 = grandparent_list[:]
                 if child.iffalse is not None:
+                    old_depth = depht
+                    depht += 1
                     find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                                 source_reached, tree, last_if)
+                                                 source_reached, tree, last_if, depht, lastif_depth)
+                    depht = old_depth + 1
                     find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, pl2, gp2, paths_list,
-                                                 source_reached, tree, last_if)
+                                                 source_reached, tree, last_if, depht, lastif_depth)
+                    depht = old_depth
                 else:
+                    old_depth = depht
+                    depht += 1
                     find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                                 source_reached, tree, last_if)
+                                                 source_reached, tree, last_if, depht, lastif_depth)
 
                     new_tree = duplicate_element(tree)
                     new_child = find_node(new_tree, child)
@@ -315,8 +321,12 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                     for grandparent_node in grandparent_list:
                         new_grandparent_list.append(find_node(new_tree, grandparent_node))
 
-                    find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list, new_grandparent_list, paths_list,
-                                                 source_reached, new_tree, new_child.iffalse)
+                    depht = old_depth + 1
+
+                    find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list,
+                                                 new_grandparent_list, paths_list, source_reached, new_tree,
+                                                 new_child.iffalse, depht, old_depth)
+                    depht = old_depth
 
                 ok = False
                 break
@@ -324,8 +334,9 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 path.append(child)
 
                 if last_if is not None:
-                    last_if.block_items.append(child)
-                    to_delete.append(child)
+                    if depht == lastif_depth:
+                        last_if.block_items.append(child)
+                        to_delete.append(child)
 
                 if child == source_node:
                     source_reached = True
@@ -344,6 +355,9 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
             to_delete = []
             grandparent = grandparent_list[-1]
             parent = parent_list.pop()
+
+            depht = depht - 1
+
             j = 0
             for j, tupleChild in enumerate(grandparent.children()):
                 if tupleChild[1] == parent:
@@ -368,13 +382,19 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                     gp2 = grandparent_list[:]
 
                     if child.iffalse is not None:
-                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, pl1, gp1,
-                                                     paths_list, source_reached, tree, last_if)
-                        find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, pl2, gp2, paths_list,
-                                                     source_reached, tree, last_if)
-                    else:
+                        old_depth = depht
+                        depht += 1
                         find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                                     source_reached, tree, last_if)
+                                                     source_reached, tree, last_if, depht, lastif_depth)
+                        depht = old_depth + 1
+                        find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, pl2, gp2, paths_list,
+                                                     source_reached, tree, last_if, depht, lastif_depth)
+                        depht = old_depth
+                    else:
+                        old_depth = depht
+                        depht += 1
+                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
+                                                     source_reached, tree, last_if, depht, lastif_depth)
 
                         new_tree = duplicate_element(tree)
                         new_child = find_node(new_tree, child)
@@ -399,15 +419,19 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                         for grandparent_node in grandparent_list:
                             new_grandparent_list.append(find_node(new_tree, grandparent_node))
 
-                        find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list, new_grandparent_list, paths_list,
-                                                     source_reached, new_tree, new_child.iffalse)
+                        depht = old_depth + 1
+                        find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list,
+                                                     new_grandparent_list, paths_list, source_reached, new_tree,
+                                                     new_child.iffalse, depht, old_depth)
+                        depht = old_depth
                     break
                 else:
                     path.append(child)
 
                     if last_if is not None:
-                        last_if.block_items.append(child)
-                        to_delete.append(child)
+                        if depht == lastif_depth:
+                            last_if.block_items.append(child)
+                            to_delete.append(child)
 
                     if child == source_node:
                         source_reached = True
@@ -439,8 +463,8 @@ def find_all_paths_modified(root, source_node, dest_node):
     parent_list = []
     grandparent_list = []
     paths_list = []
-    find_all_paths_util_modified(root, source_node, dest_node, path, parent_list, grandparent_list, paths_list,
-                            False, root, None)
+    find_all_paths_util_modified(root, source_node, dest_node, path, parent_list, grandparent_list, paths_list, False,
+                                 root, None, 0, 0)
     #print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
     return paths_list
 
@@ -808,6 +832,66 @@ class LinesFinder(c_generator.CGenerator):
         return ''
 
 
+class RoundGenerator(c_generator.CGenerator):
+    def __init__(self, mode):
+        c_generator.CGenerator.__init__(self)
+        self.mode = mode
+        self.finish = False
+
+    def visit_Constant(self, n):
+        return n.value
+
+    def visit_ID(self, n):
+        return n.name
+
+    def visit_Pragma(self, n):
+        ret = '#pragma'
+        if n.string:
+            ret += ' ' + n.string
+        return ret
+
+    def visit_ArrayRef(self, n):
+        arrref = self._parenthesize_unless_simple(n.name)
+        return arrref + '[' + self.visit(n.subscript) + ']'
+
+    def visit_StructRef(self, n):
+        sref = self._parenthesize_unless_simple(n.name)
+        return sref + n.type + self.visit(n.field)
+
+    def visit_FuncCall(self, n):
+        if self.mode == 0 and n.name.name == "send":
+            self.finish = True
+        fref = self._parenthesize_unless_simple(n.name)
+        return fref + '(' + self.visit(n.args) + ')'
+
+    def visit_UnaryOp(self, n):
+        operand = self._parenthesize_unless_simple(n.expr)
+        if n.op == 'p++':
+            return '%s++' % operand
+        elif n.op == 'p--':
+            return '%s--' % operand
+        elif n.op == 'sizeof':
+            # Always parenthesize the argument of sizeof since it can be
+            # a name.
+            return 'sizeof(%s)' % self.visit(n.expr)
+        else:
+            return '%s%s' % (n.op, operand)
+
+    def visit_BinaryOp(self, n):
+        lval_str = self._parenthesize_if(n.left,
+                            lambda d: not self._is_simple_node(d))
+        rval_str = self._parenthesize_if(n.right,
+                            lambda d: not self._is_simple_node(d))
+        return '%s %s %s' % (lval_str, n.op, rval_str)
+
+    def visit_Assignment(self, n):
+        rval_str = self._parenthesize_if(
+                            n.rvalue,
+                            lambda n: isinstance(n, c_ast.Assignment))
+        return '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
+
+
+
 def print_path(paths_list, index=-1):
     if index < 0:
         for path in paths_list:
@@ -911,13 +995,15 @@ if __name__ == "__main__":
     print(generator.visit(get_extern_while_body(ast)))
     paths_list = find_all_paths_to_label(ast, "lab", "1", "2")
     generate_c_code_from_paths(paths_list, ast)
-    
     """
-    ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
+    tree_gen = TreeGenerator()
+    ast = parse_file(filename="examples/c_files/funky.c", use_cpp=False)
+    whiles_to_if(get_extern_while_body(ast))
     #ast.show()
+    #print tree_gen.visit(get_extern_while_body(ast))
 
     label1_list = get_label(ast, "lab", "FIRST_ROUND")
-    label2_list = get_label(ast, "lab", "SECOND_ROUND")
+    label2_list = get_label(ast, "lab", "ALTCEVA")
     #print label1_list
     #print label2_list
 
@@ -927,7 +1013,7 @@ if __name__ == "__main__":
 
     paths_list = []
 
-    gen = TreeGenerator()
+    tree_gen = TreeGenerator()
 
     for source in label1_list:
         for dest in label2_list:
@@ -937,9 +1023,9 @@ if __name__ == "__main__":
             source_list = []
             prune_tree(get_extern_while_body(aux_ast), source, dest, dest_list, source_list)
             if dest_list and source_list:
-                print gen.visit(get_extern_while_body(aux_ast))
+                print tree_gen.visit(get_extern_while_body(aux_ast))
             #print "\n\nPAUZA\n\n"
-            #paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
-            #generate_c_code_from_paths_and_trees(paths_list)
+            paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
+            generate_c_code_from_paths_and_trees(paths_list)
 
 

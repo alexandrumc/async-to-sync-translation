@@ -206,6 +206,6 @@ def take_code_from_file(ast, filename, labelname):
     labels = get_labels(filename, labelname)
 
     trees_dict = get_paths_trees(ast, labels, labelname)
-    # add_ghost_assign(trees_dict, labels,True)
+    add_ghost_assign(trees_dict, labels,True)
     code = print_code_from_trees_only(trees_dict,labels)
     return code

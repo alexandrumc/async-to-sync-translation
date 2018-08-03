@@ -3,12 +3,12 @@ typedef struct _msg {
 	int count;
 	int eticheta;
 	int response;
+	int sender;
 } msg;
 
 void main(int pid, int leader, int num) {
 	int response;
 	int count = 1;
-
 	int current_command;
 
 	int *log;
@@ -22,6 +22,7 @@ void main(int pid, int leader, int num) {
 			m->count = count;
 			m->lab = lab;
 			m->payload = in();
+			m->sender = pid;
 
 			send(m, to_all);
 		}
@@ -32,10 +33,10 @@ void main(int pid, int leader, int num) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
-			if (timeout() || mbox.num_msg == 1)
+			if (timeout() || (mbox.num_msg >= 1 && mbox.messages[num_msg].sender == leader))
 				break;
 		}
-		if (m.payload) {
+		if (mbox.messages[num_msg].payload > 0) {
 			response = Y / N;
 			current_command = m.payload;
 		}
@@ -85,12 +86,12 @@ void main(int pid, int leader, int num) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
-			if (timeout() || mbox.num_msg > n / 100)
+			if (timeout() || (mbox.num_msg >= 1 && mbox.messages[num_msg].sender == leader))
 				break;
 
 		}
 
-		if (m.payload = Commit) {
+		if (mbox.messages[num_msg].payload == Commit) {
 			log[count] = current_command;
 		}
 
@@ -112,11 +113,12 @@ void main(int pid, int leader, int num) {
 					mbox.num_msg++;
 				}
 
-				if (timeout() || mbox.num_msg > n / 5000)
+				if (timeout() || mbox.num_msg == n / 5000)
 					break;
 			}
 			count = count + 1;
-		} else {
+		}
+		else {
 			count = count + 1;
 		}
 
