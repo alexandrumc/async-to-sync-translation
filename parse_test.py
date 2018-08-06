@@ -514,7 +514,6 @@ class LocateParent(c_generator.CGenerator):
         return s
 
 
-
 class LocateChild(c_generator.CGenerator):
     def __init__(self, node):
         c_generator.CGenerator.__init__(self)
@@ -593,6 +592,11 @@ class LocateChild(c_generator.CGenerator):
 
 def find_node(ast_tree, node):
     v = LocateChild(node)
+    v.visit(ast_tree)
+    return v.discovered_node
+
+def find_parent(ast_tree, child_node):
+    v = LocateParent(child_node)
     v.visit(ast_tree)
     return v.discovered_node
 
@@ -1157,13 +1161,13 @@ if __name__ == "__main__":
     generate_c_code_from_paths(paths_list, ast)
     """
     tree_gen = TreeGenerator()
-    ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
+    ast = parse_file(filename="examples/c_files/funky.c", use_cpp=False)
     whiles_to_if(get_extern_while_body(ast))
     #ast.show()
     #print tree_gen.visit(get_extern_while_body(ast))
 
-    label1_list = get_label(ast, "lab", "FOURTH_ROUND")
-    label2_list = get_label(ast, "lab", "AUX_ROUND")
+    label1_list = get_label(ast, "lab", "FIRST_ROUND")
+    label2_list = get_label(ast, "lab", "ALTCEVA")
     #print label1_list
     #print label2_list
 
@@ -1178,6 +1182,11 @@ if __name__ == "__main__":
     for source in label1_list:
         for dest in label2_list:
             aux_ast = duplicate_element(ast)
+            print "SURSA\n"
+            print dest
+            print "PARINTE"
+            print find_parent(aux_ast, dest)
+
             whiles_to_if(get_extern_while_body(aux_ast))
             dest_list = []
             source_list = []
@@ -1187,5 +1196,7 @@ if __name__ == "__main__":
             #print "\n\nPAUZA\n\n"
             #paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
             #generate_c_code_from_paths_and_trees(paths_list)
+
+
 
 
