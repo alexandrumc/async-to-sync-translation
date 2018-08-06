@@ -109,7 +109,8 @@ for label in labels[:len(labels) - 1]:
         new_list = string.split('\n')
         print_update(new_list, start_indexes_of_update[i])
 """
-"""
+
+
 for label in labels[:len(labels) - 1]:
     print "def round " + label + ":"
     print "  SEND():"
@@ -118,7 +119,7 @@ for label in labels[:len(labels) - 1]:
     print "  UPDATE():"
     for tree in trees_dict[label]:
         print RoundGenerator("update").visit(get_extern_while_body(tree))
-"""
+
 #print "\n\nUPDATE\n\n"
 #print generator.visit(get_extern_while_body(trees_dict["SECOND_ROUND"][0]))
-#print RoundGenerator("update").visit(get_extern_while_body(trees_dict["SECOND_ROUND"][0]))
+#print RoundGenerator("update").visit(get_extern_while_body(trees_dict["FIRST_ROUND"][0]))

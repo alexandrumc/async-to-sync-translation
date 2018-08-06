@@ -495,6 +495,26 @@ class CheckLabelNumber(c_ast.NodeVisitor):
             self.count_labels += 1
 
 
+class LocateParent(c_generator.CGenerator):
+    def __init__(self, node):
+        c_generator.CGenerator.__init__(self)
+        self.node_to_find = node
+        self.discovered_node = None
+
+    def visit_Compound(self, n):
+        if self.node_to_find == n:
+            self.discovered_node = n
+        s = ''
+        if n.block_items:
+            for stmt in n.block_items:
+                if stmt == self.node_to_find:
+                    self.discovered_node = n
+                    break
+                self._generate_stmt(stmt)
+        return s
+
+
+
 class LocateChild(c_generator.CGenerator):
     def __init__(self, node):
         c_generator.CGenerator.__init__(self)
@@ -832,10 +852,16 @@ class LinesFinder(c_generator.CGenerator):
 class RoundGenerator(c_generator.CGenerator):
     def __init__(self, mode):
         c_generator.CGenerator.__init__(self)
+        # send or update mode
         self.mode = mode
+        # reached send operation, can begin to save operation for update phase
         self.send_reached = False
+        # if the send operation is the last one inside one inside an if body
+        # then don't save that if on the way to update code
         self.send_last_instr = False
+        # save if condition on the way to update phase, even if it is before the send operation
         self.visit_cond = False
+        # first compound, i.e. the biggest while loop, don't print parentheses for this
         self.first_compound = True
 
     def visit_Constant(self, n):
@@ -980,7 +1006,7 @@ class RoundGenerator(c_generator.CGenerator):
                     ok2 = True
                     self.send_last_instr = False
             if self.send_reached:
-                if not ok1 or not ok2:
+                if not ok1 and not ok2:
                     return s
         return ""
 
