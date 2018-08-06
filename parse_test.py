@@ -1,5 +1,5 @@
 from pycparser import parse_file, c_parser, c_generator, c_ast
-from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound
+from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall
 from modify_whiles import whiles_to_if
 import copy
 
@@ -445,9 +445,6 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 grandparent.block_items.remove(node)
 
 
-
-
-
 def find_all_paths(root, source_node, dest_node):
     path = []
     parent_list = []
@@ -836,59 +833,196 @@ class RoundGenerator(c_generator.CGenerator):
     def __init__(self, mode):
         c_generator.CGenerator.__init__(self)
         self.mode = mode
-        self.finish = False
+        self.send_reached = False
+        self.send_last_instr = False
+        self.visit_cond = False
+        self.first_compound = True
 
     def visit_Constant(self, n):
-        return n.value
+        if self.mode == "send" and not self.send_reached \
+                or self.mode == "update" and self.send_reached \
+                or self.visit_cond:
+            return n.value
+        return ""
 
     def visit_ID(self, n):
-        return n.name
+        if self.mode == "send" and not self.send_reached \
+                or self.mode == "update" and self.send_reached \
+                or self.visit_cond:
+            return n.name
+        return ""
 
     def visit_Pragma(self, n):
-        ret = '#pragma'
-        if n.string:
-            ret += ' ' + n.string
-        return ret
+        if self.mode == "send" and not self.send_reached \
+                or self.mode == "update" and self.send_reached \
+                or self.visit_cond:
+            ret = '#pragma'
+            if n.string:
+                ret += ' ' + n.string
+            return ret
+        return ""
 
     def visit_ArrayRef(self, n):
-        arrref = self._parenthesize_unless_simple(n.name)
-        return arrref + '[' + self.visit(n.subscript) + ']'
+        if self.mode == "send" and not self.send_reached \
+                or self.mode == "update" and self.send_reached \
+                or self.visit_cond:
+            arrref = self._parenthesize_unless_simple(n.name)
+            return arrref + '[' + self.visit(n.subscript) + ']'
+        return ""
 
     def visit_StructRef(self, n):
-        sref = self._parenthesize_unless_simple(n.name)
-        return sref + n.type + self.visit(n.field)
+        if self.mode == "send" and not self.send_reached \
+                or self.mode == "update" and self.send_reached \
+                or self.visit_cond:
+            sref = self._parenthesize_unless_simple(n.name)
+            return sref + n.type + self.visit(n.field)
+        return ""
 
     def visit_FuncCall(self, n):
-        if self.mode == 0 and n.name.name == "send":
-            self.finish = True
-        fref = self._parenthesize_unless_simple(n.name)
-        return fref + '(' + self.visit(n.args) + ')'
+        if self.mode == "send" and not self.send_reached:
+            fref = self._parenthesize_unless_simple(n.name)
+            s = fref + '(' + self.visit(n.args) + ')'
+            if n.name.name == "send":
+                self.send_reached = True
+            return s
+        elif self.mode == "update" or self.visit_cond:
+            fref = self._parenthesize_unless_simple(n.name)
+            s = fref + '(' + self.visit(n.args) + ')'
+            ok = False
+            if self.send_reached:
+                ok = True
+            if n.name.name == "send":
+                self.send_reached = True
+            if ok:
+                return s
+        return ""
 
     def visit_UnaryOp(self, n):
-        operand = self._parenthesize_unless_simple(n.expr)
-        if n.op == 'p++':
-            return '%s++' % operand
-        elif n.op == 'p--':
-            return '%s--' % operand
-        elif n.op == 'sizeof':
-            # Always parenthesize the argument of sizeof since it can be
-            # a name.
-            return 'sizeof(%s)' % self.visit(n.expr)
-        else:
-            return '%s%s' % (n.op, operand)
+        if self.mode == "send" and not self.send_reached \
+                or self.mode == "update" and self.send_reached \
+                or self.visit_cond:
+            operand = self._parenthesize_unless_simple(n.expr)
+            if n.op == 'p++':
+                return '%s++' % operand
+            elif n.op == 'p--':
+                return '%s--' % operand
+            elif n.op == 'sizeof':
+                # Always parenthesize the argument of sizeof since it can be
+                # a name.
+                return 'sizeof(%s)' % self.visit(n.expr)
+            else:
+                return '%s%s' % (n.op, operand)
+        return ""
 
     def visit_BinaryOp(self, n):
-        lval_str = self._parenthesize_if(n.left,
+        if self.mode == "send" and not self.send_reached \
+                or self.mode == "update" and self.send_reached \
+                or self.visit_cond:
+            lval_str = self._parenthesize_if(n.left,
                             lambda d: not self._is_simple_node(d))
-        rval_str = self._parenthesize_if(n.right,
+            rval_str = self._parenthesize_if(n.right,
                             lambda d: not self._is_simple_node(d))
-        return '%s %s %s' % (lval_str, n.op, rval_str)
+            return '%s %s %s' % (lval_str, n.op, rval_str)
+        return ""
 
     def visit_Assignment(self, n):
-        rval_str = self._parenthesize_if(
+        if self.mode == "send" and not self.send_reached \
+                or self.mode == "update" and self.send_reached \
+                or self.visit_cond:
+            rval_str = self._parenthesize_if(
                             n.rvalue,
                             lambda n: isinstance(n, c_ast.Assignment))
-        return '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
+            return '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
+        return ""
+
+    def visit_If(self, n):
+        if self.mode == "send" and not self.send_reached:
+            s = 'if ('
+            if n.cond:
+                if n.iffalse is not None and n.iftrue is None:
+                    s += '!('
+                s += self.visit(n.cond)
+                if n.iffalse is not None and n.iftrue is None:
+                    s += ')'
+            s += ')\n'
+            if n.iftrue:
+                s += self._generate_stmt(n.iftrue, add_indent=True)
+            if n.iffalse:
+                if n.iftrue is not None:
+                    s += self._make_indent() + 'else\n'
+                s += self._generate_stmt(n.iffalse, add_indent=True)
+            return s
+        elif self.mode == "update":
+            #print "Eu sunt\n"
+            #print n
+            ok1 = False
+            ok2 = False
+            s = 'if ('
+            if n.cond:
+                if n.iffalse is not None and n.iftrue is None:
+                    s += '!('
+                self.visit_cond = True
+                s += self.visit(n.cond)
+                self.visit_cond = False
+                if n.iffalse is not None and n.iftrue is None:
+                    s += ')'
+            s += ')\n'
+            if n.iftrue:
+                s += self._generate_stmt(n.iftrue, add_indent=True)
+                if self.send_last_instr:
+                    ok1 = True
+                    self.send_last_instr = False
+            if n.iffalse:
+                if n.iftrue is not None:
+                    s += self._make_indent() + 'else\n'
+                s += self._generate_stmt(n.iffalse, add_indent=True)
+                if self.send_last_instr:
+                    ok2 = True
+                    self.send_last_instr = False
+            if self.send_reached:
+                if not ok1 or not ok2:
+                    return s
+        return ""
+
+    def visit_Compound(self, n):
+        remeber_compound = False
+        if self.first_compound:
+            remeber_compound = True
+            self.first_compound = False
+        if self.mode == "send" and not self.send_reached:
+            s = ""
+            if not remeber_compound:
+                s = self._make_indent() + '{\n'
+            self.indent_level += 2
+            if n.block_items:
+                s += ''.join(self._generate_stmt(stmt) for stmt in n.block_items if not self.send_reached)
+            self.indent_level -= 2
+            if not remeber_compound:
+                s += self._make_indent() + '}\n'
+            return s
+        elif self.mode == "update":
+            s = ""
+            if not remeber_compound:
+                s = self._make_indent() + '{\n'
+            self.indent_level += 2
+            if n.block_items:
+                for index, stmt in enumerate(n.block_items):
+                    if not self.send_reached:
+                        aux_s = self._generate_stmt(stmt)
+                        if self.send_reached and isinstance(stmt, FuncCall):
+                            if index == len(n.block_items) - 1:
+                                self.send_last_instr = True
+                        elif self.send_reached:
+                            s += aux_s
+                    else:
+                        s += self._generate_stmt(stmt)
+            self.indent_level -= 2
+            if not remeber_compound:
+                s += self._make_indent() + '}\n'
+            if self.send_reached and not self.send_last_instr:
+                return s
+        return ""
+
 
 
 
@@ -997,13 +1131,13 @@ if __name__ == "__main__":
     generate_c_code_from_paths(paths_list, ast)
     """
     tree_gen = TreeGenerator()
-    ast = parse_file(filename="examples/c_files/funky.c", use_cpp=False)
+    ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
     whiles_to_if(get_extern_while_body(ast))
     #ast.show()
     #print tree_gen.visit(get_extern_while_body(ast))
 
-    label1_list = get_label(ast, "lab", "FIRST_ROUND")
-    label2_list = get_label(ast, "lab", "ALTCEVA")
+    label1_list = get_label(ast, "lab", "FOURTH_ROUND")
+    label2_list = get_label(ast, "lab", "AUX_ROUND")
     #print label1_list
     #print label2_list
 
@@ -1013,7 +1147,7 @@ if __name__ == "__main__":
 
     paths_list = []
 
-    tree_gen = TreeGenerator()
+    tree_gen = RoundGenerator("send")
 
     for source in label1_list:
         for dest in label2_list:
@@ -1025,7 +1159,7 @@ if __name__ == "__main__":
             if dest_list and source_list:
                 print tree_gen.visit(get_extern_while_body(aux_ast))
             #print "\n\nPAUZA\n\n"
-            paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
-            generate_c_code_from_paths_and_trees(paths_list)
+            #paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
+            #generate_c_code_from_paths_and_trees(paths_list)
 
 

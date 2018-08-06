@@ -4,7 +4,7 @@ from take_lab import *
 # from take_old import *
 
 # from cod_alex import show_func_calls
-
+from parse_test import RoundGenerator
 
 
 generator = c_generator.CGenerator()
@@ -28,7 +28,7 @@ whiles_to_if(x)
 copie = copy.deepcopy(ast)
 
 labels = get_labels("examples/c_files/tpc_AMIT_modificat.c", "lab")
-code = take_code_from_file(copie,"examples/c_files/tpc_AMIT_modificat.c","lab")
+trees_dict, code = take_code_from_file(copie,"examples/c_files/tpc_AMIT_modificat.c","lab")
 
 
 def find_indent(str):
@@ -94,7 +94,7 @@ def print_update(line_list, index):
         result += "\n"
     print result
 
-
+"""
 for label in labels[:len(labels) - 1]:
     start_indexes_of_update = []
     print "def round " + label + ":"
@@ -108,3 +108,17 @@ for label in labels[:len(labels) - 1]:
         string = code[label][i]
         new_list = string.split('\n')
         print_update(new_list, start_indexes_of_update[i])
+"""
+"""
+for label in labels[:len(labels) - 1]:
+    print "def round " + label + ":"
+    print "  SEND():"
+    for tree in trees_dict[label]:
+        print RoundGenerator("send").visit(get_extern_while_body(tree))
+    print "  UPDATE():"
+    for tree in trees_dict[label]:
+        print RoundGenerator("update").visit(get_extern_while_body(tree))
+"""
+#print "\n\nUPDATE\n\n"
+#print generator.visit(get_extern_while_body(trees_dict["SECOND_ROUND"][0]))
+#print RoundGenerator("update").visit(get_extern_while_body(trees_dict["SECOND_ROUND"][0]))
