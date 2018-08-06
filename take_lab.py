@@ -115,48 +115,65 @@ def remove_bad_paths(labels, paths_dict, labelname):
             paths.remove(z)
 
 
-def add_assign_in_tree(tree, change_conds=False):
+
+
+def take_cond(cond,label,lista):
+    """
+    construieste lista cu variabile care sunt de adaugat
+    primeste label pentru a stii in ce runda sunt si pentru a stii ce nume pun la variabila
+    :param cond:
+    :param label:
+    :param lista:
+    :return:
+    """
+
+    if isinstance(cond.left, StructRef):
+        if isinstance(cond.left.name, ID):
+            if "pid" not in cond.left.name.name:
+                aux = label + cond.left.name.name
+                cond.left.name.name = aux
+                if aux not in lista:
+                    lista.append(aux)
+        if isinstance(cond.left.name, ArrayRef):
+            array = cond.left.name
+            if "pid" not in array.name.name.name:
+                aux = label +  array.name.name.name
+                array.name.name.name = aux
+                if aux not in lista:
+                    lista.append(aux)
+
+    if isinstance(cond.left, ID):
+        # print cond.left.name
+        if "pid" not in  cond.left.name:
+            aux = label+ cond.left.name
+            cond.left.name = aux
+            if aux not in lista:
+                lista.append(aux)
+    if isinstance(cond,BinaryOp):
+        if isinstance(cond.left,BinaryOp):
+           take_cond(cond.left,label, lista)
+        if isinstance(cond.right, BinaryOp):
+            take_cond(cond.right,label, lista)
+
+
+
+def add_assign_in_tree(tree,label, change_conds=False):
     to_add = []
     # list = tree.children()
     if tree is not None:  # nu am idee unde ajunge aici pe None
         for i, item in enumerate(tree.block_items):
             if isinstance(item, If):
-                if isinstance(item.cond, BinaryOp):
-
-                    if isinstance(item.cond.left, StructRef):
-                        old_var = "old_" + item.cond.left.name.name
-
-                        assign = Assignment("=", ID(old_var), ID(item.cond.left.name.name), item.coord)
-
-                        if change_conds:
-                            item.cond.left.name.name = old_var
-
-                        to_add.append((i + len(to_add), assign))
-                        # pun + len(to_add) pentru ca daca adaug prima data un assign la pozitia 5, practic pozitia
-                        # se incrementeaza
-                    else:
-                        old_var = "old_" + item.cond.left.name
-                        assign = Assignment("=", ID(old_var), ID(item.cond.left.name), item.coord)
-
-                        if change_conds:
-                            item.cond.left.name = old_var
-
-                        to_add.append((i + len(to_add), assign))
-
-                else:
-
-                    old_var = "old_" + item.cond.name
-                    # print "aaaa", type(item.cond.name)
-                    assign = Assignment("=", ID(old_var), ID(item.cond.name), item.coord)
-
-                    if change_conds:
-                        item.cond.left.name = old_var
-
+                lista = []
+                lab = "old_" + label.replace("ROUND","")
+                take_cond(item.cond,lab,lista)
+                for element in lista:
+                    assign = Assignment("=", ID(element), ID(element.replace(lab,"")))
                     to_add.append((i + len(to_add), assign))
 
-                add_assign_in_tree(tree.block_items[i].iftrue, change_conds)
+
+                add_assign_in_tree(tree.block_items[i].iftrue,label, change_conds)
                 if tree.block_items[i].iffalse is not None:
-                    add_assign_in_tree(tree.block_items[i].iffalse, change_conds)
+                    add_assign_in_tree(tree.block_items[i].iffalse,label, change_conds)
 
     for index, element in to_add:
         tree.block_items.insert(index, element)
@@ -174,7 +191,7 @@ def add_ghost_assign(trees_dict,labels, change_conds=False):
     for x in labels:
         trees_list = trees_dict[x]
         for i in xrange(len(trees_list)):
-            add_assign_in_tree(get_extern_while_body(trees_list[i]), change_conds)
+            add_assign_in_tree(get_extern_while_body(trees_list[i]),x, change_conds)
 
 
 def print_code_from_dicts(labels, trees_dict, paths_dict):
@@ -209,4 +226,5 @@ def take_code_from_file(ast, filename, labelname):
     trees_dict = get_paths_trees(ast, labels, labelname)
     add_ghost_assign(trees_dict, labels,True)
     code = print_code_from_trees_only(trees_dict,labels)
+    # code = []
     return trees_dict, code
