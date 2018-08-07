@@ -62,8 +62,9 @@ void main(int pid, int leader, int num) {
 
 			commit = 1;
 			for (i = 0; i < mbox.len; i++) {
-				if (mbox.messages[i].response == NO)
+				if (mbox.messages[i].response == NO){
 					commit = 0;
+					}
 			}
 		}
 

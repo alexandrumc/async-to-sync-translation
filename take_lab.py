@@ -4,6 +4,22 @@ from pycparser.c_ast import *
 generator = c_generator.CGenerator()
 
 
+# coord = [0]
+
+def remove_numbers(string):
+    no_digits = []
+    # Iterate through the string, adding non-numbers to the no_digits list
+    for i in string:
+        if not i.isdigit():
+            no_digits.append(i)
+        else:
+            index = string.index(i)
+            i = int(i) + 1
+            no_digits.append(str(i))
+    result = ''.join(no_digits)
+    return result, index
+
+
 def get_extern_while_body(ast):
     for ext in ast.ext:
         if isinstance(ext, FuncDef) and ext.decl.name == "main":
@@ -48,8 +64,6 @@ def get_labels(filename, labelname):
 def get_paths_trees(ast, labels, labelname):
     trees_dict = {}
     paths_dict = {}
-
-
 
     for label1 in labels:
         trees_list = []
@@ -115,9 +129,36 @@ def remove_bad_paths(labels, paths_dict, labelname):
             paths.remove(z)
 
 
+def modify_cond(cond, new_cond):
+    if isinstance(cond, ID):
+        if "pid" not in cond.name:
+            aux = new_cond + cond.name
+            cond.name = aux
+
+    elif isinstance(cond.left, StructRef):
+        if isinstance(cond.left.name, ID):
+            if "pid" not in cond.left.name.name:
+                aux = new_cond + cond.left.name.name
+                cond.left.name.name = aux
+        if isinstance(cond.left.name, ArrayRef):
+            array = cond.left.name
+            if "pid" not in array.name.name.name:
+                aux = new_cond + array.name.name.name
+                array.name.name.name = aux
+
+    elif isinstance(cond.left, ID):
+        if "pid" not in cond.left.name:
+            aux = new_cond + cond.left.name
+            cond.left.name = aux
+
+    elif isinstance(cond, BinaryOp):
+        if isinstance(cond.left, BinaryOp):
+            modify_cond(cond.left, new_cond)
+        if isinstance(cond.right, BinaryOp):
+            modify_cond(cond.right, new_cond)
 
 
-def take_cond(cond,label,lista):
+def take_cond_name(cond, label, lista):
     """
     construieste lista cu variabile care sunt de adaugat
     primeste label pentru a stii in ce runda sunt si pentru a stii ce nume pun la variabila
@@ -126,54 +167,88 @@ def take_cond(cond,label,lista):
     :param lista:
     :return:
     """
-
-    if isinstance(cond.left, StructRef):
-        if isinstance(cond.left.name, ID):
-            if "pid" not in cond.left.name.name:
-                aux = label + cond.left.name.name
-                cond.left.name.name = aux
+    if isinstance(cond, ID):
+        if "pid" not in cond.name:
+            if "old" not in cond.name:
+                aux = label + cond.name
                 if aux not in lista:
                     lista.append(aux)
+
+    elif isinstance(cond.left, StructRef):
+        if isinstance(cond.left.name, ID):
+            if "pid" not in cond.left.name.name:
+                if "old" not in cond.left.name.name:
+                    aux = label + cond.left.name.name
+                    if aux not in lista:
+                        lista.append(aux)
         if isinstance(cond.left.name, ArrayRef):
             array = cond.left.name
             if "pid" not in array.name.name.name:
-                aux = label +  array.name.name.name
-                array.name.name.name = aux
+                if "old" not in array.name.name.name:
+                    aux = label + array.name.name.name
+                    if aux not in lista:
+                        lista.append(aux)
+
+    elif isinstance(cond.left, ID):
+        if "pid" not in cond.left.name:
+            if "old" not in cond.left.name:
+                aux = label + cond.left.name
                 if aux not in lista:
                     lista.append(aux)
-
-    if isinstance(cond.left, ID):
-        # print cond.left.name
-        if "pid" not in  cond.left.name:
-            aux = label+ cond.left.name
-            cond.left.name = aux
-            if aux not in lista:
-                lista.append(aux)
-    if isinstance(cond,BinaryOp):
-        if isinstance(cond.left,BinaryOp):
-           take_cond(cond.left,label, lista)
+    elif isinstance(cond, BinaryOp):
+        if isinstance(cond.left, BinaryOp):
+            take_cond_name(cond.left, label, lista)
         if isinstance(cond.right, BinaryOp):
-            take_cond(cond.right,label, lista)
+            take_cond_name(cond.right, label, lista)
 
 
-
-def add_assign_in_tree(tree,label, change_conds=False):
+def add_assign_in_tree(tree, label, variabile_old, original_ast):
     to_add = []
-    # list = tree.children()
+
     if tree is not None:  # nu am idee unde ajunge aici pe None
         for i, item in enumerate(tree.block_items):
+            if isinstance(item, For):
+                add_assign_in_tree(item.stmt,label,variabile_old,original_ast)
             if isinstance(item, If):
+                node = find_parent(original_ast, item)
+                index = node.block_items.index(item)
+
                 lista = []
-                lab = "old_" + label.replace("ROUND","")
-                take_cond(item.cond,lab,lista)
+                count = 0
+                lab = "old_" + label.replace("ROUND", "") + str(count) + "_"
+                new_lab = lab
+                take_cond_name(node.block_items[index].cond, lab, lista)
                 for element in lista:
-                    assign = Assignment("=", ID(element), ID(element.replace(lab,"")))
-                    to_add.append((i + len(to_add), assign))
+                    if element in variabile_old:
+                        count += 1
+                        new_lab = "old_" + label.replace("ROUND", "") + str(count) + "_"
+                        new_element = element.replace(lab, new_lab)
 
+                        assign = Assignment("=", ID(new_element), ID(element), item.coord)
+                    else:
 
-                add_assign_in_tree(tree.block_items[i].iftrue,label, change_conds)
+                        assign = Assignment("=", ID(element), ID(element.replace(lab, "")), item.coord)
+                    if index == 0:
+                        modify_cond(node.block_items[index].cond, new_lab)
+                        node.block_items.insert(index, assign)
+                        index += 1
+                        variabile_old.append(element)
+                    elif isinstance(node.block_items[index - 1], Assignment) \
+                            and "mbox" not in node.block_items[index - 1].lvalue.name:
+                        modify_cond(node.block_items[index].cond, new_lab)
+                        node.block_items.insert(index, assign)
+                        index += 1
+                        variabile_old.append(element)
+                    elif not isinstance(node.block_items[index - 1], Assignment):
+                        modify_cond(node.block_items[index].cond, new_lab)
+                        node.block_items.insert(index, assign)
+                        index += 1
+                        variabile_old.append(element)
+
+                # print type(tree.block_items[i].iftrue)
+                add_assign_in_tree(tree.block_items[i].iftrue, label, variabile_old, original_ast)
                 if tree.block_items[i].iffalse is not None:
-                    add_assign_in_tree(tree.block_items[i].iffalse,label, change_conds)
+                    add_assign_in_tree(tree.block_items[i].iffalse, label, variabile_old, original_ast)
 
     for index, element in to_add:
         tree.block_items.insert(index, element)
@@ -187,11 +262,11 @@ def add_assign_in_path(path, to_add):
                 path[i].insert(index, k[1])
 
 
-def add_ghost_assign(trees_dict,labels, change_conds=False):
+def add_ghost_assign(trees_dict, labels, original_ast):
     for x in labels:
         trees_list = trees_dict[x]
         for i in xrange(len(trees_list)):
-            add_assign_in_tree(get_extern_while_body(trees_list[i]),x, change_conds)
+            add_assign_in_tree(get_extern_while_body(trees_list[i]), x, [], original_ast)
 
 
 def print_code_from_dicts(labels, trees_dict, paths_dict):
@@ -205,26 +280,39 @@ def print_code_from_dicts(labels, trees_dict, paths_dict):
             generate_c_code_from_one_path(path, tree)
 
 
-def print_code_from_trees_only(trees_dict,labels):
+def print_code_from_trees_only(trees_dict, labels):
     code = {}
     gen = TreeGenerator()
     for x in labels:
-        code_for_label  = []
+        code_for_label = []
         trees_list = trees_dict[x]
         # print x
         for tree in trees_list:
             code_for_label.append(gen.visit(get_extern_while_body(tree)))
-            print gen.visit(get_extern_while_body(tree))
+            # print gen.visit(get_extern_while_body(tree))
 
         code[x] = code_for_label
     return code
 
 
+def print_rounds(labels, trees_dict):
+    for label in labels[:len(labels) - 1]:
+        print "def round " + label + ":"
+        print "  SEND():"
+        for tree in trees_dict[label]:
+            print RoundGenerator("send").visit(get_extern_while_body(tree))
+        print "  UPDATE():"
+        for tree in trees_dict[label]:
+            print RoundGenerator("update").visit(get_extern_while_body(tree))
+
+
 def take_code_from_file(ast, filename, labelname):
+    x = copy.deepcopy(ast)
     labels = get_labels(filename, labelname)
 
     trees_dict = get_paths_trees(ast, labels, labelname)
-    add_ghost_assign(trees_dict, labels,True)
-    code = print_code_from_trees_only(trees_dict,labels)
-    # code = []
+    add_ghost_assign(trees_dict, labels, ast)
+    trees_dict = get_paths_trees(ast, labels, labelname)
+    code = print_code_from_trees_only(trees_dict, labels)
+    print_rounds(labels,trees_dict)
     return trees_dict, code
