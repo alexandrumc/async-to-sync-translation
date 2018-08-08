@@ -40,46 +40,50 @@ int main(int pid, int num, int estimate) {
 		m->sender = myid;
 		m->timestamp = timestamp;
 
-		send_to_leader(m);
+		send(m, to_leader);
 
 		if (pid == leader) {
 			num_mbox = 0;
 			num_mbox_commit = 0;
-			if (mbox) free(mbox);
+			if (mbox) {
+				free(mbox);
+			}
 			msg *mbox = (msg *) malloc(num * sizeof(msg));
 
 			while (true) {
 				m = recv();
-				if (m != null) {
-					if (m->round == 1 && m->phase == phase) {
-						mbox[num_mbox] = *m;
-						num_mbox = num_mbox + 1;
-						if (num_mbox >= (num + 1) / 2) {
-							break;
-						}
-					}
-					if (m->round == 4) {
-						mbox[num_mbox] = *m;
+
+				if (m->round == 1 && m->phase == phase) {
+					mbox[num_mbox] = *m;
+					num_mbox = num_mbox + 1;
+					if (num_mbox >= (num + 1) / 2) {
 						break;
 					}
-					if (timeout) {
-						break;
-					}
+				}
+				if (m->round == 4) {
+					mbox[num_mbox] = *m;
+					break;
+				}
+				if (timeout) {
+					break;
 				}
 
-				if (mbox[num_mbox].round == 4) {
-					round = FOURTH_ROUND;
-					estimate = mbox[num_mbox].estimate;
-					state = 1;
-					break;
-				} else {
-					m = max;
-					{
-						m = max(m.ts,mbox);
-						estimate = m.estimate;
-					}
-				}
+
 			}
+
+
+			if (mbox[num_mbox].round == 4) {
+				round = FOURTH_ROUND;
+				estimate = mbox[num_mbox].estimate;
+				state = 1;
+				break;
+			} else {
+				m = max;
+				m = max(m.ts, mbox);
+				estimate = m.estimate;
+
+			}
+
 		}
 
 		round = SECOND_ROUND;
@@ -171,13 +175,15 @@ int main(int pid, int num, int estimate) {
 				state = 1;
 				break;
 			}
-			if (num_mbox >= (num + 1) / 2) ack = true;
+			if (num_mbox >= (num + 1) / 2) {
+				ack = 1;
+			}
 		}
 
 		round = FOURTH_ROUND;
 
 		if (pid == leader) {
-			m = (msg *)malloc(sizeof(msg));
+			m = (msg *) malloc(sizeof(msg));
 			m->sender = myidl;
 			m->phase = phase;
 			m->round = round;
@@ -206,6 +212,7 @@ int main(int pid, int num, int estimate) {
 		}
 
 		phase = phase + 1;
+		round = AUX_ROUND;
 	}
 
 }
