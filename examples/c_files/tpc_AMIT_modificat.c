@@ -33,7 +33,7 @@ void main(int pid, int leader, int num) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
-			if (timeout() || (mbox.num_msg >= 1 && mbox.messages[num_msg].sender == leader))
+			if ((mbox.num_msg >= 1 && mbox.messages[num_msg].sender == leader))
 				break;
 		}
 		if (mbox.messages[num_msg].payload > 0) {
@@ -56,7 +56,7 @@ void main(int pid, int leader, int num) {
 					mbox.messages[num_msg] = m;
 					mbox.num_msg++;
 				}
-				if (timeout() || mbox.num_msg == n / 100000)
+				if (mbox.num_msg == n / 100000)
 					break;
 			}
 
@@ -87,7 +87,7 @@ void main(int pid, int leader, int num) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
-			if (timeout() || (mbox.num_msg >= 1 && mbox.messages[num_msg].sender == leader))
+			if ((mbox.num_msg >= 1 && mbox.messages[num_msg].sender == leader))
 				break;
 
 		}
@@ -114,7 +114,7 @@ void main(int pid, int leader, int num) {
 					mbox.num_msg++;
 				}
 
-				if (timeout() || mbox.num_msg == n / 5000)
+				if (mbox.num_msg == n / 5000)
 					break;
 			}
 			count = count + 1;

@@ -3,14 +3,16 @@ from pycparser.c_ast import *
 
 generator = c_generator.CGenerator()
 
+
 def take_cond_to_break(if_to_check):
     if isinstance(if_to_check.iftrue, Break):
         return if_to_check.cond
     for el in if_to_check.iftrue:
         if isinstance(el, Break):
             return if_to_check.cond
-        if isinstance(el,If):
+        if isinstance(el, If):
             return take_cond_to_break(el)
+
 
 def take_all_if_to_break(while_to_check):
     conds = []
@@ -23,21 +25,32 @@ def take_all_if_to_break(while_to_check):
     return conds
 
 
-
 def modify_while(while_to_check):
     """
     modifica bucla while,pastreaza doar conditiile din if-ul in care se face break
     :param while_to_check:
     :return:
     """
-    line = None
-    for line in while_to_check.stmt:
-        if (isinstance(line, If)) and isinstance(line.iftrue, Break):
-            line.iftrue = None
-            if isinstance(line.cond, BinaryOp) and isinstance(line.cond.left,
-                                                              FuncCall) and line.cond.left.name.name == "timeout":
-                line.cond = line.cond
-    return line
+    conds = take_all_if_to_break(while_to_check)
+    # print len(conds)
+    # print generator.visit(conds[0])
+    # line = None
+    # for line in while_to_check.stmt:
+    #     if (isinstance(line, If)) and isinstance(line.iftrue, Break):
+    #         line.iftrue = None
+    #         if isinstance(line.cond, BinaryOp) and isinstance(line.cond.left,
+    #                                                           FuncCall) and line.cond.left.name.name == "timeout":
+    #             line.cond = line.cond
+
+    new_ifs = []
+    for cond in conds:
+        aux = If(cond, None, None, while_to_check.coord)
+        new_ifs.append(aux)
+
+    if len(new_ifs) == 1:
+        return new_ifs[0]
+
+    return new_ifs
 
 
 def to_modify(while_to_check):
@@ -55,7 +68,7 @@ def to_modify(while_to_check):
             if isinstance(line.rvalue, FuncCall) and str.lower(line.rvalue.name.name) == "recv":
                 recv = True
             left = line.lvalue
-            if isinstance(left,ID) and "mbox" in left.name:
+            if isinstance(left, ID) and "mbox" in left.name:
                 mbox = True
             if isinstance(left, ArrayRef) and isinstance(left.name, StructRef) and "mbox" in left.name.name.name:
                 # print "am mbox"
@@ -65,7 +78,8 @@ def to_modify(while_to_check):
                 # print type(comp)
                 # print type(comp.lvalue.name)
                 # if isinstance(comp.lvalue.name)
-                if isinstance(comp,Assignment) and isinstance(comp.lvalue.name, ID) and "mbox" in comp.lvalue.name.name:
+                if isinstance(comp, Assignment) and isinstance(comp.lvalue.name,
+                                                               ID) and "mbox" in comp.lvalue.name.name:
                     mbox = True
                 if isinstance(comp, Assignment) and isinstance(comp.lvalue, ArrayRef) and isinstance(comp.lvalue.name,
                                                                                                      StructRef) and \
@@ -91,6 +105,8 @@ def whiles_to_if(extern_while_body):
         element = aux.block_items[i]
 
         if isinstance(element, While) and to_modify(element):
+            # test = take_all_if_to_break(element)
+            # print len(test)
             coord = element.stmt.coord
             aux.block_items[i] = modify_while(element)
             list = aux.block_items[i + 1:]  # next code is part of iftrue
