@@ -909,7 +909,8 @@ class RoundGenerator(c_generator.CGenerator):
         return ""
 
     def visit_FuncCall(self, n):
-        if self.mode == "send" and not self.send_reached:
+        if self.mode == "send" and not self.send_reached \
+                or self.visit_cond:
             fref = self._parenthesize_unless_simple(n.name)
             s = fref + '(' + self.visit(n.args) + ')'
             if n.name.name == "send":
