@@ -42,7 +42,7 @@ int main(int pid, int num, int estimate) {
 		m->sender = myid;
 		m->timestamp = timestamp;
 
-		send_to_leader(m);
+		send(m,to_leader);
 
 		if (pid == leader) {
 			num_mbox = 0;
@@ -79,7 +79,7 @@ int main(int pid, int num, int estimate) {
 			m->phase = phase;
 			m->round = round;
 			m->estimate = estimate;
-			send_to_all(m);
+			send(m,to_all);
 		}
 
 		num_mbox = 0;
@@ -88,7 +88,6 @@ int main(int pid, int num, int estimate) {
 		}
 		msg *mbox = (msg *) malloc(num * sizeof(msg));
 
-        x = 5;
 		while (1) {
 			m = recv();
 			if (m->round == 2 && m->phase == phase) {
@@ -115,7 +114,7 @@ int main(int pid, int num, int estimate) {
 			m->sender = myid;
 			m->phase = phase;
 			m->round = round;
-			send_to_leader(m);
+			send(m,to_leader);
 		}
 
 
@@ -146,7 +145,7 @@ int main(int pid, int num, int estimate) {
 			m->round = round;
 			m->estimate = estimate;
 			m->ack = ack;
-			send_to_all(m);
+			send(m,to_all);
 		}
 
 

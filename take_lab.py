@@ -238,12 +238,18 @@ def add_assign_in_tree(tree, label, variabile_old, original_ast):
                         node.block_items.insert(index, assign)
                         index += 1
                         variabile_old.append(element)
-                    elif isinstance(node.block_items[index - 1], Assignment) \
-                            and "mbox" not in node.block_items[index - 1].lvalue.name:
-                        modify_cond(node.block_items[index].cond, new_lab)
-                        node.block_items.insert(index, assign)
-                        index += 1
-                        variabile_old.append(element)
+                    elif isinstance(node.block_items[index - 1], Assignment):
+                            if "mbox" in node.block_items[index - 1].lvalue.name and "old" not in node.block_items[index - 1].lvalue.name :
+                                modify_cond(node.block_items[index].cond, new_lab)
+                                node.block_items.insert(index, assign)
+                                index += 1
+                                variabile_old.append(element)
+
+                            elif "mbox" not in node.block_items[index - 1].lvalue.name:
+                                modify_cond(node.block_items[index].cond, new_lab)
+                                node.block_items.insert(index, assign)
+                                index += 1
+                                variabile_old.append(element)
                     elif not isinstance(node.block_items[index - 1], Assignment):
                         modify_cond(node.block_items[index].cond, new_lab)
                         node.block_items.insert(index, assign)
@@ -294,7 +300,7 @@ def print_code_from_trees_only(trees_dict, labels):
         # print x
         for tree in trees_list:
             code_for_label.append(gen.visit(get_extern_while_body(tree)))
-            print gen.visit(get_extern_while_body(tree))
+            # print gen.visit(get_extern_while_body(tree))
 
         code[x] = code_for_label
     return code
@@ -319,5 +325,5 @@ def take_code_from_file(ast, filename, labelname):
     add_ghost_assign(trees_dict, labels, ast)
     trees_dict = get_paths_trees(ast, labels, labelname)
     code = print_code_from_trees_only(trees_dict, labels)
-    # print_rounds(labels,trees_dict)
+    print_rounds(labels,trees_dict)
     return trees_dict, code
