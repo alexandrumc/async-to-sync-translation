@@ -77,6 +77,7 @@ def get_paths_trees(ast, labels, labelname):
             labels_end = get_label(ast, labelname, label2)
             # source_to_one_paths = []
             # source_to_one_trees = []
+
             for start in labels_start:
                 for end in labels_end:
                     cop = duplicate_element(ast)
@@ -170,31 +171,35 @@ def take_cond_name(cond, label, lista):
     if isinstance(cond, ID):
         if "pid" not in cond.name:
             if "old" not in cond.name:
-                aux = label + cond.name
-                if aux not in lista:
-                    lista.append(aux)
+                if "timeout" not in cond.name:
+                    aux = label + cond.name
+                    if aux not in lista:
+                        lista.append(aux)
 
     elif isinstance(cond.left, StructRef):
         if isinstance(cond.left.name, ID):
             if "pid" not in cond.left.name.name:
                 if "old" not in cond.left.name.name:
-                    aux = label + cond.left.name.name
-                    if aux not in lista:
-                        lista.append(aux)
+                    if "timeout" not in cond.left.name.name:
+                        aux = label + cond.left.name.name
+                        if aux not in lista:
+                            lista.append(aux)
         if isinstance(cond.left.name, ArrayRef):
             array = cond.left.name
             if "pid" not in array.name.name.name:
                 if "old" not in array.name.name.name:
-                    aux = label + array.name.name.name
-                    if aux not in lista:
-                        lista.append(aux)
+                    if "timeout" not in array.name.name.name:
+                        aux = label + array.name.name.name
+                        if aux not in lista:
+                            lista.append(aux)
 
     elif isinstance(cond.left, ID):
         if "pid" not in cond.left.name:
             if "old" not in cond.left.name:
-                aux = label + cond.left.name
-                if aux not in lista:
-                    lista.append(aux)
+                if "timeout" not in cond.left.name:
+                    aux = label + cond.left.name
+                    if aux not in lista:
+                        lista.append(aux)
     elif isinstance(cond, BinaryOp):
         if isinstance(cond.left, BinaryOp):
             take_cond_name(cond.left, label, lista)
@@ -289,7 +294,7 @@ def print_code_from_trees_only(trees_dict, labels):
         # print x
         for tree in trees_list:
             code_for_label.append(gen.visit(get_extern_while_body(tree)))
-            # print gen.visit(get_extern_while_body(tree))
+            print gen.visit(get_extern_while_body(tree))
 
         code[x] = code_for_label
     return code
@@ -314,5 +319,5 @@ def take_code_from_file(ast, filename, labelname):
     add_ghost_assign(trees_dict, labels, ast)
     trees_dict = get_paths_trees(ast, labels, labelname)
     code = print_code_from_trees_only(trees_dict, labels)
-    print_rounds(labels,trees_dict)
+    # print_rounds(labels,trees_dict)
     return trees_dict, code
