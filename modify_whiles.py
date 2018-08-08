@@ -3,6 +3,26 @@ from pycparser.c_ast import *
 
 generator = c_generator.CGenerator()
 
+def take_cond_to_break(if_to_check):
+    if isinstance(if_to_check.iftrue, Break):
+        return if_to_check.cond
+    for el in if_to_check.iftrue:
+        if isinstance(el, Break):
+            return if_to_check.cond
+        if isinstance(el,If):
+            return take_cond_to_break(el)
+
+def take_all_if_to_break(while_to_check):
+    conds = []
+    for el in while_to_check.stmt:
+        aux = None
+        if isinstance(el, If):
+            aux = take_cond_to_break(el)
+        if aux:
+            conds.append(aux)
+    return conds
+
+
 
 def modify_while(while_to_check):
     """
