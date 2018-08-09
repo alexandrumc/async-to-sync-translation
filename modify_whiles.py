@@ -47,8 +47,6 @@ def modify_while(while_to_check):
         aux = If(cond, None, None, while_to_check.coord)
         new_ifs.append(aux)
 
-    if len(new_ifs) == 1:
-        return new_ifs[0]
 
     return new_ifs
 
@@ -108,12 +106,25 @@ def whiles_to_if(extern_while_body):
             # test = take_all_if_to_break(element)
             # print len(test)
             coord = element.stmt.coord
-            aux.block_items[i] = modify_while(element)
+            # aux.block_items[i] = modify_while(element)
+            new_ifs = modify_while(element)
             list = aux.block_items[i + 1:]  # next code is part of iftrue
             extern_while_body.block_items[i + 1:] = []  # don't copy the next code
+            aux.block_items.remove(aux.block_items[i])
+            # aux.block_items[i] = None
+            nodes_to_add = []
+            for elem in new_ifs:
+                # print generator.visit(elem.cond)
+                elem.iftrue = Compound(list, coord)
+                # aux.block_items[i] = elem
+                # aux.block_items[i].iftrue = Compound(list, coord)  # current iftrue code is all the next code
+                nodes_to_add.append(elem)
+                # aux.block_items[i] = elem
+                # whiles_to_if(aux.block_items[i].iftrue)  # apply the function on the ifftrue
+            for node in nodes_to_add:
+                aux.block_items.insert(i,node)
+                whiles_to_if(node.iftrue)
 
-            aux.block_items[i].iftrue = Compound(list, coord)  # current iftrue code is all the next code
-            whiles_to_if(aux.block_items[i].iftrue)  # apply the function on the ifftrue
 
             break
         if isinstance(element, If):
@@ -130,11 +141,22 @@ def whiles_to_if(extern_while_body):
                             whiles_to_if(item.iftrue)  # nu stiu inca de ce trb sa pun asta aici
                     elif to_modify(item):
                         coord = item.stmt.coord
-                        aux = modify_while(item)
-                        aux.iftrue = Compound(element.iftrue.block_items[index + 1:], coord)
-                        element.iftrue.block_items[index] = aux
+                        # aux = modify_while(item)
+                        new_ifs = modify_while(item)
+                        lista = element.iftrue.block_items[index + 1:]
                         element.iftrue.block_items[index + 1:] = []
-                        whiles_to_if(element.iftrue)
+                        element.iftrue.block_items.remove(element.iftrue.block_items[index])
+                        nodes_to_add = []
+                        for elem in new_ifs:
+                            elem.iftrue = Compound(lista, coord)
+                            # aux.iftrue = Compound(lista, coord)
+                            # element.iftrue.block_items[index] = elem
+                            nodes_to_add.append(elem)
+                            # whiles_to_if(element.iftrue)
+                        for node in nodes_to_add:
+                            element.iftrue.block_items.insert(index,node)
+                            whiles_to_if(node.iftrue)
+
                         break
 
             if element.iffalse is not None:
@@ -145,11 +167,15 @@ def whiles_to_if(extern_while_body):
                         # print item
                     elif to_modify(item):
                         coord = item.stmt.coord
-                        aux = modify_while(item)
-                        aux.iftrue = Compound(element.iffalse.block_items[index + 1:], coord)
-                        element.iffalse.block_items[index] = aux
+                        new_ifs = modify_while(item)
+                        lista = element.iffalse.block_items[index + 1:]
                         element.iffalse.block_items[index + 1:] = []
-                        whiles_to_if(element.iffalse)
+                        for elem in new_ifs:
+                            aux = elem
+                            aux.iftrue = Compound(lista, coord)
+                            element.iffalse.block_items[index] = aux
+
+                            whiles_to_if(element.iffalse)
                         break
 
         i += 1
