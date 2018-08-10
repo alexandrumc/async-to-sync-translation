@@ -1,7 +1,30 @@
+import random
+
 from pycparser import c_generator
 from pycparser.c_ast import *
 
 generator = c_generator.CGenerator()
+
+def test(op):
+    if isinstance(op,UnaryOp):
+        for i in op:
+            if i.name.name == "timeout":
+                return True
+    return False
+
+def identify_recv_exits(extern_while_body, recv=None):
+    for elem in extern_while_body.block_items:
+        if isinstance(elem, If):
+            if isinstance(elem.cond,UnaryOp):
+                if test(elem.cond):
+                    elem.cond = UnaryOp("!",recv)
+
+            if elem.coord.line < 0:
+                identify_recv_exits(elem.iftrue, elem.cond)
+            else:
+                identify_recv_exits(elem.iftrue)
+                if elem.iffalse:
+                    identify_recv_exits(elem.iffalse)
 
 
 def take_cond_to_break(if_to_check):
@@ -9,7 +32,10 @@ def take_cond_to_break(if_to_check):
         return if_to_check.cond
     for el in if_to_check.iftrue:
         if isinstance(el, Break):
-            return if_to_check.cond
+            if isinstance(if_to_check.cond, FuncCall) and if_to_check.cond.name.name == "timeout":
+                pass
+            else:
+                return if_to_check.cond
         if isinstance(el, If):
             return take_cond_to_break(el)
 
@@ -32,23 +58,19 @@ def modify_while(while_to_check):
     :return:
     """
     conds = take_all_if_to_break(while_to_check)
-    # print len(conds)
-    # print generator.visit(conds[0])
-    # line = None
-    # for line in while_to_check.stmt:
-    #     if (isinstance(line, If)) and isinstance(line.iftrue, Break):
-    #         line.iftrue = None
-    #         if isinstance(line.cond, BinaryOp) and isinstance(line.cond.left,
-    #                                                           FuncCall) and line.cond.left.name.name == "timeout":
-    #             line.cond = line.cond
 
-    new_ifs = []
-    for cond in conds:
-        aux = If(cond, None, None, while_to_check.coord)
-        new_ifs.append(aux)
+    aux = conds[0]
+    if len(conds) > 1:
+        for cond in conds[1:]:
+            aux = BinaryOp('||', aux, cond)
 
-
-    return new_ifs
+    for i in aux:
+        if isinstance(i, FuncCall) and i.name.name == "timeout":
+            aux = aux.right
+    coord = while_to_check.coord
+    coord.line = -random.randint(1, 5000)
+    new_if = If(aux, None, None, coord)
+    return new_if
 
 
 def to_modify(while_to_check):
@@ -107,31 +129,19 @@ def whiles_to_if(extern_while_body):
             # print len(test)
             coord = element.stmt.coord
             # aux.block_items[i] = modify_while(element)
-            new_ifs = modify_while(element)
+            new_if = modify_while(element)
             list = aux.block_items[i + 1:]  # next code is part of iftrue
             extern_while_body.block_items[i + 1:] = []  # don't copy the next code
             aux.block_items.remove(aux.block_items[i])
-            # aux.block_items[i] = None
-            nodes_to_add = []
-            for elem in new_ifs:
-                # print generator.visit(elem.cond)
-                elem.iftrue = Compound(list, coord)
-                # aux.block_items[i] = elem
-                # aux.block_items[i].iftrue = Compound(list, coord)  # current iftrue code is all the next code
-                nodes_to_add.append(elem)
-                # aux.block_items[i] = elem
-                # whiles_to_if(aux.block_items[i].iftrue)  # apply the function on the ifftrue
-            for node in nodes_to_add:
-                aux.block_items.insert(i,node)
-                whiles_to_if(node.iftrue)
-
+            new_if.iftrue = Compound(list, coord)
+            aux.block_items.insert(i, new_if)
+            whiles_to_if(new_if.iftrue)
 
             break
         if isinstance(element, If):
             # if there is any if statement which contains
             # a recv loop in iftrue or iffalse it will be modified
-            # p = len(element.iftrue.block_items)
-            # print p
+
             if isinstance(element.iftrue, Compound):
                 for index, item in enumerate(element.iftrue.block_items):
 
@@ -141,21 +151,14 @@ def whiles_to_if(extern_while_body):
                             whiles_to_if(item.iftrue)  # nu stiu inca de ce trb sa pun asta aici
                     elif to_modify(item):
                         coord = item.stmt.coord
-                        # aux = modify_while(item)
-                        new_ifs = modify_while(item)
+
+                        new_if = modify_while(item)
                         lista = element.iftrue.block_items[index + 1:]
                         element.iftrue.block_items[index + 1:] = []
                         element.iftrue.block_items.remove(element.iftrue.block_items[index])
-                        nodes_to_add = []
-                        for elem in new_ifs:
-                            elem.iftrue = Compound(lista, coord)
-                            # aux.iftrue = Compound(lista, coord)
-                            # element.iftrue.block_items[index] = elem
-                            nodes_to_add.append(elem)
-                            # whiles_to_if(element.iftrue)
-                        for node in nodes_to_add:
-                            element.iftrue.block_items.insert(index,node)
-                            whiles_to_if(node.iftrue)
+                        new_if.iftrue = Compound(lista, coord)
+                        element.iftrue.block_items.insert(index, new_if)
+                        whiles_to_if(new_if.iftrue)
 
                         break
 

@@ -64,7 +64,7 @@ int main(int pid, int num, int estimate) {
 					mbox[num_mbox] = *m;
 					break;
 				}
-				if (timeout) {
+				if (timeout()) {
 					break;
 				}
 
@@ -118,7 +118,7 @@ int main(int pid, int num, int estimate) {
 				mbox[num_mbox] = *m;
 				break;
 			}
-			if (timeout) {
+			if (timeout()) {
 				break;
 			}
 		}
@@ -163,7 +163,7 @@ int main(int pid, int num, int estimate) {
 					mbox_est[num_mbox] = *m;
 					break;
 				}
-				if (timeout) {
+				if (timeout()) {
 					break;
 				}
 			}
@@ -199,7 +199,7 @@ int main(int pid, int num, int estimate) {
 			}
 
 			timeout = random;
-			if (timeout) {
+			if (timeout()) {
 				break;
 			}
 		}

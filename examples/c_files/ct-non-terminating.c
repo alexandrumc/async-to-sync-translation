@@ -64,7 +64,7 @@ int main(int pid, int num, int estimate) {
 
 
 			}
-			if (timeout != NULL) {
+			if (!timeout()) {
 				m = max_timestamp_from_msgs(m);
 				estimate = m.estimate;
 			}
@@ -102,7 +102,7 @@ int main(int pid, int num, int estimate) {
 
 
 
-		if (timeout != NULL) {
+		if (!timeout()) {
 			estimate = mbox[num_mbox].estimate;
 			timestamp = phase;
 		}
