@@ -3,8 +3,38 @@ from pycparser.c_ast import *
 
 generator = c_generator.CGenerator()
 
+def remove_mbox_assign_to_zero(extern_while_body):
+    to_delete = []
+    for elem in extern_while_body.block_items:
+        if isinstance(elem,Assignment) and "mbox" in elem.lvalue.name and int(elem.rvalue.value) == 0:
+            to_delete.append(elem)
+        if isinstance(elem,If):
+            remove_mbox_assign_to_zero(elem.iftrue)
+            if elem.iffalse:
+                remove_mbox_assign_to_zero(elem.iffalse)
 
-# coord = [0]
+    for x in to_delete:
+        extern_while_body.block_items.remove(x)
+
+def remove_mbox_free(extern_while_body):
+    to_delete = []
+    for elem in extern_while_body.block_items:
+        if isinstance(elem,If):
+            for line in elem.iftrue:
+                if isinstance(line,FuncCall) and line.name.name == "free":
+                    if line.args.exprs[0].name == "mbox":
+                        to_delete.append(elem)
+            remove_mbox_free(elem.iftrue)
+            if elem.iffalse:
+                remove_mbox_free(elem.iffalse)
+
+    for x in to_delete:
+        extern_while_body.block_items.remove(x)
+
+
+def remove_mbox(extern_while_body):
+    remove_mbox_assign_to_zero(extern_while_body)
+    remove_mbox_free(extern_while_body)
 
 def remove_numbers(string):
     no_digits = []

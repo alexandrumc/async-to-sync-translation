@@ -47,7 +47,7 @@ int main(int pid, int num, int estimate) {
 		if (pid == leader) {
 			num_mbox = 0;
 			num_mbox_commit = 0;
-			if (mbox != NULL) {
+			if (mbox) {
 				free(mbox);
 			}
 			msg *mbox = (msg *) malloc(num * sizeof(msg));
@@ -83,7 +83,7 @@ int main(int pid, int num, int estimate) {
 		}
 
 		num_mbox = 0;
-		if (mbox != NULL) {
+		if (mbox) {
 			free(mbox);
 		}
 		msg *mbox = (msg *) malloc(num * sizeof(msg));
