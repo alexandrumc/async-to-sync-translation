@@ -29,8 +29,13 @@ def identify_recv_exits(extern_while_body, conditii):
         if isinstance(elem, If):
 
             if test(elem.cond):
+
                 aux_cond = identify_exit_cond(elem, conditii)
-                elem.cond = UnaryOp('!',aux_cond)
+                if isinstance(elem.cond,UnaryOp) and elem.cond.op == '!':
+                    elem.cond = aux_cond
+                    #daca e !timeout => fix conditia de iesire
+                else:
+                    elem.cond = UnaryOp('!',aux_cond)
 
             else:
                 identify_recv_exits(elem.iftrue, conditii)
