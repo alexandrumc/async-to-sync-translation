@@ -43,26 +43,29 @@ def identify_recv_exits(extern_while_body, conditii):
                     identify_recv_exits(elem.iffalse, conditii)
 
 
-def take_cond_to_break(if_to_check):
+def take_cond_to_break(if_to_check,conds):
     if isinstance(if_to_check.iftrue, Break):
-        return if_to_check.cond
+        conds.append(if_to_check.cond)
     for el in if_to_check.iftrue:
         if isinstance(el, Break):
 
-            return if_to_check.cond
+            conds.append(if_to_check.cond)
         if isinstance(el, If):
-            return take_cond_to_break(el)
+            take_cond_to_break(el,conds)
+
 
 
 def take_all_if_to_break(while_to_check):
     conds = []
     for el in while_to_check.stmt:
+        aux_conds = []
         aux = None
         if isinstance(el, If):
-            aux = take_cond_to_break(el)
+            take_cond_to_break(el,aux_conds)
             # print generator.visit(aux)
-        if aux:
-            conds.append(aux)
+        if aux_conds:
+            for x in aux_conds:
+                conds.append(x)
     return conds
 
 

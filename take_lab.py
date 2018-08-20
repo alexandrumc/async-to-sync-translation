@@ -354,6 +354,6 @@ def take_code_from_file(ast, filename, labelname):
     trees_dict = get_paths_trees(ast, labels, labelname)
     # add_ghost_assign(trees_dict, labels, ast)
     # trees_dict = get_paths_trees(ast, labels, labelname)
-    code = print_code_from_trees_only(trees_dict, labels)
+    # code = print_code_from_trees_only(trees_dict, labels)
     # print_rounds(labels,trees_dict)
     return trees_dict, code
