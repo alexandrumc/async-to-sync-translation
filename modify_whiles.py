@@ -48,9 +48,7 @@ def take_cond_to_break(if_to_check):
         return if_to_check.cond
     for el in if_to_check.iftrue:
         if isinstance(el, Break):
-            # if isinstance(if_to_check.cond, FuncCall) and if_to_check.cond.name.name == "timeout":
-            #     pass
-            # else:
+
             return if_to_check.cond
         if isinstance(el, If):
             return take_cond_to_break(el)
@@ -62,6 +60,7 @@ def take_all_if_to_break(while_to_check):
         aux = None
         if isinstance(el, If):
             aux = take_cond_to_break(el)
+            # print generator.visit(aux)
         if aux:
             conds.append(aux)
     return conds
@@ -81,10 +80,11 @@ def modify_while(while_to_check):
             aux = BinaryOp('||', aux, cond)
 
     # print generator.visit(aux)
-    for i in aux:
-        if isinstance(i, FuncCall) and i.name.name == "timeout":
-            needed_if = False
-    aux = remove_timeout_from_cond(aux)
+    # for i in aux:
+    #     if isinstance(i, FuncCall) and i.name.name == "timeout":
+    #         needed_if = False
+    # print needed_if
+    aux, needed_if = remove_timeout_from_cond(aux, needed_if)
 
     coord = while_to_check.coord
     coord.line = -random.randint(1, 5000)
@@ -96,31 +96,43 @@ def modify_while(while_to_check):
         return aux
 
 
-def remove_timeout_from_cond(cond):
+def remove_timeout_from_cond(cond, needed_if):
+    """
+    removes the timeout from condition and returns the new conditions + needed_if
+    :param cond:
+    :param needed_if: if it is False, we don't need a new if instead of recv while
+    :return:
+    """
     if isinstance(cond.left, BinaryOp):
         if isinstance(cond.left.left, FuncCall) and cond.left.left.name.name == "timeout":
             cond.left = cond.left.right
+            needed_if = False
         if isinstance(cond.left.right, FuncCall) and cond.left.right.name.name == "timeout":
             cond.left = cond.left.left
+            needed_if = False
 
     if isinstance(cond.right, BinaryOp):
         if isinstance(cond.right.left, FuncCall) and cond.right.left.name.name == "timeout":
             cond.right = cond.right.right
+            needed_if = False
         if isinstance(cond.right.right, FuncCall) and cond.right.right.name.name == "timeout":
             cond.right = cond.right.left
+            needed_if = False
 
     if isinstance(cond.left, FuncCall) and cond.left.name.name == "timeout":
         cond = cond.right
+        needed_if = False
 
     if isinstance(cond.right, FuncCall) and cond.right.name.name == "timeout":
         cond = cond.left
+        needed_if = False
 
     if isinstance(cond.left, BinaryOp):
-        remove_timeout_from_cond(cond.left)
+        remove_timeout_from_cond(cond.left, needed_if)
     if isinstance(cond.right, BinaryOp):
-        remove_timeout_from_cond(cond.right)
+        remove_timeout_from_cond(cond.right,needed_if)
 
-    return cond
+    return cond, needed_if
 
 
 def to_modify(while_to_check):
