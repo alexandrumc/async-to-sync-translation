@@ -1400,7 +1400,7 @@ if __name__ == "__main__":
     # ast = parse_file(filename="/Users/alexandrum/ENS/pycparser/examples/c_files/two_phase.c", use_cpp=False)
     generator = c_generator.CGenerator()
 
-    # whiles_to_if(get_extern_while_body(ast))
+    # whiles_to_if(get_extern_while_body_from_func(ast))
 
     # print generator.visit(ast)
 
@@ -1412,8 +1412,8 @@ if __name__ == "__main__":
     label_source = label1_list[0]
     for label_dest in label2_list:
         aux_ast = duplicate_element(ast)
-        prune_tree(get_extern_while_body(aux_ast), label_source, label_dest, [], [])
-        print generator.visit(get_extern_while_body(aux_ast))
+        prune_tree(get_extern_while_body_from_func(aux_ast), label_source, label_dest, [], [])
+        print generator.visit(get_extern_while_body_from_func(aux_ast))
         paths_list = find_all_paths_to_label(aux_ast, label_source, label_dest)
         generate_c_code_from_paths(paths_list, aux_ast)
 
@@ -1432,8 +1432,8 @@ if __name__ == "__main__":
     ast = parse_file(filename="/Users/alexandrum/ENS/pycparser/examples/c_files/two_phase.c", use_cpp=False)
     label1 = get_label(ast, "lab", "1")
     label2 = get_label(ast, "lab", "2")
-    prune_tree(get_extern_while_body(ast), label1, label2, [], [])
-    print(generator.visit(get_extern_while_body(ast)))
+    prune_tree(get_extern_while_body_from_func(ast), label1, label2, [], [])
+    print(generator.visit(get_extern_while_body_from_func(ast)))
     paths_list = find_all_paths_to_label(ast, "lab", "1", "2")
     generate_c_code_from_paths(paths_list, ast)
     """
@@ -1441,7 +1441,7 @@ if __name__ == "__main__":
     ast = parse_file(filename="examples/c_files/ct-terminating.c", use_cpp=False)
     whiles_to_if(get_extern_while_body(ast), [])
     #ast.show()
-    #print tree_gen.visit(get_extern_while_body(ast))
+    #print tree_gen.visit(get_extern_while_body_from_func(ast))
 
     label1_list = get_label(ast, "round", "FIRST_ROUND")
     label2_list = get_label(ast, "round", "SECOND_ROUND")

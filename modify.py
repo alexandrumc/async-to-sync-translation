@@ -2,7 +2,6 @@ import copy
 
 from take_lab import *
 # from take_old import *
-from incercare import take_paths
 # from cod_alex import show_func_calls
 from parse_test import RoundGenerator
 
@@ -16,22 +15,26 @@ generator = c_generator.CGenerator()
 
 
 #
-ast = parse_file(filename="examples/c_files/ct-non-terminating.c", use_cpp=False)
+ast = parse_file(filename="examples/c_files/ct-terminating.c", use_cpp=False)
 extern_while_body = None
 
-x = get_extern_while_body(ast)
+x = get_extern_while_body_from_func(ast, "main")
 conditii = []
 whiles_to_if(x, conditii)
 
 identify_recv_exits(x, conditii)
 remove_mbox(x)
 
+test = get_labels_order("examples/c_files/ct-terminating.c",'round')
+# print test
+print generator.visit(x)
 
+trees_dict, code = take_code_from_file(ast,"examples/c_files/ct-terminating.c",'round')
 # copie = copy.deepcopy(ast)
 
 
 
-print generator.visit(x)
+# print generator.visit(x)
 
 
 
