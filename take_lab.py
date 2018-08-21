@@ -107,16 +107,16 @@ def get_labels_order(filename, labelname):
     return aux_list
 
 
-def get_paths_trees(ast, labels, labelname):
+def get_paths_trees(ast, labels,labels_sorted, labelname):
     trees_dict = {}
     trees_paths_dict = {}
 
-    for label1 in labels:
+    for label1 in labels_sorted:
         trees_list = []
         trees_paths_list = []
         labels_start = get_label(ast, labelname, label1)
 
-        for label2 in labels[labels.index(label1) + 1:]:
+        for label2 in labels_sorted[labels_sorted.index(label1) + 1:]:
 
             labels_end = get_label(ast, labelname, label2)
 
@@ -135,8 +135,9 @@ def get_paths_trees(ast, labels, labelname):
                             trees_list.append(cop)
                         else:
                             # print start, end
-                            aux = find_all_paths_to_label_modified(cop, start, end)
-                            trees_paths_list.append(aux)
+                            if labels != labels_sorted:
+                                aux = find_all_paths_to_label_modified(cop, start, end)
+                                trees_paths_list.append(aux)
 
         trees_dict[label1] = trees_list
         trees_paths_dict[label1] = trees_paths_list
@@ -144,11 +145,15 @@ def get_paths_trees(ast, labels, labelname):
 
 
 def modify_cond(cond, new_cond):
+
+
     if isinstance(cond, ID):
         if "pid" not in cond.name:
             aux = new_cond + cond.name
             cond.name = aux
 
+    elif isinstance(cond,UnaryOp):
+        modify_cond(cond.expr, new_cond)
     elif isinstance(cond.left, StructRef):
         if isinstance(cond.left.name, ID):
             if "pid" not in cond.left.name.name:
@@ -156,9 +161,14 @@ def modify_cond(cond, new_cond):
                 cond.left.name.name = aux
         if isinstance(cond.left.name, ArrayRef):
             array = cond.left.name
-            if "pid" not in array.name.name.name:
-                aux = new_cond + array.name.name.name
-                array.name.name.name = aux
+            if isinstance(array, ArrayRef):
+                if "pid" not in array.name.name:
+                    aux = new_cond + array.name.name
+                    array.name.name = aux
+            else:
+                if "pid" not in array.name.name.name:
+                    aux = new_cond + array.name.name.name
+                    array.name.name.name = aux
 
     elif isinstance(cond.left, ID):
         if "pid" not in cond.left.name:
@@ -182,7 +192,10 @@ def take_cond_name(cond, label, lista):
     :return:
     """
     strings = ['pid', 'old', 'timeout']
-    if isinstance(cond, ID):
+    if isinstance(cond,UnaryOp):
+        take_cond_name(cond.expr,label,lista)
+
+    elif isinstance(cond, ID):
         if not any(x in cond.name for x in strings):
             aux = label + cond.name
             if aux not in lista:
@@ -197,10 +210,17 @@ def take_cond_name(cond, label, lista):
 
         if isinstance(cond.left.name, ArrayRef):
             array = cond.left.name
-            if not any(x in array.name.name.name for x in strings):
-                aux = label + array.name.name.name
-                if aux not in lista:
-                    lista.append(aux)
+            if isinstance(array,ArrayRef):
+                if not any(x in array.name.name for x in strings):
+                    aux = label + array.name.name
+                    if aux not in lista:
+                        lista.append(aux)
+            else:
+                print type(array)
+                if not any(x in array.name.name.name for x in strings):
+                    aux = label + array.name.name.name
+                    if aux not in lista:
+                        lista.append(aux)
 
     elif isinstance(cond.left, ID):
         if not any(x in cond.left.name for x in strings):
@@ -335,11 +355,12 @@ def print_rounds(labels, trees_dict):
 
 def take_code_from_file(ast, filename, labelname):
     x = copy.deepcopy(ast)
-    labels = get_labels_order(filename, labelname)
+    labels_sorted = get_labels_order(filename, labelname)
+    labels = get_labels(filename,labelname)
     # print labels
-    trees_dict, trees_paths_dict = get_paths_trees(ast, labels, labelname)
+    trees_dict, trees_paths_dict = get_paths_trees(ast, labels,labels_sorted, labelname)
     # add_ghost_assign(trees_dict, labels, ast)
-    # trees_dict = get_paths_trees(ast, labels, labelname)
+    # trees_dict, trees_paths_dict = get_paths_trees(ast, labels,labels_sorted, labelname)
     # code = get_code_from_trees_only(trees_dict, labels)
     # print_code_from_trees_paths(trees_paths_dict, labels)
     # print_rounds(labels,trees_dict)
