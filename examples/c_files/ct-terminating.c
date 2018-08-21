@@ -204,7 +204,7 @@ int main(int pid, int num, int estimate) {
 			}
 		}
 
-		if (m != null) {
+		if (!timeout()) {
 			round = FOURTH_ROUND;
 			estimate = m.estimate;
 			state = 1;

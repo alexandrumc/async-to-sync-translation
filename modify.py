@@ -20,14 +20,14 @@ ast = parse_file(filename="examples/c_files/ct-non-terminating.c", use_cpp=False
 extern_while_body = None
 
 x = get_extern_while_body(ast)
+conditii = []
+whiles_to_if(x, conditii)
 
-whiles_to_if(x)
-
-identify_recv_exits(x)
+identify_recv_exits(x, conditii)
 remove_mbox(x)
 
 
-copie = copy.deepcopy(ast)
+# copie = copy.deepcopy(ast)
 
 
 
