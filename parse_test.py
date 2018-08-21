@@ -864,29 +864,43 @@ class PathGenerator(c_generator.CGenerator):
         in path
         """
         self.visit_condition = False
+        self.extend_visit = False
 
     def visit_Compound(self, n):
-        if n in self.path:
+        if n in self.path or self.extend_visit:
             s = self._make_indent() + '{\n'
             self.indent_level += 2
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
             if n.block_items:
                 s += ''.join(self._generate_stmt(stmt) for stmt in n.block_items if stmt in self.path)
             self.indent_level -= 2
             s += self._make_indent() + '}\n'
+            if changed_value:
+                self.extend_visit = False
             return s
         else:
             return ''
 
     def visit_Assignment(self, n):
-        if n in self.path:
+        if n in self.path or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
             rval_str = self._parenthesize_if(
                 n.rvalue,
                 lambda n: isinstance(n, c_ast.Assignment))
-            return '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
+            s = '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
+            if changed_value:
+                self.extend_visit = False
+            return s
         return ''
 
     def visit_If(self, n):
-        if n in self.path:
+        if n in self.path or self.extend_visit:
             s = 'if ('
             self.visit_condition = True
             if n.cond:
@@ -917,12 +931,18 @@ class PathGenerator(c_generator.CGenerator):
                 s += self.visit(n.cond)
             self.visit_condition = False
             s += ')\n'
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
             if n.iftrue in self.path:
                 s += self._generate_stmt(n.iftrue, add_indent=True)
             else:
                 if n.iffalse:
                     # s += self._make_indent()
                     s += self._generate_stmt(n.iffalse, add_indent=True)
+            if changed_value:
+                self.extend_visit = False
             return s
         return ''
 
@@ -933,34 +953,67 @@ class PathGenerator(c_generator.CGenerator):
         return s
 
     def visit_FuncCall(self, n):
-        if n in self.path or self.visit_condition:
+        if n in self.path or self.visit_condition or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
             fref = self._parenthesize_unless_simple(n.name)
-            return fref + '(' + self.visit(n.args) + ')'
+            s = fref + '(' + self.visit(n.args) + ')'
+            if changed_value:
+                self.extend_visit = False
+            return s
         return ''
 
     def visit_UnaryOp(self, n):
-        if n in self.path or self.visit_condition:
+        if n in self.path or self.visit_condition or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
             operand = self._parenthesize_unless_simple(n.expr)
             if n.op == 'p++':
-                return '%s++' % operand
+                s = '%s++' % operand
+                if changed_value:
+                    self.extend_visit = False
+                return s
             elif n.op == 'p--':
-                return '%s--' % operand
+                s = '%s--' % operand
+                if changed_value:
+                    self.extend_visit = False
+                return s
             elif n.op == 'sizeof':
                 # Always parenthesize the argument of sizeof since it can be
                 # a name.
-                return 'sizeof(%s)' % self.visit(n.expr)
+                s = 'sizeof(%s)' % self.visit(n.expr)
+                if changed_value:
+                    self.extend_visit = False
+                return s
             else:
-                return '%s%s' % (n.op, operand)
+                s = '%s%s' % (n.op, operand)
+                if changed_value:
+                    self.extend_visit = False
+                return s
         return ''
 
     def visit_BinaryOp(self, n):
-        if n in self.path or self.visit_condition:
+        if n in self.path or self.visit_condition or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
             lval_str = self._parenthesize_if(n.left,
                                              lambda d: not self._is_simple_node(d))
             rval_str = self._parenthesize_if(n.right,
                                              lambda d: not self._is_simple_node(d))
-            return '%s %s %s' % (lval_str, n.op, rval_str)
+            s = '%s %s %s' % (lval_str, n.op, rval_str)
+            if changed_value:
+                self.extend_visit = False
+            return s
         return ''
+
+
+
 
 
 class TreeGenerator(c_generator.CGenerator):
@@ -1385,13 +1438,13 @@ if __name__ == "__main__":
     generate_c_code_from_paths(paths_list, ast)
     """
     tree_gen = TreeGenerator()
-    ast = parse_file(filename="examples/c_files/funky.c", use_cpp=False)
-    whiles_to_if(get_extern_while_body(ast))
+    ast = parse_file(filename="examples/c_files/ct-terminating.c", use_cpp=False)
+    whiles_to_if(get_extern_while_body(ast), [])
     #ast.show()
     #print tree_gen.visit(get_extern_while_body(ast))
 
-    label1_list = get_label(ast, "lab", "FIRST_ROUND")
-    label2_list = get_label(ast, "lab", "SECOND_ROUND")
+    label1_list = get_label(ast, "round", "FIRST_ROUND")
+    label2_list = get_label(ast, "round", "SECOND_ROUND")
     #print label1_list
     #print label2_list
 
