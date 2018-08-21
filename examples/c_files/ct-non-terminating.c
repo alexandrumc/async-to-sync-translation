@@ -35,7 +35,7 @@ int main(int pid, int num, int estimate) {
 
 		round = FIRST_ROUND;
 
-		m = (msg *) malloc(sizeof(msg));
+		m = malloc(sizeof(msg));
 		m->phase = phase;
 		m->round = round;
 		m->estimate = estimate;
