@@ -56,7 +56,11 @@ int main()
                 {
                     poate++;
                 }
-                jet++;
+                monop++;
+            }
+            if (paris)
+            {
+                inria++;
             }
             lab = ALTCEVA;
         }
@@ -87,7 +91,7 @@ int main()
                     }
                     else
                     {
-                        plm++;
+                        ens++;
                     }
                     nush_sef--;
                 }

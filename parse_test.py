@@ -259,7 +259,8 @@ def find_all_paths_util(current_node, source_node, dest_node, path, parent_list,
 
 
 def find_all_paths_util_modified(current_node, source_node, dest_node, path, parent_list, grandparent_list, paths_list,
-                                 source_reached, tree, last_if, depht, lastif_depth):
+                                 source_reached, tree, last_if, parent_index, last_if_child):
+
     to_delete = []
     ok = True
     if current_node is not None:
@@ -269,10 +270,17 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
         for tupleChild in current_node.children():
             child = tupleChild[1]
             parent = child
-
+            last_if_child_aux = True
             if isinstance(child, If):
                 parent_list.append(parent)
                 grandparent_list.append(grandparent)
+                index = grandparent.block_items.index(parent)
+                parent_index.append(index)
+
+                other_children = current_node.block_items[(index + 1):]
+                for other_child in other_children:
+                    if isinstance(other_child, If):
+                        last_if_child_aux = False
 
                 path1 = path[:]
                 path2 = path[:]
@@ -283,34 +291,121 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 gp1 = grandparent_list[:]
                 pl2 = parent_list[:]
                 gp2 = grandparent_list[:]
+
+                pi1 = parent_index[:]
+                pi2 = parent_index[:]
+
                 if child.iffalse is not None:
-                    old_depth = depht
-                    depht += 1
-                    find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                                 source_reached, tree, last_if, depht, lastif_depth)
-                    depht = old_depth + 1
-                    find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, pl2, gp2, paths_list,
-                                                 source_reached, tree, last_if, depht, lastif_depth)
-                    depht = old_depth
+                    new_tree_1 = duplicate_element(tree)
+                    new_tree_2 = duplicate_element(tree)
+
+                    new_parent_list_1 = []
+                    new_grandparent_list_1 = []
+                    new_grandparent_list_2 = []
+                    new_parent_list_2 = []
+
+                    for parent_node in parent_list:
+                        new_parent_list_1.append(find_node(new_tree_1, parent_node))
+                        new_parent_list_2.append(find_node(new_tree_2, parent_node))
+
+                    for grandparent_node in grandparent_list:
+                        new_grandparent_list_1.append(find_node(new_tree_1, grandparent_node))
+                        new_grandparent_list_2.append(find_node(new_tree_2, grandparent_node))
+
+                    if last_if is not None:
+
+                        last_if_in_new_tree_1 = find_node(new_tree_1, last_if)
+                        if find_node(last_if_in_new_tree_1, child) is None:
+                            last_if_in_new_tree_1.block_items.append(child)
+                            to_delete.append(child)
+
+                        last_if_in_new_tree_2 = find_node(new_tree_2, last_if)
+                        if find_node(last_if_in_new_tree_2, child) is None:
+                            last_if_in_new_tree_2.block_items.append(child)
+                            if child not in to_delete:
+                                to_delete.append(child)
+
+                        new_grandparent_1 = find_node(new_tree_1, grandparent)
+                        new_grandparent_2 = find_node(new_tree_2, grandparent)
+
+                        for node in to_delete:
+                            new_grandparent_1.block_items.remove(node)
+                            new_grandparent_2.block_items.remove(node)
+
+                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
+                                                     new_grandparent_list_1, paths_list, source_reached, new_tree_1,
+                                                     last_if_in_new_tree_1, pi1, last_if_child_aux)
+
+                        find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, new_parent_list_2,
+                                                     new_grandparent_list_2, paths_list, source_reached, new_tree_2,
+                                                     last_if_in_new_tree_2, pi2, last_if_child_aux)
+                    else:
+
+                        new_grandparent_1 = find_node(new_tree_1, grandparent)
+                        new_grandparent_2 = find_node(new_tree_2, grandparent)
+
+                        for node in to_delete:
+                            new_grandparent_1.block_items.remove(node)
+                            new_grandparent_2.block_items.remove(node)
+
+                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
+                                                     new_grandparent_list_1, paths_list, source_reached, new_tree_1,
+                                                     None, pi1, last_if_child_aux)
+
+                        find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, new_parent_list_2,
+                                                     new_grandparent_list_2, paths_list, source_reached, new_tree_2,
+                                                     None, pi2, last_if_child_aux)
                 else:
-                    old_depth = depht
-                    depht += 1
-                    find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                                 source_reached, tree, last_if, depht, lastif_depth)
+
+                    new_tree_1 = duplicate_element(tree)
+                    new_parent_list_1 = []
+                    new_grandparent_list_1 = []
+
+                    for parent_node in parent_list:
+                        new_parent_list_1.append(find_node(new_tree_1, parent_node))
+
+                    for grandparent_node in grandparent_list:
+                        new_grandparent_list_1.append(find_node(new_tree_1, grandparent_node))
+
+                    if last_if is not None:
+
+                        last_if_in_new_tree_1 = find_node(new_tree_1, last_if)
+                        if find_node(last_if_in_new_tree_1, child) is None:
+                            last_if_in_new_tree_1.block_items.append(child)
+                            to_delete.append(child)
+
+                        new_grandparent_1 = find_node(new_tree_1, grandparent)
+
+                        for node in to_delete:
+                            new_grandparent_1.block_items.remove(node)
+
+                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
+                                                     new_grandparent_list_1, paths_list, source_reached, new_tree_1,
+                                                     last_if_in_new_tree_1, pi1, last_if_child_aux)
+
+                    else:
+                        new_grandparent_1 = find_node(new_tree_1, grandparent)
+
+                        for node in to_delete:
+                            new_grandparent_1.block_items.remove(node)
+
+                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
+                                                     new_grandparent_list_1, paths_list, source_reached, new_tree_1,
+                                                     None, pi1, last_if_child_aux)
 
                     new_tree = duplicate_element(tree)
-                    new_child = find_node(new_tree, child)
+                    new_parent = find_node(new_tree, child)
 
                     gen = c_generator.CGenerator()
                     condition = ''
                     condition += gen.visit(child.cond)
 
-                    new_child.cond = ID(condition, child.coord)
-                    new_child.iffalse = Compound([], new_child.iftrue.coord)
-                    new_child.iftrue = None
+                    new_parent.cond = ID(condition, child.coord)
+                    new_parent.iffalse = Compound([], new_parent.iftrue.coord)
+                    new_parent.iftrue = None
 
-                    path.append(new_child)
-                    path.append(new_child.iffalse)
+                    path.append(new_parent)
+                    path.append(new_parent.iffalse)
 
                     new_parent_list = []
                     new_grandparent_list = []
@@ -321,12 +416,19 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                     for grandparent_node in grandparent_list:
                         new_grandparent_list.append(find_node(new_tree, grandparent_node))
 
-                    depht = old_depth + 1
+                    if last_if is not None:
+                        last_if_in_new_tree = find_node(new_tree, last_if)
+                        if find_node(last_if_in_new_tree, new_parent) is None:
+                            last_if_in_new_tree.block_items.append(new_parent)
+
+                    new_grandparent = find_node(new_tree, grandparent)
+
+                    for node in to_delete:
+                        new_grandparent.block_items.remove(node)
 
                     find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list,
                                                  new_grandparent_list, paths_list, source_reached, new_tree,
-                                                 new_child.iffalse, depht, old_depth)
-                    depht = old_depth
+                                                 new_parent.iffalse, pi2, last_if_child_aux)
 
                 ok = False
                 break
@@ -334,7 +436,7 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 path.append(child)
 
                 if last_if is not None:
-                    if depht == lastif_depth:
+                    if find_node(last_if, child) is None:
                         last_if.block_items.append(child)
                         to_delete.append(child)
 
@@ -353,83 +455,201 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
     if parent_list and grandparent_list and ok is True:
         while grandparent_list:
             to_delete = []
-            grandparent = grandparent_list[-1]
+            grandparent = grandparent_list.pop()
             parent = parent_list.pop()
-
-            depht = depht - 1
+            p_index = parent_index.pop()
 
             j = 0
+            found_parent = False
             for j, tupleChild in enumerate(grandparent.children()):
                 if tupleChild[1] == parent:
+                    found_parent = True
                     break
-            remained_children = grandparent.children()[(j + 1):]
+            if found_parent:
+                remained_children = grandparent.children()[(j + 1):]
+            else:
+                remained_children = grandparent.children()[p_index:]
+
+            return_after_call = False
 
             for tupleChild in remained_children:
                 child = tupleChild[1]
                 parent = child
 
+                last_if_child_aux = True
                 if isinstance(child, If):
-                    parent_list.append(parent)
 
                     path1 = path[:]
                     path2 = path[:]
                     path1.append(parent)
                     path2.append(parent)
 
+                    index = grandparent.block_items.index(parent)
+                    other_children = grandparent.block_items[(index + 1):]
+                    for other_child in other_children:
+                        if isinstance(other_child, If):
+                            last_if_child_aux = False
+
                     pl1 = parent_list[:]
+                    pl1.append(parent)
+
                     gp1 = grandparent_list[:]
+                    gp1.append(grandparent)
+
                     pl2 = parent_list[:]
+                    pl2.append(parent)
+
                     gp2 = grandparent_list[:]
+                    gp2.append(grandparent)
+
+                    pi1 = parent_index[:]
+                    pi1.append(grandparent.block_items.index(parent))
+
+                    pi2 = parent_index[:]
+                    pi2.append(grandparent.block_items.index(parent))
 
                     if child.iffalse is not None:
-                        old_depth = depht
-                        depht += 1
-                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                                     source_reached, tree, last_if, depht, lastif_depth)
-                        depht = old_depth + 1
-                        find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, pl2, gp2, paths_list,
-                                                     source_reached, tree, last_if, depht, lastif_depth)
-                        depht = old_depth
+                        new_tree_1 = duplicate_element(tree)
+                        new_tree_2 = duplicate_element(tree)
+
+                        new_parent_list_1 = []
+                        new_grandparent_list_1 = []
+                        new_grandparent_list_2 = []
+                        new_parent_list_2 = []
+
+                        for parent_node in pl1:
+                            new_parent_list_1.append(find_node(new_tree_1, parent_node))
+                            new_parent_list_2.append(find_node(new_tree_2, parent_node))
+
+                        for grandparent_node in gp1:
+                            new_grandparent_list_1.append(find_node(new_tree_1, grandparent_node))
+                            new_grandparent_list_2.append(find_node(new_tree_2, grandparent_node))
+
+                        if last_if is not None:
+
+                            last_if_in_new_tree_1 = find_node(new_tree_1, last_if)
+                            if find_node(last_if_in_new_tree_1, child) is None:
+                                last_if_in_new_tree_1.block_items.append(child)
+                                to_delete.append(child)
+
+                            last_if_in_new_tree_2 = find_node(new_tree_2, last_if)
+                            if find_node(last_if_in_new_tree_2, child) is None:
+                                last_if_in_new_tree_2.block_items.append(child)
+                                if child not in to_delete:
+                                    to_delete.append(child)
+
+                            new_grandparent_1 = find_node(new_tree_1, grandparent)
+                            new_grandparent_2 = find_node(new_tree_2, grandparent)
+
+                            for node in to_delete:
+                                new_grandparent_1.block_items.remove(node)
+                                new_grandparent_2.block_items.remove(node)
+
+                            find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
+                                                         new_grandparent_list_1, paths_list, source_reached, new_tree_1,
+                                                         last_if_in_new_tree_1, pi1, last_if_child_aux)
+
+                            find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
+                                                         new_parent_list_2, new_grandparent_list_2, paths_list,
+                                                         source_reached, new_tree_2, last_if_in_new_tree_2, pi2, last_if_child_aux)
+                        else:
+
+                            new_grandparent_1 = find_node(new_tree_1, grandparent)
+                            new_grandparent_2 = find_node(new_tree_2, grandparent)
+
+                            for node in to_delete:
+                                new_grandparent_1.block_items.remove(node)
+                                new_grandparent_2.block_items.remove(node)
+
+                            find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
+                                                         new_grandparent_list_1, paths_list, source_reached, new_tree_1,
+                                                         None, pi1, last_if_child_aux)
+
+                            find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
+                                                         new_parent_list_2, new_grandparent_list_2, paths_list,
+                                                         source_reached, new_tree_2, None, pi2,
+                                                         last_if_child_aux)
+
                     else:
-                        old_depth = depht
-                        depht += 1
-                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                                     source_reached, tree, last_if, depht, lastif_depth)
+                        new_tree_1 = duplicate_element(tree)
+                        new_parent_list_1 = []
+                        new_grandparent_list_1 = []
+
+                        for parent_node in pl1:
+                            new_parent_list_1.append(find_node(new_tree_1, parent_node))
+
+                        for grandparent_node in gp1:
+                            new_grandparent_list_1.append(find_node(new_tree_1, grandparent_node))
+
+                        if last_if is not None:
+
+                            last_if_in_new_tree_1 = find_node(new_tree_1, last_if)
+                            if find_node(last_if_in_new_tree_1, child) is None:
+                                last_if_in_new_tree_1.block_items.append(child)
+                                to_delete.append(child)
+
+                            new_grandparent_1 = find_node(new_tree_1, grandparent)
+
+                            for node in to_delete:
+                                new_grandparent_1.block_items.remove(node)
+
+                            find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
+                                                         new_grandparent_list_1, paths_list, source_reached, new_tree_1,
+                                                         last_if_in_new_tree_1, pi1, last_if_child_aux)
+
+                        else:
+                            new_grandparent_1 = find_node(new_tree_1, grandparent)
+
+                            for node in to_delete:
+                                new_grandparent_1.block_items.remove(node)
+
+                            find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
+                                                         new_grandparent_list_1, paths_list, source_reached, new_tree_1,
+                                                         None, pi1, last_if_child_aux)
 
                         new_tree = duplicate_element(tree)
-                        new_child = find_node(new_tree, child)
+                        new_parent = find_node(new_tree, child)
 
                         gen = c_generator.CGenerator()
                         condition = ''
                         condition += gen.visit(child.cond)
 
-                        new_child.cond = ID(condition, child.coord)
-                        new_child.iffalse = Compound([], new_child.iftrue.coord)
-                        new_child.iftrue = None
+                        new_parent.cond = ID(condition, child.coord)
+                        new_parent.iffalse = Compound([], new_parent.iftrue.coord)
+                        new_parent.iftrue = None
 
-                        path.append(new_child)
-                        path.append(new_child.iffalse)
+                        path.append(new_parent)
+                        path.append(new_parent.iffalse)
 
                         new_parent_list = []
                         new_grandparent_list = []
 
-                        for parent_node in parent_list:
+                        for parent_node in pl2:
                             new_parent_list.append(find_node(new_tree, parent_node))
 
-                        for grandparent_node in grandparent_list:
+                        for grandparent_node in gp2:
                             new_grandparent_list.append(find_node(new_tree, grandparent_node))
 
-                        depht = old_depth + 1
+                        if last_if is not None:
+                            last_if_in_new_tree = find_node(new_tree, last_if)
+                            if find_node(last_if_in_new_tree, new_parent) is None:
+                                last_if_in_new_tree.block_items.append(new_parent)
+
+                        new_grandparent = find_node(new_tree, grandparent)
+
+                        for node in to_delete:
+                            new_grandparent.block_items.remove(node)
+
                         find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list,
                                                      new_grandparent_list, paths_list, source_reached, new_tree,
-                                                     new_child.iffalse, depht, old_depth)
-                        depht = old_depth
+                                                     new_parent.iffalse, pi2, last_if_child_aux)
+                    return_after_call = True
                     break
                 else:
                     path.append(child)
 
                     if last_if is not None:
-                        if depht == lastif_depth:
+                        if find_node(last_if, child) is None:
                             last_if.block_items.append(child)
                             to_delete.append(child)
 
@@ -440,9 +660,11 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                         if source_reached is True:
                             paths_list.append((tree, path))
                         break
-            grandparent_list.pop()
             for node in to_delete:
                 grandparent.block_items.remove(node)
+
+            if last_if_child is False or return_after_call:
+                break
 
 
 def find_all_paths(root, source_node, dest_node):
@@ -460,9 +682,10 @@ def find_all_paths_modified(root, source_node, dest_node):
     parent_list = []
     grandparent_list = []
     paths_list = []
+    parent_index = []
     find_all_paths_util_modified(root, source_node, dest_node, path, parent_list, grandparent_list, paths_list, False,
-                                 root, None, 0, 0)
-    #print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
+                                 root, None, parent_index, True)
+    print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
     return paths_list
 
 
@@ -710,7 +933,7 @@ class PathGenerator(c_generator.CGenerator):
         return s
 
     def visit_FuncCall(self, n):
-        if n in self.path:
+        if n in self.path or self.visit_condition:
             fref = self._parenthesize_unless_simple(n.name)
             return fref + '(' + self.visit(n.args) + ')'
         return ''
@@ -1168,7 +1391,7 @@ if __name__ == "__main__":
     #print tree_gen.visit(get_extern_while_body_from_func(ast))
 
     label1_list = get_label(ast, "lab", "FIRST_ROUND")
-    label2_list = get_label(ast, "lab", "ALTCEVA")
+    label2_list = get_label(ast, "lab", "SECOND_ROUND")
     #print label1_list
     #print label2_list
 
@@ -1183,20 +1406,17 @@ if __name__ == "__main__":
     for source in label1_list:
         for dest in label2_list:
             aux_ast = duplicate_element(ast)
-            print "SURSA\n"
-            print dest
-            print "PARINTE"
-            print find_parent(aux_ast, dest)
 
             whiles_to_if(get_extern_while_body(aux_ast))
             dest_list = []
             source_list = []
             prune_tree(get_extern_while_body(aux_ast), source, dest, dest_list, source_list)
             if dest_list and source_list:
-                print tree_gen.visit(get_extern_while_body(aux_ast))
+                #print tree_gen.visit(get_extern_while_body(aux_ast))
+                pass
             #print "\n\nPAUZA\n\n"
-            #paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
-            #generate_c_code_from_paths_and_trees(paths_list)
+            paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
+            generate_c_code_from_paths_and_trees(paths_list)
 
 
 
