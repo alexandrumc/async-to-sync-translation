@@ -1,5 +1,8 @@
-from parse_test import *
-from pycparser.c_ast import *
+from pycparser import parse_file, c_parser, c_generator, c_ast
+from parse_test import get_label, duplicate_element, prune_tree, get_label_assign_num, find_all_paths_to_label_modified,\
+    TreeGenerator, generate_c_code_from_paths_and_trees
+import copy
+from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall
 
 generator = c_generator.CGenerator()
 
