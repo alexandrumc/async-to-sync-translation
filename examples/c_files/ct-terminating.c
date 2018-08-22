@@ -94,7 +94,7 @@ int main(int pid, int num, int estimate) {
 			m->phase = phase;
 			m->round = round;
 			m->estimate = estimate;
-			send_to_all(m);
+			send(m,to_all);
 		}
 
 		num_mbox = 0;
@@ -141,7 +141,7 @@ int main(int pid, int num, int estimate) {
 			m->sender = myid;
 			m->phase = phase;
 			m->round = round;
-			send_to_leader(m);
+			send(m,to_leader);
 		}
 
 
@@ -188,7 +188,7 @@ int main(int pid, int num, int estimate) {
 			m->phase = phase;
 			m->round = round;
 			m->estimate = estimate;
-			send_to_all(m);
+			send(m,to_all);
 		}
 
 		while (1) {
