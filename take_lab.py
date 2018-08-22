@@ -110,7 +110,6 @@ def get_labels_order(filename, labelname):
 def get_paths_trees(ast, labels,labels_sorted, labelname):
     trees_dict = {}
     trees_paths_dict = {}
-
     for label1 in labels_sorted:
         trees_list = []
         trees_paths_list = []
@@ -137,7 +136,9 @@ def get_paths_trees(ast, labels,labels_sorted, labelname):
                             # print start, end
                             if labels != labels_sorted:
                                 aux = find_all_paths_to_label_modified(cop, start, end)
-                                trees_paths_list.append(aux)
+                                plm = take_the_first(aux, labelname)
+                                # print type(plm), type(aux), type(aux[0]), type(aux[1])
+                                trees_paths_list.append(plm)
 
         trees_dict[label1] = trees_list
         trees_paths_dict[label1] = trees_paths_list
@@ -324,6 +325,44 @@ def get_code_from_trees_only(trees_dict, labels):
     return code
 
 
+def take_the_first(paths, labelname):
+    aux = []
+    for tuple in paths:
+        tree = tuple[0]
+        path = tuple[1]
+        assign = 0
+        for node in path:
+            if isinstance(node, Assignment) and node.lvalue.name == labelname:
+                assign +=1
+
+        if assign == 2:
+            aux.append(tuple)
+            break
+    return aux
+
+
+
+
+def remove_bad_paths(trees_paths_dict, labels, labelname):
+    for x in labels:
+        trees_paths_list = trees_paths_dict[x]
+        for i  in xrange(len(trees_paths_list)):
+            list_aux = trees_paths_list[i]
+            to_delete = []
+            for tuple in list_aux:
+                tree = tuple[0]
+                path = tuple[1]
+                assign = 0
+                for node in path:
+                    if isinstance(node,Assignment) and node.lvalue.name == labelname:
+                        assign += 1
+                if assign > 2:
+                    to_delete.append(tuple)
+            for elem in to_delete:
+                list_aux.remove(elem)
+
+
+
 def print_code_from_trees_paths(trees_paths_dict, labels):
     for x in labels:
         paths = trees_paths_dict[x]
@@ -357,12 +396,9 @@ def take_code_from_file(ast, filename, labelname):
     x = copy.deepcopy(ast)
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename,labelname)
-    # print labels
+
     trees_dict, trees_paths_dict = get_paths_trees(ast, labels,labels_sorted, labelname)
-    # add_ghost_assign(trees_dict, labels, ast)
-    # trees_dict, trees_paths_dict = get_paths_trees(ast, labels,labels_sorted, labelname)
-    # code = get_code_from_trees_only(trees_dict, labels)
-    # print_code_from_trees_paths(trees_paths_dict, labels)
-    # print_rounds(labels,trees_dict)
-    print_code(trees_dict,trees_paths_dict,labels)
+
+    print_code(trees_dict,trees_paths_dict,labels_sorted)
+
     return trees_dict
