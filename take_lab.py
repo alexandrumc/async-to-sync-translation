@@ -123,6 +123,7 @@ def get_paths_trees(ast, labels,labels_sorted, labelname):
             labels_end = get_label(ast, labelname, label2)
 
             for start in labels_start:
+                #la final sa bag conditiile pt urmatorul element de iterat
                 for end in labels_end:
                     cop = duplicate_element(ast)
                     # prune_tree(get_extern_while_body_from_func(cop),start,end,[],[])
@@ -139,9 +140,12 @@ def get_paths_trees(ast, labels,labels_sorted, labelname):
                             # print start, end
                             if labels != labels_sorted:
                                 aux = find_all_paths_to_label_modified(cop, start, end)
-                                plm = take_the_first(aux, labelname)
-                                # print type(plm), type(aux), type(aux[0]), type(aux[1])
-                                trees_paths_list.append(plm)
+                                test = take_the_first(aux, labelname)
+                                # print type(test), len(test)
+                                if test:
+                                    trees_paths_list.append(test)
+
+
 
         trees_dict[label1] = trees_list
         trees_paths_dict[label1] = trees_paths_list

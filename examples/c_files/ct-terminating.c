@@ -77,6 +77,7 @@ int main(int pid, int num, int estimate) {
 				estimate = mbox[num_mbox].estimate;
 				state = 1;
 				break;
+				round = AUX_ROUND;
 			} else {
 				m = max;
 				m = max(m.ts, mbox);
@@ -128,6 +129,7 @@ int main(int pid, int num, int estimate) {
 			estimate = mbox[num_mbox].estimate;
 			state = 1;
 			break;
+			round = AUX_ROUND;
 		}
 		if (mbox[num_mbox].round == 2) {
 			estimate = mbox[num_mbox].estimate;
@@ -174,6 +176,7 @@ int main(int pid, int num, int estimate) {
 				estimate = mbox_est[num_mbox].estimate;
 				state = 1;
 				break;
+				round = AUX_ROUND;
 			}
 			if (num_mbox >= (num + 1) / 2) {
 				ack = 1;
@@ -205,7 +208,6 @@ int main(int pid, int num, int estimate) {
 		}
 
 		if (!timeout()) {
-			round = FOURTH_ROUND;
 			estimate = m.estimate;
 			state = 1;
 			break;
