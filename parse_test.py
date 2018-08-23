@@ -685,7 +685,7 @@ def find_all_paths_modified(root, source_node, dest_node):
     parent_index = []
     find_all_paths_util_modified(root, source_node, dest_node, path, parent_list, grandparent_list, paths_list, False,
                                  root, None, parent_index, True)
-    print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
+    # print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
     return paths_list
 
 
@@ -1470,7 +1470,3 @@ if __name__ == "__main__":
             #print "\n\nPAUZA\n\n"
             paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
             generate_c_code_from_paths_and_trees(paths_list)
-
-
-
-
