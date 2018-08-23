@@ -62,6 +62,10 @@ int main()
             {
                 inria++;
             }
+            if (kkt)
+            {
+                jan++;
+            }
             lab = ALTCEVA;
         }
         else
