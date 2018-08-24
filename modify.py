@@ -25,16 +25,10 @@ whiles_to_if(x, conditii)
 identify_recv_exits(x, conditii)
 remove_mbox(x)
 
-test = get_labels_order("examples/c_files/ct-terminating.c",'round')
-# print test
-print generator.visit(x)
-
-trees_dict, code = take_code_from_file(ast,"examples/c_files/ct-terminating.c",'round')
-# copie = copy.deepcopy(ast)
-
-
-
 # print generator.visit(x)
 
+copie = copy.deepcopy(ast)
+
+trees_dict = take_code_from_file(copie,"examples/c_files/ct-terminating.c",'round')
 
 

@@ -7,39 +7,59 @@ from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, C
 generator = c_generator.CGenerator()
 
 
-def remove_mbox_assign_to_zero(extern_while_body):
+
+
+
+def conds_to_source_and_dest(current_node, lab_source, lab_dest, destination_reached, source_reached,to_source, to_dest):
     to_delete = []
-    for elem in extern_while_body.block_items:
-        if isinstance(elem, Assignment) and "mbox" in elem.lvalue.name and int(elem.rvalue.value) == 0:
-            to_delete.append(elem)
-        if isinstance(elem, If):
-            remove_mbox_assign_to_zero(elem.iftrue)
-            if elem.iffalse:
-                remove_mbox_assign_to_zero(elem.iffalse)
+    for tupleChild in current_node.children():
+        child = tupleChild[1]
+        if not source_reached:
+            if isinstance(child, If) is False:
+                if child == lab_source:
+                    source_reached.append(True)
+                else:
+                    to_delete.append(child)
+                continue
+            else:
+                conds_to_source_and_dest(child.iftrue, lab_source, lab_dest, destination_reached, source_reached, to_source,to_dest)
+                if source_reached:
+                    child.iffalse = None
+                elif child.iffalse is not None:
+                    child.iftrue = None
+                    conds_to_source_and_dest(child.iffalse, lab_source, lab_dest, destination_reached, source_reached, to_source, to_dest)
+                    to_source.append(child.cond)
 
-    for x in to_delete:
-        extern_while_body.block_items.remove(x)
+                    if not source_reached:
+                        child.iffalse = None
+                        to_delete.append(child)
+                else:
+                    to_delete.append(child)
+                continue
+        else:
+            if not destination_reached:
+                if isinstance(child, If) is False:
+                    if child == lab_dest:
+                        destination_reached.append(True)
+                    continue
+                else:
+                    to_dest.append(child.cond)
+                    conds_to_source_and_dest(child.iftrue, lab_source, lab_dest, destination_reached, source_reached,to_source, to_dest)
+                    if destination_reached:
+                        child.iffalse = None
+                    elif child.iffalse is not None:
+                        conds_to_source_and_dest(child.iffalse, lab_source, lab_dest, destination_reached, source_reached, to_source, to_dest)
+                        if destination_reached:
+                            child.iftrue = None
+                    continue
+            else:
+                to_delete.append(child)
+    for node in to_delete:
+        current_node.block_items.remove(node)
 
 
-def remove_mbox_free(extern_while_body):
-    to_delete = []
-    for elem in extern_while_body.block_items:
-        if isinstance(elem, If):
-            for line in elem.iftrue:
-                if isinstance(line, FuncCall) and line.name.name == "free":
-                    if line.args.exprs[0].name == "mbox":
-                        to_delete.append(elem)
-            remove_mbox_free(elem.iftrue)
-            if elem.iffalse:
-                remove_mbox_free(elem.iffalse)
-
-    for x in to_delete:
-        extern_while_body.block_items.remove(x)
 
 
-def remove_mbox(extern_while_body):
-    remove_mbox_assign_to_zero(extern_while_body)
-    remove_mbox_free(extern_while_body)
 
 
 def remove_numbers(string):
@@ -131,24 +151,42 @@ def get_paths_trees(ast, labels,labels_sorted, labelname):
                     dest_list = []
                     source_list = []
                     prune_tree(get_extern_while_body_from_func(cop, 'main'), start, end, dest_list, source_list)
-
+                    # to_source = []
+                    # to_dest = []
+                    # conds_to_source_and_dest(get_extern_while_body_from_func(cop, 'main'), start, end, dest_list, source_list,to_source, to_dest)
+                    # aux = find_all_paths_to_label_modified(cop,start,end)
+                    # test = take_the_first(aux, labelname)
+                    # print len(test)
+                    # trees_paths_list.append(test)
+                    #
                     if dest_list and source_list:
                         assign = get_label_assign_num(cop, labelname)
                         if assign <= 2:
                             trees_list.append(cop)
+                            # if to_dest:
+                            #     print label1, label2, "doar din prune"
+                            #     for x in to_dest:
+                            #         print generator.visit(x)
+
                         else:
                             # print start, end
                             if labels != labels_sorted:
                                 aux = find_all_paths_to_label_modified(cop, start, end)
                                 test = take_the_first(aux, labelname)
                                 # print type(test), len(test)
+                                # trees_paths_list.append(aux)
                                 if test:
                                     trees_paths_list.append(test)
+                                    # if to_dest:
+                                    #     print label1, label2, "cu drumurile"
+                                    #     for x in to_dest:
+                                    #         print generator.visit(x)
 
 
 
         trees_dict[label1] = trees_list
         trees_paths_dict[label1] = trees_paths_list
+        # break
     return trees_dict, trees_paths_dict
 
 
@@ -342,10 +380,12 @@ def take_the_first(paths, labelname):
             if isinstance(node, Assignment) and node.lvalue.name == labelname:
                 assign +=1
 
-        if assign == 2:
+        if assign > 2:
             aux.append(tuple)
-            break
-    return aux
+
+    for x in aux:
+        paths.remove(x)
+    return paths
 
 
 
@@ -374,7 +414,8 @@ def print_code_from_trees_paths(trees_paths_dict, labels):
     for x in labels:
         paths = trees_paths_dict[x]
         for path in paths:
-            generate_c_code_from_paths_and_trees(path)
+            if path is not None:
+                generate_c_code_from_paths_and_trees(path)
 
 def print_code_from_trees(trees_dict,labels):
     gen = TreeGenerator()
