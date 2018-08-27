@@ -1,6 +1,7 @@
 from pycparser import parse_file, c_parser, c_generator, c_ast
 from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall
 from modify_whiles import whiles_to_if
+from modify_whiles import remove_mbox, identify_recv_exits
 import copy
 
 
@@ -685,7 +686,7 @@ def find_all_paths_modified(root, source_node, dest_node):
     parent_index = []
     find_all_paths_util_modified(root, source_node, dest_node, path, parent_list, grandparent_list, paths_list, False,
                                  root, None, parent_index, True)
-    # print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
+    #print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
     return paths_list
 
 
@@ -852,170 +853,6 @@ def find_all_paths_to_label_modified(ast_tree, label_source, label_dest):
     return find_all_paths_modified(extern_while_body, label_source, label_dest)
 
 
-class PathGenerator(c_generator.CGenerator):
-    def __init__(self, path):
-        c_generator.CGenerator.__init__(self)
-        self.path = path
-        """
-        Atunci cand se viziteaza o conditie mai complexa, ea e formata
-        din mai multe elemente. In schimb, in path, conditia este stocata ca un singur
-        element, iar visit_condition ii spune parser-ului ca poate sa afiseze elemente
-        care nu sunt in path pentru ca viziteaza o conditie mai complexa care se afla
-        in path
-        """
-        self.visit_condition = False
-        self.extend_visit = False
-
-    def visit_Compound(self, n):
-        if n in self.path or self.extend_visit:
-            s = self._make_indent() + '{\n'
-            self.indent_level += 2
-            changed_value = False
-            if self.extend_visit is False:
-                self.extend_visit = True
-                changed_value = True
-            if n.block_items:
-                s += ''.join(self._generate_stmt(stmt) for stmt in n.block_items if stmt in self.path)
-            self.indent_level -= 2
-            s += self._make_indent() + '}\n'
-            if changed_value:
-                self.extend_visit = False
-            return s
-        else:
-            return ''
-
-    def visit_Assignment(self, n):
-        if n in self.path or self.extend_visit:
-            changed_value = False
-            if self.extend_visit is False:
-                self.extend_visit = True
-                changed_value = True
-            rval_str = self._parenthesize_if(
-                n.rvalue,
-                lambda n: isinstance(n, c_ast.Assignment))
-            s = '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
-            if changed_value:
-                self.extend_visit = False
-            return s
-        return ''
-
-    def visit_If(self, n):
-        if n in self.path or self.extend_visit:
-            s = 'if ('
-            self.visit_condition = True
-            if n.cond:
-                """
-                if n.iffalse is None:
-                    print "n.iffalse e None"
-                else:
-                    print "n.iffalse nu e None"
-
-                if n.iftrue is None:
-                    print "n.iftrue e None"
-                else:
-                    print "n.iftrue nu e None"
-
-                if n.iffalse in self.path:
-                    print "n.iffalse in path"
-                else:
-                    print "n.iffalse not in path"
-
-                if n.iftrue in self.path:
-                    print "n.iftrue in path"
-                else:
-                    print "n.iftrue not in path"
-                """
-                if n.iffalse is not None and n.iffalse in self.path:
-                    s += '!'
-
-                s += self.visit(n.cond)
-            self.visit_condition = False
-            s += ')\n'
-            changed_value = False
-            if self.extend_visit is False:
-                self.extend_visit = True
-                changed_value = True
-            if n.iftrue in self.path:
-                s += self._generate_stmt(n.iftrue, add_indent=True)
-            else:
-                if n.iffalse:
-                    # s += self._make_indent()
-                    s += self._generate_stmt(n.iffalse, add_indent=True)
-            if changed_value:
-                self.extend_visit = False
-            return s
-        return ''
-
-    def visit_While(self, n):
-        s = 'int main ('
-        s += ')\n'
-        s += self._generate_stmt(n.stmt, add_indent=True)
-        return s
-
-    def visit_FuncCall(self, n):
-        if n in self.path or self.visit_condition or self.extend_visit:
-            changed_value = False
-            if self.extend_visit is False:
-                self.extend_visit = True
-                changed_value = True
-            fref = self._parenthesize_unless_simple(n.name)
-            s = fref + '(' + self.visit(n.args) + ')'
-            if changed_value:
-                self.extend_visit = False
-            return s
-        return ''
-
-    def visit_UnaryOp(self, n):
-        if n in self.path or self.visit_condition or self.extend_visit:
-            changed_value = False
-            if self.extend_visit is False:
-                self.extend_visit = True
-                changed_value = True
-            operand = self._parenthesize_unless_simple(n.expr)
-            if n.op == 'p++':
-                s = '%s++' % operand
-                if changed_value:
-                    self.extend_visit = False
-                return s
-            elif n.op == 'p--':
-                s = '%s--' % operand
-                if changed_value:
-                    self.extend_visit = False
-                return s
-            elif n.op == 'sizeof':
-                # Always parenthesize the argument of sizeof since it can be
-                # a name.
-                s = 'sizeof(%s)' % self.visit(n.expr)
-                if changed_value:
-                    self.extend_visit = False
-                return s
-            else:
-                s = '%s%s' % (n.op, operand)
-                if changed_value:
-                    self.extend_visit = False
-                return s
-        return ''
-
-    def visit_BinaryOp(self, n):
-        if n in self.path or self.visit_condition or self.extend_visit:
-            changed_value = False
-            if self.extend_visit is False:
-                self.extend_visit = True
-                changed_value = True
-            lval_str = self._parenthesize_if(n.left,
-                                             lambda d: not self._is_simple_node(d))
-            rval_str = self._parenthesize_if(n.right,
-                                             lambda d: not self._is_simple_node(d))
-            s = '%s %s %s' % (lval_str, n.op, rval_str)
-            if changed_value:
-                self.extend_visit = False
-            return s
-        return ''
-
-
-
-
-
 class TreeGenerator(c_generator.CGenerator):
     def __init__(self):
         c_generator.CGenerator.__init__(self)
@@ -1129,8 +966,172 @@ class LinesFinder(c_generator.CGenerator):
         return ''
 
 
+class PathGenerator(c_generator.CGenerator):
+    def __init__(self, path):
+        c_generator.CGenerator.__init__(self)
+        self.path = path
+        """
+        Atunci cand se viziteaza o conditie mai complexa, ea e formata
+        din mai multe elemente. In schimb, in path, conditia este stocata ca un singur
+        element, iar visit_condition ii spune parser-ului ca poate sa afiseze elemente
+        care nu sunt in path pentru ca viziteaza o conditie mai complexa care se afla
+        in path
+        """
+        self.visit_condition = False
+        self.extend_visit = False
+
+    def visit_Compound(self, n):
+        if n in self.path:
+            s = self._make_indent() + '{\n'
+            self.indent_level += 2
+            if n.block_items:
+                s += ''.join(self._generate_stmt(stmt) for stmt in n.block_items if stmt in self.path)
+            self.indent_level -= 2
+            s += self._make_indent() + '}\n'
+            return s
+        else:
+            return ''
+
+    def visit_Assignment(self, n):
+        if n in self.path or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
+            rval_str = self._parenthesize_if(
+                n.rvalue,
+                lambda n: isinstance(n, c_ast.Assignment))
+            s = '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
+            if changed_value:
+                self.extend_visit = False
+            return s
+        return ''
+
+    def visit_If(self, n):
+        if n in self.path:
+            s = 'if ('
+            self.visit_condition = True
+            if n.cond:
+                """
+                if n.iffalse is None:
+                    print "n.iffalse e None"
+                else:
+                    print "n.iffalse nu e None"
+
+                if n.iftrue is None:
+                    print "n.iftrue e None"
+                else:
+                    print "n.iftrue nu e None"
+
+                if n.iffalse in self.path:
+                    print "n.iffalse in path"
+                else:
+                    print "n.iffalse not in path"
+
+                if n.iftrue in self.path:
+                    print "n.iftrue in path"
+                else:
+                    print "n.iftrue not in path"
+                """
+                if n.iffalse is not None and n.iffalse in self.path:
+                    s += '!'
+
+                s += self.visit(n.cond)
+            self.visit_condition = False
+            s += ')\n'
+            if n.iftrue in self.path:
+                s += self._generate_stmt(n.iftrue, add_indent=True)
+            else:
+                if n.iffalse:
+                    # s += self._make_indent()
+                    s += self._generate_stmt(n.iffalse, add_indent=True)
+            return s
+        return ''
+
+    def visit_While(self, n):
+        s = 'int main ('
+        s += ')\n'
+        s += self._generate_stmt(n.stmt, add_indent=True)
+        return s
+
+    def visit_Decl(self, n, no_type=False):
+        if n in self.path or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
+            s = n.name if no_type else self._generate_decl(n)
+            if n.bitsize: s += ' : ' + self.visit(n.bitsize)
+            if n.init:
+                s += ' = ' + self._visit_expr(n.init)
+            if changed_value:
+                self.extend_visit = False
+            return s
+        return ''
+
+    def visit_FuncCall(self, n):
+        if n in self.path or self.visit_condition or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
+            fref = self._parenthesize_unless_simple(n.name)
+            s = fref + '(' + self.visit(n.args) + ')'
+            if changed_value:
+                self.extend_visit = False
+            return s
+        return ''
+
+    def visit_UnaryOp(self, n):
+        if n in self.path or self.visit_condition or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
+            operand = self._parenthesize_unless_simple(n.expr)
+            if n.op == 'p++':
+                s = '%s++' % operand
+                if changed_value:
+                    self.extend_visit = False
+                return s
+            elif n.op == 'p--':
+                s = '%s--' % operand
+                if changed_value:
+                    self.extend_visit = False
+                return s
+            elif n.op == 'sizeof':
+                # Always parenthesize the argument of sizeof since it can be
+                # a name.
+                s = 'sizeof(%s)' % self.visit(n.expr)
+                if changed_value:
+                    self.extend_visit = False
+                return s
+            else:
+                s = '%s%s' % (n.op, operand)
+                if changed_value:
+                    self.extend_visit = False
+                return s
+        return ''
+
+    def visit_BinaryOp(self, n):
+        if n in self.path or self.visit_condition or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
+            lval_str = self._parenthesize_if(n.left,
+                                             lambda d: not self._is_simple_node(d))
+            rval_str = self._parenthesize_if(n.right,
+                                             lambda d: not self._is_simple_node(d))
+            s = '%s %s %s' % (lval_str, n.op, rval_str)
+            if changed_value:
+                self.extend_visit = False
+            return s
+        return ''
+
+
 class RoundGenerator(c_generator.CGenerator):
-    def __init__(self, mode):
+    def __init__(self, mode, path=None):
         c_generator.CGenerator.__init__(self)
         # send or update mode
         self.mode = mode
@@ -1143,7 +1144,12 @@ class RoundGenerator(c_generator.CGenerator):
         self.visit_cond = False
         # first compound, i.e. the biggest while loop, don't print parentheses for this
         self.first_compound = True
+        # the path to be checked
+        self.path = path
+        # extend powers to visit the whole element
+        self.extend_visit = False
 
+    """
     def visit_Constant(self, n):
         if self.mode == "send" and not self.send_reached \
                 or self.mode == "update" and self.send_reached \
@@ -1183,72 +1189,199 @@ class RoundGenerator(c_generator.CGenerator):
             sref = self._parenthesize_unless_simple(n.name)
             return sref + n.type + self.visit(n.field)
         return ""
+    """
+
+    def visit_Decl(self, n, no_type=False):
+        if self.path is not None:
+            if n in self.path or self.extend_visit or self.visit_cond:
+                if self.mode == "send" and not self.send_reached \
+                        or self.mode == "update" and self.send_reached \
+                        or self.visit_cond:
+                    changed_value = False
+                    if self.extend_visit is False:
+                        self.extend_visit = True
+                        changed_value = True
+                    s = n.name if no_type else self._generate_decl(n)
+                    if n.bitsize: s += ' : ' + self.visit(n.bitsize)
+                    if n.init:
+                        s += ' = ' + self._visit_expr(n.init)
+                    if changed_value:
+                        self.extend_visit = False
+                    return s
+        else:
+            if self.mode == "send" and not self.send_reached \
+                    or self.mode == "update" and self.send_reached \
+                    or self.visit_cond:
+                s = n.name if no_type else self._generate_decl(n)
+                if n.bitsize: s += ' : ' + self.visit(n.bitsize)
+                if n.init:
+                    s += ' = ' + self._visit_expr(n.init)
+                return s
+        return ''
 
     def visit_FuncCall(self, n):
-        if self.mode == "send" and not self.send_reached \
-                or self.visit_cond:
-            fref = self._parenthesize_unless_simple(n.name)
-            s = fref + '(' + self.visit(n.args) + ')'
-            if n.name.name == "send":
-                self.send_reached = True
-            return s
-        elif self.mode == "update" or self.visit_cond:
-            fref = self._parenthesize_unless_simple(n.name)
-            s = fref + '(' + self.visit(n.args) + ')'
-            ok = False
-            if self.send_reached:
-                ok = True
-            if n.name.name == "send":
-                self.send_reached = True
-            if ok:
+        if self.path is not None:
+            if n in self.path or self.extend_visit or self.visit_cond:
+                if self.mode == "send" and not self.send_reached \
+                        or self.visit_cond:
+                    changed_value = False
+                    if self.extend_visit is False:
+                        self.extend_visit = True
+                        changed_value = True
+                    fref = self._parenthesize_unless_simple(n.name)
+                    s = fref + '(' + self.visit(n.args) + ')'
+                    if n.name.name == "send":
+                        self.send_reached = True
+                    if changed_value:
+                        self.extend_visit = False
+                    return s
+                elif self.mode == "update" or self.visit_cond:
+                    changed_value = False
+                    if self.extend_visit is False:
+                        self.extend_visit = True
+                        changed_value = True
+                    fref = self._parenthesize_unless_simple(n.name)
+                    s = fref + '(' + self.visit(n.args) + ')'
+                    ok = False
+                    if self.send_reached:
+                        ok = True
+                    if n.name.name == "send":
+                        self.send_reached = True
+                    if changed_value:
+                        self.extend_visit = False
+                    if ok:
+                        return s
+        else:
+            if self.mode == "send" and not self.send_reached \
+                    or self.visit_cond:
+                fref = self._parenthesize_unless_simple(n.name)
+                s = fref + '(' + self.visit(n.args) + ')'
+                if n.name.name == "send":
+                    self.send_reached = True
                 return s
+            elif self.mode == "update" or self.visit_cond:
+                fref = self._parenthesize_unless_simple(n.name)
+                s = fref + '(' + self.visit(n.args) + ')'
+                ok = False
+                if self.send_reached:
+                    ok = True
+                if n.name.name == "send":
+                    self.send_reached = True
+                if ok:
+                    return s
         return ""
 
     def visit_UnaryOp(self, n):
-        if self.mode == "send" and not self.send_reached \
-                or self.mode == "update" and self.send_reached \
-                or self.visit_cond:
-            operand = self._parenthesize_unless_simple(n.expr)
-            if n.op == 'p++':
-                return '%s++' % operand
-            elif n.op == 'p--':
-                return '%s--' % operand
-            elif n.op == 'sizeof':
-                # Always parenthesize the argument of sizeof since it can be
-                # a name.
-                return 'sizeof(%s)' % self.visit(n.expr)
-            else:
-                return '%s%s' % (n.op, operand)
+        if self.path is not None:
+            if n in self.path or self.extend_visit or self.visit_cond:
+                if self.mode == "send" and not self.send_reached \
+                        or self.mode == "update" and self.send_reached \
+                        or self.visit_cond or self.extend_visit:
+                    changed_value = False
+                    if self.extend_visit is False:
+                        self.extend_visit = True
+                        changed_value = True
+                    operand = self._parenthesize_unless_simple(n.expr)
+                    if n.op == 'p++':
+                        if changed_value:
+                            self.extend_visit = False
+                        return '%s++' % operand
+                    elif n.op == 'p--':
+                        if changed_value:
+                            self.extend_visit = False
+                        return '%s--' % operand
+                    elif n.op == 'sizeof':
+                        # Always parenthesize the argument of sizeof since it can be
+                        # a name.
+                        if changed_value:
+                            self.extend_visit = False
+                        return 'sizeof(%s)' % self.visit(n.expr)
+                    else:
+                        if changed_value:
+                            self.extend_visit = False
+                        return '%s%s' % (n.op, operand)
+        else:
+            if self.mode == "send" and not self.send_reached \
+                    or self.mode == "update" and self.send_reached \
+                    or self.visit_cond or self.extend_visit:
+                operand = self._parenthesize_unless_simple(n.expr)
+                if n.op == 'p++':
+                    return '%s++' % operand
+                elif n.op == 'p--':
+                    return '%s--' % operand
+                elif n.op == 'sizeof':
+                    # Always parenthesize the argument of sizeof since it can be
+                    # a name.
+                    return 'sizeof(%s)' % self.visit(n.expr)
+                else:
+                    return '%s%s' % (n.op, operand)
         return ""
 
     def visit_BinaryOp(self, n):
-        if self.mode == "send" and not self.send_reached \
-                or self.mode == "update" and self.send_reached \
-                or self.visit_cond:
-            lval_str = self._parenthesize_if(n.left,
-                            lambda d: not self._is_simple_node(d))
-            rval_str = self._parenthesize_if(n.right,
-                            lambda d: not self._is_simple_node(d))
-            return '%s %s %s' % (lval_str, n.op, rval_str)
+        if self.path is not None:
+            if n in self.path or self.extend_visit or self.visit_cond:
+                if self.mode == "send" and not self.send_reached \
+                        or self.mode == "update" and self.send_reached \
+                        or self.visit_cond:
+                    changed_value = False
+                    if self.extend_visit is False:
+                        self.extend_visit = True
+                        changed_value = True
+                    lval_str = self._parenthesize_if(n.left,
+                                    lambda d: not self._is_simple_node(d))
+                    rval_str = self._parenthesize_if(n.right,
+                                    lambda d: not self._is_simple_node(d))
+                    if changed_value:
+                        self.extend_visit = False
+                    return '%s %s %s' % (lval_str, n.op, rval_str)
+        else:
+            if self.mode == "send" and not self.send_reached \
+                    or self.mode == "update" and self.send_reached \
+                    or self.visit_cond:
+                lval_str = self._parenthesize_if(n.left,
+                                                 lambda d: not self._is_simple_node(d))
+                rval_str = self._parenthesize_if(n.right,
+                                                 lambda d: not self._is_simple_node(d))
+                return '%s %s %s' % (lval_str, n.op, rval_str)
         return ""
 
     def visit_Assignment(self, n):
-        if self.mode == "send" and not self.send_reached \
-                or self.mode == "update" and self.send_reached \
-                or self.visit_cond:
-            rval_str = self._parenthesize_if(
-                            n.rvalue,
-                            lambda n: isinstance(n, c_ast.Assignment))
-            return '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
+        if self.path is not None:
+            if n in self.path or self.extend_visit or self.visit_cond:
+                if self.mode == "send" and not self.send_reached \
+                        or self.mode == "update" and self.send_reached \
+                        or self.visit_cond:
+                    changed_value = False
+                    if self.extend_visit is False:
+                        self.extend_visit = True
+                        changed_value = True
+                    rval_str = self._parenthesize_if(
+                                    n.rvalue,
+                                    lambda n: isinstance(n, c_ast.Assignment))
+                    if changed_value:
+                        self.extend_visit = False
+                    return '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
+        else:
+            if self.mode == "send" and not self.send_reached \
+                    or self.mode == "update" and self.send_reached \
+                    or self.visit_cond:
+                rval_str = self._parenthesize_if(
+                    n.rvalue,
+                    lambda n: isinstance(n, c_ast.Assignment))
+                return '%s %s %s' % (self.visit(n.lvalue), n.op, rval_str)
         return ""
 
     def visit_If(self, n):
-        if self.mode == "send" and not self.send_reached:
+        if (self.mode == "send" and not self.send_reached and self.path is None)\
+                or (self.mode == "send" and not self.send_reached and self.path is not None
+                    and n in self.path):
             s = 'if ('
             if n.cond:
                 if n.iffalse is not None and n.iftrue is None:
                     s += '!('
+                self.visit_cond = True
                 s += self.visit(n.cond)
+                self.visit_cond = False
                 if n.iffalse is not None and n.iftrue is None:
                     s += ')'
             s += ')\n'
@@ -1259,9 +1392,8 @@ class RoundGenerator(c_generator.CGenerator):
                     s += self._make_indent() + 'else\n'
                 s += self._generate_stmt(n.iffalse, add_indent=True)
             return s
-        elif self.mode == "update":
-            #print "Eu sunt\n"
-            #print n
+        elif (self.mode == "update" and self.path is None) or \
+                (self.mode == "update" and self.path is not None and n in self.path):
             ok1 = False
             ok2 = False
             s = 'if ('
@@ -1296,7 +1428,9 @@ class RoundGenerator(c_generator.CGenerator):
         if self.first_compound:
             remeber_compound = True
             self.first_compound = False
-        if self.mode == "send" and not self.send_reached:
+        if (self.mode == "send" and not self.send_reached and self.path is None)\
+                or (self.mode == "send" and not self.send_reached and self.path is not None
+                    and n in self.path):
             s = ""
             if not remeber_compound:
                 s = self._make_indent() + '{\n'
@@ -1307,7 +1441,8 @@ class RoundGenerator(c_generator.CGenerator):
             if not remeber_compound:
                 s += self._make_indent() + '}\n'
             return s
-        elif self.mode == "update":
+        elif (self.mode == "update" and self.path is None) or \
+                (self.mode == "update" and self.path is not None and n in self.path):
             s = ""
             if not remeber_compound:
                 s = self._make_indent() + '{\n'
@@ -1329,8 +1464,6 @@ class RoundGenerator(c_generator.CGenerator):
             if self.send_reached and not self.send_last_instr:
                 return s
         return ""
-
-
 
 
 def print_path(paths_list, index=-1):
@@ -1439,12 +1572,16 @@ if __name__ == "__main__":
     """
     tree_gen = TreeGenerator()
     ast = parse_file(filename="examples/c_files/ct-terminating.c", use_cpp=False)
-    whiles_to_if(get_extern_while_body(ast), [])
+    cond = []
+    whiles_to_if(get_extern_while_body(ast), cond)
+    identify_recv_exits(get_extern_while_body(ast), cond)
+    remove_mbox(get_extern_while_body(ast))
+
     #ast.show()
-    #print tree_gen.visit(get_extern_while_body_from_func(ast))
+    #print tree_gen.visit(get_extern_while_body(ast))
 
     label1_list = get_label(ast, "round", "FIRST_ROUND")
-    label2_list = get_label(ast, "round", "SECOND_ROUND")
+    label2_list = get_label(ast, "round", "THIRD_ROUND")
     #print label1_list
     #print label2_list
 
@@ -1459,8 +1596,6 @@ if __name__ == "__main__":
     for source in label1_list:
         for dest in label2_list:
             aux_ast = duplicate_element(ast)
-
-            whiles_to_if(get_extern_while_body(aux_ast))
             dest_list = []
             source_list = []
             prune_tree(get_extern_while_body(aux_ast), source, dest, dest_list, source_list)
@@ -1470,3 +1605,8 @@ if __name__ == "__main__":
             #print "\n\nPAUZA\n\n"
             paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
             generate_c_code_from_paths_and_trees(paths_list)
+
+
+
+#bug undeva cu 3 if-uri unul sub altul in exemplul ct-term
+#intre second si third round

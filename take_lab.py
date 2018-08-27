@@ -1,8 +1,9 @@
 from pycparser import parse_file, c_parser, c_generator, c_ast
 from parse_test import get_label, duplicate_element, prune_tree, get_label_assign_num, find_all_paths_to_label_modified,\
-    TreeGenerator, generate_c_code_from_paths_and_trees
+    TreeGenerator, generate_c_code_from_paths_and_trees, RoundGenerator, find_parent
 import copy
-from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall
+from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, BinaryOp, StructRef, ArrayRef, \
+    For
 
 generator = c_generator.CGenerator()
 
@@ -84,6 +85,17 @@ def get_extern_while_body_from_func(ast, func_name):
                 for operation in amain_body.body:
                     if isinstance(operation, While):
                         return operation.stmt
+
+
+def get_extern_while_body(ast):
+    if isinstance(ast, FileAST):
+        for ext in ast.ext:
+            if isinstance(ext, FuncDef) and ext.decl.name == "main":
+                main_body = ext.body
+                for operation in main_body:
+                    if isinstance(operation, While):
+                        return operation.stmt
+    return ast
 
 
 def get_labels(filename, labelname):
@@ -429,15 +441,65 @@ def print_code(trees_dict, trees_paths_dict, labels):
     print_code_from_trees_paths(trees_paths_dict, labels)
 
 
-def print_rounds(labels, trees_dict):
+def print_rounds(labels, trees_dict, trees_paths_dict):
     for label in labels[:len(labels) - 1]:
         print "def round " + label + ":"
+
         print "  SEND():"
+
+        found_send_list = []
+        history_of_strings = []
+
         for tree in trees_dict[label]:
-            print RoundGenerator("send").visit(get_extern_while_body_from_func(tree, 'main'))
+            gen = RoundGenerator("send")
+            gen.first_compound = False
+            result = gen.visit(get_extern_while_body(tree))
+            if gen.send_reached:
+                if result not in history_of_strings:
+                    print result
+                    history_of_strings.append(result)
+                found_send_list.append(True)
+            else:
+                found_send_list.append(False)
+
+        list_of_lists_of_tuples = trees_paths_dict[label]
+        for list_of_tuples in list_of_lists_of_tuples:
+            tuple_el = list_of_tuples[0]
+            gen = RoundGenerator("send", tuple_el[1])
+            gen.first_compound = False
+            result = gen.visit(get_extern_while_body(tuple_el[0]))
+            if gen.send_reached:
+                if result not in history_of_strings:
+                    print result
+                    history_of_strings.append(result)
+                found_send_list.append(True)
+            else:
+                found_send_list.append(False)
+
         print "  UPDATE():"
-        for tree in trees_dict[label]:
-            print RoundGenerator("update").visit(get_extern_while_body_from_func(tree, 'main'))
+        history_of_strings = []
+        for i, tree in enumerate(trees_dict[label]):
+            gen = RoundGenerator("update")
+            gen.first_compound = False
+            if not found_send_list[i]:
+                gen.send_reached = True
+            result = gen.visit(get_extern_while_body(tree))
+            if result not in history_of_strings:
+                print result
+                history_of_strings.append(result)
+
+        i = len(trees_dict[label])
+        for list_of_tuples in list_of_lists_of_tuples:
+            tuple_el = list_of_tuples[0]
+            gen = RoundGenerator("update", tuple_el[1])
+            gen.first_compound = False
+            if not found_send_list[i]:
+                gen.send_reached = True
+            result = gen.visit(get_extern_while_body(tuple_el[0]))
+            if result not in history_of_strings:
+                print result
+                history_of_strings.append(result)
+            i = i + 1
 
 
 def take_code_from_file(ast, filename, labelname):
@@ -447,6 +509,8 @@ def take_code_from_file(ast, filename, labelname):
 
     trees_dict, trees_paths_dict = get_paths_trees(ast, labels,labels_sorted, labelname)
 
-    print_code(trees_dict,trees_paths_dict,labels_sorted)
+    #print_code(trees_dict,trees_paths_dict,labels_sorted)
+
+    print_rounds(labels_sorted, trees_dict, trees_paths_dict)
 
     return trees_dict

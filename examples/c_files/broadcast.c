@@ -81,16 +81,12 @@ int main (int pid, int leader, int lab, int view, int lastIndex) {
               log[i][1] = true;
 
               out_external(log[i][0]);
-
-              round = THIRD_ROUND;
+              round = AUX_ROUND;
               }
-            else
-            {
-                out();
-               }
+             round = THIRD_ROUND;
           }
           else{
-            round =THIRD_ROUND;
+            round = THIRD_ROUND;
           }
 
           if (pid == leader) {

@@ -58,14 +58,23 @@ void main(int pid, int leader, int num) {
 				}
 				if (mbox.num_msg == n / 100000)
 					break;
+				if (timeout())
+				{
+				    break;
+				}
 			}
-
+            if (timeout())
+			{
+				    lab = FORTH_ROUND;
+			}
 			commit = 1;
 			for (i = 0; i < mbox.len; i++) {
 				if (mbox.messages[i].response == NO){
 					commit = 0;
 					}
 			}
+
+
 		}
 
 		lab = THIRD_ROUND;

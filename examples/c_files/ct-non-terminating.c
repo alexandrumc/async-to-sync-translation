@@ -152,14 +152,18 @@ int main(int pid, int num, int estimate) {
 		while (1) {
 			m = recv();
 			if (m->round == 4 && m->phase == phase) {
-				estimate = m->estimate;
-				state = 1;
-				out(m->estimate);
+				break;
 			}
 
 			timeout = random;
 			if (timeout() || m->round == 4 && m->phase == phase)
 				break;
+		}
+		if (!timeout())
+		{
+		    estimate = m->estimate;
+		    state = 1;
+		    out(m->estimate);
 		}
 		phase = phase + 1;
 		round = AUX_ROUND;
