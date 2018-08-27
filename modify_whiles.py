@@ -1,11 +1,16 @@
-import random
-
 from pycparser import c_generator
 from pycparser.c_ast import *
 
 generator = c_generator.CGenerator()
 
+coord_aux = 0
+
 def remove_mbox_assign_to_zero(extern_while_body):
+    """
+    assign mbox = 0 will be removed from the tree
+    :param extern_while_body:
+    :return:
+    """
     to_delete = []
     for elem in extern_while_body.block_items:
         if isinstance(elem, Assignment) and "mbox" in elem.lvalue.name and int(elem.rvalue.value) == 0:
@@ -20,6 +25,11 @@ def remove_mbox_assign_to_zero(extern_while_body):
 
 
 def remove_mbox_free(extern_while_body):
+    """
+    The if which frees mbox is removed from the tree
+    :param extern_while_body:
+    :return:
+    """
     to_delete = []
     for elem in extern_while_body.block_items:
         if isinstance(elem, If):
@@ -36,14 +46,21 @@ def remove_mbox_free(extern_while_body):
 
 
 def remove_mbox(extern_while_body):
+    """
+    removes mbox assigns to 0 and ifs where it is freed
+    :param extern_while_body:
+    :return:
+    """
     remove_mbox_assign_to_zero(extern_while_body)
     remove_mbox_free(extern_while_body)
 
 
-
-
-
 def test(op):
+    """
+    return True if an operation contains timeout and False otherwise
+    :param op:
+    :return:
+    """
     if isinstance(op, UnaryOp):
         for i in op:
             if i.name.name == "timeout":
@@ -54,25 +71,40 @@ def test(op):
     return False
 
 
-def identify_exit_cond(elem, conditii):
+def identify_exit_cond(elem, conditions):
+    """
+    Takes the last condition found with its line > coord.line.
+
+    :param elem:
+    :param conditions:
+    :return: the last condition found
+    """
     aux_cond = None
-    for cond, coord in conditii:
+    for cond, coord in conditions:
         if elem.coord.line > coord.line:
             aux_cond = cond
 
     return aux_cond
+
+
 def identify_recv_exits(extern_while_body, conditii):
+    """
+    Modifies the timeout conditions
+    :param extern_while_body:
+    :param conditii:
+    :return:
+    """
     for elem in extern_while_body.block_items:
         if isinstance(elem, If):
 
             if test(elem.cond):
 
                 aux_cond = identify_exit_cond(elem, conditii)
-                if isinstance(elem.cond,UnaryOp) and elem.cond.op == '!':
+                if isinstance(elem.cond, UnaryOp) and elem.cond.op == '!':
                     elem.cond = aux_cond
-                    #daca e !timeout => fix conditia de iesire
+                    # daca e !timeout => fix conditia de iesire
                 else:
-                    elem.cond = UnaryOp('!',aux_cond,elem.cond.coord)
+                    elem.cond = UnaryOp('!', aux_cond, elem.cond.coord)
 
             else:
                 identify_recv_exits(elem.iftrue, conditii)
@@ -80,25 +112,34 @@ def identify_recv_exits(extern_while_body, conditii):
                     identify_recv_exits(elem.iffalse, conditii)
 
 
-def take_cond_to_break(if_to_check,conds):
+def take_cond_to_break(if_to_check, conds):
+    """
+    takes the conditions to break from an If
+    :param if_to_check:
+    :param conds:
+    :return:
+    """
     if isinstance(if_to_check.iftrue, Break):
         conds.append(if_to_check.cond)
     for el in if_to_check.iftrue:
         if isinstance(el, Break):
-
             conds.append(if_to_check.cond)
         if isinstance(el, If):
-            take_cond_to_break(el,conds)
-
+            take_cond_to_break(el, conds)
 
 
 def take_all_if_to_break(while_to_check):
+    """
+    gets all conditions to break from a recv loop
+    :param while_to_check:
+    :return:
+    """
     conds = []
     for el in while_to_check.stmt:
         aux_conds = []
         aux = None
         if isinstance(el, If):
-            take_cond_to_break(el,aux_conds)
+            take_cond_to_break(el, aux_conds)
             # print generator.visit(aux)
         if aux_conds:
             for x in aux_conds:
@@ -112,6 +153,8 @@ def modify_while(while_to_check):
     :param while_to_check:
     :return:
     """
+    global coord_aux
+    coord_aux -= 1
     conds = take_all_if_to_break(while_to_check)
     needed_if = True
     aux = conds[0]
@@ -119,17 +162,14 @@ def modify_while(while_to_check):
         for cond in conds[1:]:
             aux = BinaryOp('||', aux, cond)
 
-    # print generator.visit(aux)
-    # for i in aux:
-    #     if isinstance(i, FuncCall) and i.name.name == "timeout":
-    #         needed_if = False
-    # print needed_if
+
     aux, needed_if = remove_timeout_from_cond(aux, needed_if)
 
     coord = while_to_check.coord
-    coord.line = -random.randint(1, 5000)
+    coord.line = coord_aux
 
     new_if = If(aux, None, None, coord)
+    # new_if.iffalse = iffalse
     if needed_if:
         return new_if
     else:
@@ -170,7 +210,7 @@ def remove_timeout_from_cond(cond, needed_if):
     if isinstance(cond.left, BinaryOp):
         remove_timeout_from_cond(cond.left, needed_if)
     if isinstance(cond.right, BinaryOp):
-        remove_timeout_from_cond(cond.right,needed_if)
+        remove_timeout_from_cond(cond.right, needed_if)
 
     return cond, needed_if
 
@@ -178,7 +218,7 @@ def remove_timeout_from_cond(cond, needed_if):
 def to_modify(while_to_check):
     """
     vefifica daca while-ul primit ca parametru indeplineste conditia de a fi modificat:
-    sa faca recv + scrie la o variabila de tipul MBOX(numele este mbox)
+    sa faca recv
     intoarce true sau false
     :param while_to_check:
     :return:
@@ -218,6 +258,8 @@ def whiles_to_if(extern_while_body, conditii=None):
     :param extern_while_body:
     :return: modified main while
     """
+    global coord_aux
+    coord_aux -=1
     i = 0
     size = len(extern_while_body.block_items)
     list = []
@@ -237,6 +279,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                 extern_while_body.block_items[i + 1:] = []  # don't copy the next code
                 aux.block_items.remove(aux.block_items[i])
                 new_if.iftrue = Compound(list, coord)
+                new_if.iffalse = Compound([Break()], coord_aux)
                 aux.block_items.insert(i, new_if)
                 whiles_to_if(new_if.iftrue, conditii)
 
@@ -266,6 +309,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                             element.iftrue.block_items[index + 1:] = []
                             element.iftrue.block_items.remove(element.iftrue.block_items[index])
                             new_if.iftrue = Compound(lista, coord)
+                            new_if.iffalse = Compound([Break()], coord_aux)
                             element.iftrue.block_items.insert(index, new_if)
                             whiles_to_if(new_if.iftrue, conditii)
 
@@ -292,6 +336,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                                 element.iffalse.block_items[index + 1:] = []
                                 element.iffalse.block_items.remove(element.iffalse.block_items[index])
                                 new_if.iffalse = Compound(lista, coord)
+                                new_if.iffalse = Compound([Break()], coord_aux)
                                 element.iffalse.block_items.insert(index, new_if)
                                 whiles_to_if(new_if.iffalse, conditii)
 

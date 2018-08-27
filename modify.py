@@ -1,6 +1,7 @@
 import copy
 
-from take_lab import *
+from take_lab import take_code_from_file, get_extern_while_body_from_func
+from pycparser import parse_file
 # from take_old import *
 # from cod_alex import show_func_calls
 from parse_test import RoundGenerator
@@ -15,7 +16,7 @@ generator = c_generator.CGenerator()
 
 
 #
-ast = parse_file(filename="examples/c_files/broadcast.c", use_cpp=False)
+ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
 extern_while_body = None
 
 x = get_extern_while_body_from_func(ast, "main")
@@ -25,11 +26,11 @@ whiles_to_if(x, conditii)
 identify_recv_exits(x, conditii)
 remove_mbox(x)
 
-test = get_labels_order("examples/c_files/broadcast.c",'round')
+# test = get_labels_order("examples/c_files/broadcast.c",'round')
 # print test
-#print generator.visit(x)
+print generator.visit(x)
 
-take_code_from_file(ast,"examples/c_files/broadcast.c",'round')
+take_code_from_file(ast,"examples/c_files/tpc_AMIT_modificat.c",'round')
 # copie = copy.deepcopy(ast)
 
 

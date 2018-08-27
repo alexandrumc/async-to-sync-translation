@@ -1,17 +1,16 @@
-from pycparser import parse_file, c_parser, c_generator, c_ast
-from parse_test import get_label, duplicate_element, prune_tree, get_label_assign_num, find_all_paths_to_label_modified,\
-    TreeGenerator, generate_c_code_from_paths_and_trees, RoundGenerator, find_parent
 import copy
-from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, BinaryOp, StructRef, ArrayRef, \
+
+from parse_test import get_label, duplicate_element, prune_tree, get_label_assign_num, find_all_paths_to_label_modified, \
+    TreeGenerator, generate_c_code_from_paths_and_trees, RoundGenerator, find_parent
+from pycparser import c_generator
+from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
     For
 
 generator = c_generator.CGenerator()
 
 
-
-
-
-def conds_to_source_and_dest(current_node, lab_source, lab_dest, destination_reached, source_reached,to_source, to_dest):
+def conds_to_source_and_dest(current_node, lab_source, lab_dest, destination_reached, source_reached, to_source,
+                             to_dest):
     to_delete = []
     for tupleChild in current_node.children():
         child = tupleChild[1]
@@ -23,12 +22,14 @@ def conds_to_source_and_dest(current_node, lab_source, lab_dest, destination_rea
                     to_delete.append(child)
                 continue
             else:
-                conds_to_source_and_dest(child.iftrue, lab_source, lab_dest, destination_reached, source_reached, to_source,to_dest)
+                conds_to_source_and_dest(child.iftrue, lab_source, lab_dest, destination_reached, source_reached,
+                                         to_source, to_dest)
                 if source_reached:
                     child.iffalse = None
                 elif child.iffalse is not None:
                     child.iftrue = None
-                    conds_to_source_and_dest(child.iffalse, lab_source, lab_dest, destination_reached, source_reached, to_source, to_dest)
+                    conds_to_source_and_dest(child.iffalse, lab_source, lab_dest, destination_reached, source_reached,
+                                             to_source, to_dest)
                     to_source.append(child.cond)
 
                     if not source_reached:
@@ -45,11 +46,13 @@ def conds_to_source_and_dest(current_node, lab_source, lab_dest, destination_rea
                     continue
                 else:
                     to_dest.append(child.cond)
-                    conds_to_source_and_dest(child.iftrue, lab_source, lab_dest, destination_reached, source_reached,to_source, to_dest)
+                    conds_to_source_and_dest(child.iftrue, lab_source, lab_dest, destination_reached, source_reached,
+                                             to_source, to_dest)
                     if destination_reached:
                         child.iffalse = None
                     elif child.iffalse is not None:
-                        conds_to_source_and_dest(child.iffalse, lab_source, lab_dest, destination_reached, source_reached, to_source, to_dest)
+                        conds_to_source_and_dest(child.iffalse, lab_source, lab_dest, destination_reached,
+                                                 source_reached, to_source, to_dest)
                         if destination_reached:
                             child.iftrue = None
                     continue
@@ -57,10 +60,6 @@ def conds_to_source_and_dest(current_node, lab_source, lab_dest, destination_rea
                 to_delete.append(child)
     for node in to_delete:
         current_node.block_items.remove(node)
-
-
-
-
 
 
 def remove_numbers(string):
@@ -78,6 +77,11 @@ def remove_numbers(string):
 
 
 def get_extern_while_body_from_func(ast, func_name):
+    """
+    :param ast:
+    :param func_name:
+    :return:
+    """
     for ext in ast.ext:
         if isinstance(ext, FuncDef) and ext.decl.name == func_name:
             amain_body = ext
@@ -99,6 +103,12 @@ def get_extern_while_body(ast):
 
 
 def get_labels(filename, labelname):
+    """
+    appends the label value in the list when it is found, if it is already in the list, it is ignored
+    :param filename:
+    :param labelname:
+    :return: list with labels values
+    """
     labels = []
     lab = labelname + "="
     with open(filename) as f:
@@ -119,6 +129,12 @@ def get_labels(filename, labelname):
 
 
 def get_labels_order(filename, labelname):
+    """
+    similar with get_labels but appends the label value in the list when it is found the last time
+    :param filename:
+    :param labelname:
+    :return: list with label values sorted
+    """
     aux_list = []
     labels = []
     lab = labelname + "="
@@ -142,7 +158,7 @@ def get_labels_order(filename, labelname):
     return aux_list
 
 
-def get_paths_trees(ast, labels,labels_sorted, labelname):
+def get_paths_trees(ast, labels, labels_sorted, labelname):
     trees_dict = {}
     trees_paths_dict = {}
     for label1 in labels_sorted:
@@ -155,46 +171,29 @@ def get_paths_trees(ast, labels,labels_sorted, labelname):
             labels_end = get_label(ast, labelname, label2)
 
             for start in labels_start:
-                #la final sa bag conditiile pt urmatorul element de iterat
+                # la final sa bag conditiile pt urmatorul element de iterat
                 for end in labels_end:
                     cop = duplicate_element(ast)
                     # prune_tree(get_extern_while_body_from_func(cop),start,end,[],[])
 
                     dest_list = []
                     source_list = []
-                    prune_tree(get_extern_while_body_from_func(cop, 'main'), start, end, dest_list, source_list)
-                    # to_source = []
-                    # to_dest = []
-                    # conds_to_source_and_dest(get_extern_while_body_from_func(cop, 'main'), start, end, dest_list, source_list,to_source, to_dest)
-                    # aux = find_all_paths_to_label_modified(cop,start,end)
-                    # test = take_the_first(aux, labelname)
-                    # print len(test)
-                    # trees_paths_list.append(test)
-                    #
+                    prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
+
                     if dest_list and source_list:
                         assign = get_label_assign_num(cop, labelname)
                         if assign <= 2:
                             trees_list.append(cop)
-                            # if to_dest:
-                            #     print label1, label2, "doar din prune"
-                            #     for x in to_dest:
-                            #         print generator.visit(x)
+
 
                         else:
-                            # print start, end
+
                             if labels != labels_sorted:
                                 aux = find_all_paths_to_label_modified(cop, start, end)
-                                test = take_the_first(aux, labelname)
-                                # print type(test), len(test)
-                                # trees_paths_list.append(aux)
+                                test = take_2assigns_to_label_only(aux, labelname)
+
                                 if test:
                                     trees_paths_list.append(test)
-                                    # if to_dest:
-                                    #     print label1, label2, "cu drumurile"
-                                    #     for x in to_dest:
-                                    #         print generator.visit(x)
-
-
 
         trees_dict[label1] = trees_list
         trees_paths_dict[label1] = trees_paths_list
@@ -203,14 +202,12 @@ def get_paths_trees(ast, labels,labels_sorted, labelname):
 
 
 def modify_cond(cond, new_cond):
-
-
     if isinstance(cond, ID):
         if "pid" not in cond.name:
             aux = new_cond + cond.name
             cond.name = aux
 
-    elif isinstance(cond,UnaryOp):
+    elif isinstance(cond, UnaryOp):
         modify_cond(cond.expr, new_cond)
     elif isinstance(cond.left, StructRef):
         if isinstance(cond.left.name, ID):
@@ -250,8 +247,8 @@ def take_cond_name(cond, label, lista):
     :return:
     """
     strings = ['pid', 'old', 'timeout']
-    if isinstance(cond,UnaryOp):
-        take_cond_name(cond.expr,label,lista)
+    if isinstance(cond, UnaryOp):
+        take_cond_name(cond.expr, label, lista)
 
     elif isinstance(cond, ID):
         if not any(x in cond.name for x in strings):
@@ -268,7 +265,7 @@ def take_cond_name(cond, label, lista):
 
         if isinstance(cond.left.name, ArrayRef):
             array = cond.left.name
-            if isinstance(array,ArrayRef):
+            if isinstance(array, ArrayRef):
                 if not any(x in array.name.name for x in strings):
                     aux = label + array.name.name
                     if aux not in lista:
@@ -364,7 +361,7 @@ def add_ghost_assign(trees_dict, labels, original_ast):
     for x in labels:
         trees_list = trees_dict[x]
         for i in xrange(len(trees_list)):
-            add_assign_in_tree(get_extern_while_body_from_func(trees_list[i], 'main'), x, [], original_ast)
+            add_assign_in_tree(get_extern_while_body(trees_list[i]), x, [], original_ast)
 
 
 def get_code_from_trees_only(trees_dict, labels):
@@ -375,14 +372,20 @@ def get_code_from_trees_only(trees_dict, labels):
         trees_list = trees_dict[x]
         # print x
         for tree in trees_list:
-            code_for_label.append(gen.visit(get_extern_while_body_from_func(tree, 'main')))
-            print gen.visit(get_extern_while_body_from_func(tree, 'main'))
+            code_for_label.append(gen.visit(get_extern_while_body(tree)))
+            print gen.visit(get_extern_while_body(tree))
 
         code[x] = code_for_label
     return code
 
 
-def take_the_first(paths, labelname):
+def take_2assigns_to_label_only(paths, labelname):
+    """
+    removes the paths which contain more than 2 assigns to label
+    :param paths:paths list
+    :param labelname: the name of the label
+    :return:
+    """
     aux = []
     for tuple in paths:
         tree = tuple[0]
@@ -390,7 +393,7 @@ def take_the_first(paths, labelname):
         assign = 0
         for node in path:
             if isinstance(node, Assignment) and node.lvalue.name == labelname:
-                assign +=1
+                assign += 1
 
         if assign > 2:
             aux.append(tuple)
@@ -400,28 +403,6 @@ def take_the_first(paths, labelname):
     return paths
 
 
-
-
-def remove_bad_paths(trees_paths_dict, labels, labelname):
-    for x in labels:
-        trees_paths_list = trees_paths_dict[x]
-        for i  in xrange(len(trees_paths_list)):
-            list_aux = trees_paths_list[i]
-            to_delete = []
-            for tuple in list_aux:
-                tree = tuple[0]
-                path = tuple[1]
-                assign = 0
-                for node in path:
-                    if isinstance(node,Assignment) and node.lvalue.name == labelname:
-                        assign += 1
-                if assign > 2:
-                    to_delete.append(tuple)
-            for elem in to_delete:
-                list_aux.remove(elem)
-
-
-
 def print_code_from_trees_paths(trees_paths_dict, labels):
     for x in labels:
         paths = trees_paths_dict[x]
@@ -429,12 +410,14 @@ def print_code_from_trees_paths(trees_paths_dict, labels):
             if path is not None:
                 generate_c_code_from_paths_and_trees(path)
 
-def print_code_from_trees(trees_dict,labels):
+
+def print_code_from_trees(trees_dict, labels):
     gen = TreeGenerator()
     for x in labels:
         trees_list = trees_dict[x]
         for tree in trees_list:
-            print gen.visit(get_extern_while_body_from_func(tree, 'main'))
+            print gen.visit(get_extern_while_body(tree))
+
 
 def print_code(trees_dict, trees_paths_dict, labels):
     print_code_from_trees(trees_dict, labels)
@@ -505,12 +488,12 @@ def print_rounds(labels, trees_dict, trees_paths_dict):
 def take_code_from_file(ast, filename, labelname):
     x = copy.deepcopy(ast)
     labels_sorted = get_labels_order(filename, labelname)
-    labels = get_labels(filename,labelname)
+    labels = get_labels(filename, labelname)
 
-    trees_dict, trees_paths_dict = get_paths_trees(ast, labels,labels_sorted, labelname)
+    trees_dict, trees_paths_dict = get_paths_trees(ast, labels, labels_sorted, labelname)
 
-    #print_code(trees_dict,trees_paths_dict,labels_sorted)
+    print_code(trees_dict, trees_paths_dict, labels_sorted)
 
-    print_rounds(labels_sorted, trees_dict, trees_paths_dict)
+    # print_rounds(labels_sorted, trees_dict, trees_paths_dict)
 
     return trees_dict
