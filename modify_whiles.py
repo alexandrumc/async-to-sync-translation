@@ -5,13 +5,6 @@ from pycparser.c_ast import *
 
 generator = c_generator.CGenerator()
 
-
-
-
-
-
-
-
 def remove_mbox_assign_to_zero(extern_while_body):
     to_delete = []
     for elem in extern_while_body.block_items:
@@ -79,7 +72,7 @@ def identify_recv_exits(extern_while_body, conditii):
                     elem.cond = aux_cond
                     #daca e !timeout => fix conditia de iesire
                 else:
-                    elem.cond = UnaryOp('!',aux_cond)
+                    elem.cond = UnaryOp('!',aux_cond,elem.cond.coord)
 
             else:
                 identify_recv_exits(elem.iftrue, conditii)
