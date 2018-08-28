@@ -43,9 +43,12 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 				mbox[num_mbox] = *m;
 				num_mbox = num_mbox + 1;
 			}
-			if (num_mbox_propose == 1) break;
-			if (timeout()) break;
 
+			if (num_mbox_propose == 1)
+			    break;
+
+			if (timeout())
+			    break;
 		}
 
 		if (timeout()) {
@@ -69,13 +72,19 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 			if (pid == leader) {
 				while (true) {
 					m = recv();
+
 					if (m->i == lastIndex && m->view == view && m->round == round && m->lab == lab) {
 						mbox[num_mbox] = *m;
 						num_mbox++;
 					}
-					if (timeout()) break;
-					if (num_box > (n / 2)) break;
+
+					if (timeout())
+					    break;
+
+					if (num_box > (n / 2))
+					    break;
 				}
+
 				if (num_box > (n / 2)) {
 					log[i][1] = true;
 
@@ -83,7 +92,8 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 					round = AUX_ROUND;
 				}
 				round = THIRD_ROUND;
-			} else {
+			}
+			else {
 				round = THIRD_ROUND;
 			}
 
@@ -96,6 +106,7 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 				m->sender = pid;
 				send(m, to_all);
 			}
+
 			while (true) {
 				m = recv();
 				if (m->i == lastIndex && m->view == view && m->round == round && m->lab == lab && m->sender == leader) {
@@ -103,14 +114,15 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 					mbox[num_mbox] = *m;
 					num_mbox = num_mbox + 1;
 				}
-				if (num_mbox_propose == 1) break;
 
-
+				if (num_mbox_propose == 1)
+				    break;
 			}
 
 			if (timeout()) {
 				out();
 			}
+
 			if (num_mbox == 1) {
 				log[lastIndex][1] = true;
 				log[lastIndex + 1][1] = false;
