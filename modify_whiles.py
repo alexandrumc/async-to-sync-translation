@@ -279,7 +279,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                 extern_while_body.block_items[i + 1:] = []  # don't copy the next code
                 aux.block_items.remove(aux.block_items[i])
                 new_if.iftrue = Compound(list, coord)
-                new_if.iffalse = Compound([Break()], coord_aux)
+                # new_if.iffalse = Compound([Break()], coord_aux)
                 aux.block_items.insert(i, new_if)
                 whiles_to_if(new_if.iftrue, conditii)
 
