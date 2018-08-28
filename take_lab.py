@@ -67,7 +67,6 @@ def conds_to_source_and_dest(current_node, lab_source, lab_dest, destination_rea
         current_node.block_items.remove(node)
 
 
-
 def get_extern_while_body_from_func(ast, func_name):
     """
     :param ast:
@@ -160,8 +159,7 @@ def get_context(extern, context):
                 break
 
 
-
-def modify_conds(label1,conds_dict,cop,ast):
+def modify_conds(label1, conds_dict, cop, ast):
     if label1 in conds_dict:
         # print label1
         context = []
@@ -207,27 +205,9 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
                     conds_to_source_and_dest(get_extern_while_body(cop), start, end, dest_list, source_list, [],
                                              ifs_to_dest)
 
-
-
                     if dest_list and source_list:
 
                         modify_conds(label1, conds_dict, cop, ast)
-                        # if label1 in conds_dict:
-                        #     # print label1
-                        #     context = []
-                        #     get_context(get_extern_while_body(cop), context)
-                        #     conds = conds_dict[label1]
-                        #     for tuple in conds:
-                        #         ifelem = tuple[0]
-                        #         new_vals = tuple[1]
-                        #         # print new_vals
-                        #         node_cop = find_node(cop,ifelem)
-                        #         node_ast = find_node(ast,ifelem)
-                        #         if node_cop:
-                        #             modify_cond(node_cop.cond,new_vals)
-                        #         if node_ast:
-                        #             modify_cond(node_ast.cond,new_vals)
-
 
                         assign = get_label_assign_num(cop, labelname)
                         if assign <= 2:
@@ -346,7 +326,7 @@ def take_cond_name(cond, lista):
                         if aux not in lista:
                             lista.append(aux)
 
-                else :
+                else:
                     if not any(x in array.name.name.name for x in strings):
                         aux = array.name.name.name
                         if aux not in lista:
@@ -392,7 +372,7 @@ def add_ghost_assign_in_tree(tree, ifs_to_des, label):
     """
     to_add = []
     var_old = []
-    ifs_new_names =[]
+    ifs_new_names = []
     for elem in ifs_to_des:
         conds_list = []
         new_conds_list = []
@@ -411,7 +391,7 @@ def add_ghost_assign_in_tree(tree, ifs_to_des, label):
             parent.block_items.insert(index, assign)
 
         # print new_conds_list
-        aux = (elem,new_conds_list)
+        aux = (elem, new_conds_list)
         ifs_new_names.append(aux)
         # print new_names
     return ifs_new_names
