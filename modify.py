@@ -16,7 +16,7 @@ generator = c_generator.CGenerator()
 
 
 #
-ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
+ast = parse_file(filename="examples/c_files/ct-terminating.c", use_cpp=False)
 extern_while_body = None
 
 x = get_extern_while_body_from_func(ast, "main")
@@ -30,7 +30,7 @@ remove_mbox(x)
 # print test
 print generator.visit(x)
 
-take_code_from_file(ast,"examples/c_files/tpc_AMIT_modificat.c",'round')
+take_code_from_file(ast,"examples/c_files/ct-terminating.c",'round')
 # copie = copy.deepcopy(ast)
 
 

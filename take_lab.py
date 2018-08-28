@@ -492,8 +492,8 @@ def take_code_from_file(ast, filename, labelname):
 
     trees_dict, trees_paths_dict = get_paths_trees(ast, labels, labels_sorted, labelname)
 
-    print_code(trees_dict, trees_paths_dict, labels_sorted)
+    #print_code(trees_dict, trees_paths_dict, labels_sorted)
 
-    # print_rounds(labels_sorted, trees_dict, trees_paths_dict)
+    print_rounds(labels_sorted, trees_dict, trees_paths_dict)
 
     return trees_dict
