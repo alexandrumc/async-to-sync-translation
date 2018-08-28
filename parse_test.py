@@ -276,6 +276,24 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                 # nu pe parinti - avem nod if pe care facem recursivitate
 
+                check_if_gen = CheckIfGenerator(source_node, dest_node)
+                check_if_gen.visit(child.iftrue)
+                jump_on_iftrue = check_if_gen.is_jumping
+                jump_on_iffalse = False
+                check_if_gen.is_jumping = False
+                if child.iffalse is not None:
+                    check_if_gen.visit(child.iffalse)
+                    jump_on_iffalse = check_if_gen.is_jumping
+
+                if not jump_on_iffalse and not jump_on_iftrue:
+                    path.append(child)
+
+                    if last_if is not None:
+                        if find_node(last_if, child) is None:
+                            last_if.block_items.append(child)
+                            to_delete.append(child)
+                    continue
+
                 parent_list.append(parent)
                 grandparent_list.append(grandparent)
                 index = grandparent.block_items.index(parent)
@@ -518,6 +536,23 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 if isinstance(child, If):
 
                     # ne intoarcem pe stramosi - avem nod if pe care facem recursivitate
+                    check_if_gen = CheckIfGenerator(source_node, dest_node)
+                    check_if_gen.visit(child.iftrue)
+                    jump_on_iftrue = check_if_gen.is_jumping
+                    jump_on_iffalse = False
+                    check_if_gen.is_jumping = False
+                    if child.iffalse is not None:
+                        check_if_gen.visit(child.iffalse)
+                        jump_on_iffalse = check_if_gen.is_jumping
+
+                    if not jump_on_iffalse and not jump_on_iftrue:
+                        path.append(child)
+
+                        if last_if is not None:
+                            if find_node(last_if, child) is None:
+                                last_if.block_items.append(child)
+                                to_delete.append(child)
+                        continue
 
                     path1 = path[:]
                     path2 = path[:]
@@ -1061,11 +1096,11 @@ class PathGenerator(c_generator.CGenerator):
         self.extend_visit = False
 
     def visit_Compound(self, n):
-        if n in self.path:
+        if n in self.path or self.extend_visit:
             s = self._make_indent() + '{\n'
             self.indent_level += 2
             if n.block_items:
-                s += ''.join(self._generate_stmt(stmt) for stmt in n.block_items if stmt in self.path)
+                s += ''.join(self._generate_stmt(stmt) for stmt in n.block_items if stmt in self.path or self.extend_visit)
             self.indent_level -= 2
             s += self._make_indent() + '}\n'
             return s
@@ -1088,43 +1123,32 @@ class PathGenerator(c_generator.CGenerator):
         return ''
 
     def visit_If(self, n):
-        if n in self.path:
+        if n in self.path or self.extend_visit:
             s = 'if ('
-            self.visit_condition = True
             if n.cond:
-                """
-                if n.iffalse is None:
-                    print "n.iffalse e None"
-                else:
-                    print "n.iffalse nu e None"
-
-                if n.iftrue is None:
-                    print "n.iftrue e None"
-                else:
-                    print "n.iftrue nu e None"
-
-                if n.iffalse in self.path:
-                    print "n.iffalse in path"
-                else:
-                    print "n.iffalse not in path"
-
-                if n.iftrue in self.path:
-                    print "n.iftrue in path"
-                else:
-                    print "n.iftrue not in path"
-                """
                 if n.iffalse is not None and n.iffalse in self.path:
-                    s += '!'
-
+                    s += '!('
+                self.visit_condition = True
                 s += self.visit(n.cond)
-            self.visit_condition = False
+                self.visit_condition = False
+                if n.iffalse is not None and n.iffalse in self.path:
+                    s += ')'
             s += ')\n'
-            if n.iftrue in self.path:
+
+            if (n.iftrue and n.iftrue not in self.path and not n.iffalse) or \
+                (n.iftrue and n.iffalse and n.iftrue not in self.path and n.iffalse not in self.path):
+                self.extend_visit = True
                 s += self._generate_stmt(n.iftrue, add_indent=True)
-            else:
                 if n.iffalse:
-                    # s += self._make_indent()
+                    s += self._make_indent() + 'else\n'
                     s += self._generate_stmt(n.iffalse, add_indent=True)
+                self.extend_visit = False
+            else:
+                if n.iftrue in self.path:
+                    s += self._generate_stmt(n.iftrue, add_indent=True)
+                else:
+                    if n.iffalse:
+                        s += self._generate_stmt(n.iffalse, add_indent=True)
             return s
         return ''
 
@@ -1454,50 +1478,138 @@ class RoundGenerator(c_generator.CGenerator):
     def visit_If(self, n):
         if (self.mode == "send" and not self.send_reached and self.path is None) \
                 or (self.mode == "send" and not self.send_reached and self.path is not None
-                    and n in self.path):
-            s = 'if ('
-            if n.cond:
-                if n.iffalse is not None and n.iftrue is None:
-                    s += '!('
+                    and n in self.path) or (self.mode == "send" and not self.send_reached and
+                                            self.path is not None and self.extend_visit):
+            s = ''
+            if (self.path and n in self.path and n.iftrue and n.iftrue not in self.path and not n.iffalse) or \
+                    (self.path and n in self.path and n.iftrue and n.iffalse
+                     and n.iftrue not in self.path and n.iffalse not in self.path):
+                self.extend_visit = True
+                s = 'if ('
                 self.visit_cond = True
                 s += self.visit(n.cond)
                 self.visit_cond = False
-                if n.iffalse is not None and n.iftrue is None:
-                    s += ')'
-            s += ')\n'
-            if n.iftrue:
+                s += ')\n'
                 s += self._generate_stmt(n.iftrue, add_indent=True)
-            if n.iffalse:
-                if n.iftrue is not None:
+                if n.iffalse:
                     s += self._make_indent() + 'else\n'
-                s += self._generate_stmt(n.iffalse, add_indent=True)
+                    s += self._generate_stmt(n.iffalse, add_indent=True)
+                self.extend_visit = False
+            elif self.path and n in self.path:
+                s = 'if ('
+                if n.cond:
+                    if n.iffalse is not None and n.iffalse in self.path:
+                        s += '!('
+                    self.visit_cond = True
+                    s += self.visit(n.cond)
+                    self.visit_cond = False
+                    if n.iffalse is not None and n.iffalse in self.path:
+                        s += ')'
+                s += ')\n'
+                if n.iftrue in self.path:
+                    s += self._generate_stmt(n.iftrue, add_indent=True)
+                else:
+                    if n.iffalse:
+                        s += self._generate_stmt(n.iffalse, add_indent=True)
+            elif (self.path and self.extend_visit) or not self.path:
+                if self.path and self.extend_visit:
+                    s = 'if ('
+                    self.visit_cond = True
+                    s += self.visit(n.cond)
+                    self.visit_cond = False
+                    s += ')\n'
+                else:
+                    s = 'if ('
+                    if n.cond:
+                        if n.iffalse is not None and n.iftrue is None:
+                            s += '!('
+                        s += self.visit(n.cond)
+                        if n.iffalse is not None and n.iftrue is None:
+                            s += ')'
+                    s += ')\n'
+                if n.iftrue:
+                    s += self._generate_stmt(n.iftrue, add_indent=True)
+                if n.iffalse:
+                    s += self._make_indent() + 'else\n'
+                    s += self._generate_stmt(n.iffalse, add_indent=True)
             return s
+
         elif (self.mode == "update" and self.path is None) or \
                 (self.mode == "update" and self.path is not None and n in self.path):
             ok1 = False
             ok2 = False
-            s = 'if ('
-            if n.cond:
-                if n.iffalse is not None and n.iftrue is None:
-                    s += '!('
+            s = ''
+
+            if (self.path and n in self.path and n.iftrue and n.iftrue not in self.path and not n.iffalse) or \
+                (self.path and n in self.path and n.iftrue and n.iffalse
+                 and n.iftrue not in self.path and n.iffalse not in self.path):
+                self.extend_visit = True
+                s = 'if ('
                 self.visit_cond = True
                 s += self.visit(n.cond)
                 self.visit_cond = False
-                if n.iffalse is not None and n.iftrue is None:
-                    s += ')'
-            s += ')\n'
-            if n.iftrue:
+                s += ')\n'
                 s += self._generate_stmt(n.iftrue, add_indent=True)
                 if self.send_last_instr:
                     ok1 = True
                     self.send_last_instr = False
-            if n.iffalse:
-                if n.iftrue is not None:
+                if n.iffalse:
                     s += self._make_indent() + 'else\n'
-                s += self._generate_stmt(n.iffalse, add_indent=True)
-                if self.send_last_instr:
-                    ok2 = True
-                    self.send_last_instr = False
+                    s += self._generate_stmt(n.iffalse, add_indent=True)
+                    if self.send_last_instr:
+                        ok2 = True
+                        self.send_last_instr = False
+                self.extend_visit = False
+            elif self.path and n in self.path:
+                s = 'if ('
+                if n.cond:
+                    if n.iffalse is not None and n.iffalse in self.path:
+                        s += '!('
+                    self.visit_cond = True
+                    s += self.visit(n.cond)
+                    self.visit_cond = False
+                    if n.iffalse is not None and n.iffalse in self.path:
+                        s += ')'
+                s += ')\n'
+                if n.iftrue in self.path:
+                    s += self._generate_stmt(n.iftrue, add_indent=True)
+                    if self.send_last_instr:
+                        ok1 = True
+                        self.send_last_instr = False
+                else:
+                    if n.iffalse:
+                        s += self._generate_stmt(n.iffalse, add_indent=True)
+                        if self.send_last_instr:
+                            ok2 = True
+                            self.send_last_instr = False
+            elif (self.path and self.extend_visit) or not self.path:
+                if self.path and self.extend_visit:
+                    s = 'if ('
+                    self.visit_cond = True
+                    s += self.visit(n.cond)
+                    self.visit_cond = False
+                    s += ')\n'
+                else:
+                    s = 'if ('
+                    if n.cond:
+                        if n.iffalse is not None and n.iftrue is None:
+                            s += '!('
+                        s += self.visit(n.cond)
+                        if n.iffalse is not None and n.iftrue is None:
+                            s += ')'
+                    s += ')\n'
+                if n.iftrue:
+                    s += self._generate_stmt(n.iftrue, add_indent=True)
+                    if self.send_last_instr:
+                        ok1 = True
+                        self.send_last_instr = False
+                if n.iffalse:
+                    s += self._make_indent() + 'else\n'
+                    s += self._generate_stmt(n.iffalse, add_indent=True)
+                    if self.send_last_instr:
+                        ok2 = True
+                        self.send_last_instr = False
+
             if self.send_reached:
                 if not ok1 and not ok2:
                     return s
@@ -1510,40 +1622,61 @@ class RoundGenerator(c_generator.CGenerator):
             self.first_compound = False
         if (self.mode == "send" and not self.send_reached and self.path is None) \
                 or (self.mode == "send" and not self.send_reached and self.path is not None
-                    and n in self.path):
+                    and n in self.path) or (self.mode == "send" and not self.send_reached and
+                                            self.path is not None and self.extend_visit):
             s = ""
             if not remeber_compound:
                 s = self._make_indent() + '{\n'
             self.indent_level += 2
             if n.block_items:
-                s += ''.join(self._generate_stmt(stmt) for stmt in n.block_items if not self.send_reached)
+                for stmt in n.block_items:
+                    if not self.send_reached:
+                        if self.path is None or (self.path and stmt in self.path) or (self.path and self.extend_visit):
+                            s += self._generate_stmt(stmt)
             self.indent_level -= 2
             if not remeber_compound:
                 s += self._make_indent() + '}\n'
             return s
         elif (self.mode == "update" and self.path is None) or \
-                (self.mode == "update" and self.path is not None and n in self.path):
+                (self.mode == "update" and self.path is not None and n in self.path) or\
+                (self.mode == "update" and self.path is not None and self.extend_visit):
             s = ""
             if not remeber_compound:
                 s = self._make_indent() + '{\n'
             self.indent_level += 2
             if n.block_items:
                 for index, stmt in enumerate(n.block_items):
-                    if not self.send_reached:
-                        aux_s = self._generate_stmt(stmt)
-                        if self.send_reached and isinstance(stmt, FuncCall):
-                            if index == len(n.block_items) - 1:
-                                self.send_last_instr = True
-                        elif self.send_reached:
-                            s += aux_s
-                    else:
-                        s += self._generate_stmt(stmt)
+                    if self.path is None or (self.path and stmt in self.path) or (self.path and self.extend_visit):
+                        if not self.send_reached:
+                            aux_s = self._generate_stmt(stmt)
+                            if self.send_reached and isinstance(stmt, FuncCall):
+                                if index == len(n.block_items) - 1:
+                                    self.send_last_instr = True
+                            elif self.send_reached:
+                                s += aux_s
+                        else:
+                            s += self._generate_stmt(stmt)
             self.indent_level -= 2
             if not remeber_compound:
                 s += self._make_indent() + '}\n'
             if self.send_reached and not self.send_last_instr:
                 return s
         return ""
+
+
+class CheckIfGenerator(c_generator.CGenerator):
+    def __init__(self, s, d):
+        c_generator.CGenerator.__init__(self)
+        self.is_jumping = False
+        self.source = s
+        self.dest = d
+        self.label_name = s.lvalue.name
+
+    def visit_Assignment(self, n):
+        if n.lvalue.name == self.label_name:
+            if n != self.source and n != self.dest:
+                self.is_jumping = True
+        return ''
 
 
 def print_path(paths_list, index=-1):
@@ -1660,8 +1793,8 @@ if __name__ == "__main__":
     # ast.show()
     #print tree_gen.visit(get_extern_while_body(ast))
 
-    label1_list = get_label(ast, "round", "FOURTH_ROUND")
-    label2_list = get_label(ast, "round", "AUX_ROUND")
+    label1_list = get_label(ast, "round", "SECOND_ROUND")
+    label2_list = get_label(ast, "round", "THIRD_ROUND")
     # print label1_list
     # print label2_list
 
