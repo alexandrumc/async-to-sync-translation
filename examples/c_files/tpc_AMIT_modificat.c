@@ -33,7 +33,7 @@ void main(int pid, int leader, int num) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
-			if ((mbox.num_msg >= 1 && mbox.messages[num_msg].sender == leader))
+			if ((dama >= 1 && mbox.messages[num_msg].sender == leader))
 				break;
 		}
 		if (mbox.messages[num_msg].payload > 0) {
