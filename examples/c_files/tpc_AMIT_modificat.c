@@ -15,12 +15,12 @@ void main(int pid, int leader, int num) {
 
 	while (1) {
 
-		lab = FIRST_ROUND;
+		round = FIRST_ROUND;
 
 		if (pid == leader) {
 			msg *m = (msg *) malloc(sizeof(msg));
 			m->count = count;
-			m->lab = lab;
+			m->round = round;
 			m->payload = in();
 			m->sender = pid;
 
@@ -29,7 +29,7 @@ void main(int pid, int leader, int num) {
 
 		while (1) {
 			m = recv();
-			if (m.lab == FIRST_ROUND && m.count == count) {
+			if (m.round == FIRST_ROUND && m.count == count) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
@@ -41,7 +41,7 @@ void main(int pid, int leader, int num) {
 			current_command = m.payload;
 		}
 
-		lab = SECOND_ROUND;
+		round = SECOND_ROUND;
 
 		msg *m = (msg *) malloc(sizeof(msg));
 		m->response = response;
@@ -52,7 +52,7 @@ void main(int pid, int leader, int num) {
 		if (pid == leader) {
 			while (1) {
 				m = recv();
-				if (m.lab == SECOND_ROUND && m.count == count) {
+				if (m.round == SECOND_ROUND && m.count == count) {
 					mbox.messages[num_msg] = m;
 					mbox.num_msg++;
 				}
@@ -69,7 +69,7 @@ void main(int pid, int leader, int num) {
 
 		}
 
-		lab = THIRD_ROUND;
+		round = THIRD_ROUND;
 
 		if (pid == leader) {
 			msg *m = (msg *) malloc(sizeof(msg));
@@ -84,7 +84,7 @@ void main(int pid, int leader, int num) {
 
 		while (1) {
 			m = recv();
-			if (m.lab == THIRD_ROUND && m.count == count) {
+			if (m.round == THIRD_ROUND && m.count == count) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
@@ -97,11 +97,11 @@ void main(int pid, int leader, int num) {
 			log[count] = current_command;
 		}
 
-		lab = FOURTH_ROUND;
+		round = FOURTH_ROUND;
 
 		msg *m = (msg *) malloc(sizeof(msg));
 		m->count = count;
-		m->lab = lab;
+		m->round = round;
 
 		send(m, leader);
 
@@ -110,7 +110,7 @@ void main(int pid, int leader, int num) {
 		if (pid == leader) {
 			while (1) {
 				m = recv();
-				if (m.lab == FOURTH_ROUND_ROUND && m.count == count) {
+				if (m.round == FOURTH_ROUND_ROUND && m.count == count) {
 					mbox.messages[num_msg] = m;
 					mbox.num_msg++;
 				}
@@ -124,7 +124,7 @@ void main(int pid, int leader, int num) {
 			count = count + 1;
 		}
 
-		lab = AUX_ROUND;
+		round = AUX_ROUND;
 	}
 
 }
