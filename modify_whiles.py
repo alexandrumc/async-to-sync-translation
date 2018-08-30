@@ -309,7 +309,16 @@ def whiles_to_if(extern_while_body, conditii=None):
                             element.iftrue.block_items[index + 1:] = []
                             element.iftrue.block_items.remove(element.iftrue.block_items[index])
                             new_if.iftrue = Compound(lista, coord)
-                            new_if.iffalse = Compound([Break()], coord_aux)
+
+
+                            new_coord = coord
+                            new_coord.line = coord_aux
+                            new_break_coord = new_coord
+                            coord_aux -=1
+                            new_break_coord.line = coord_aux
+
+
+                            new_if.iffalse = Compound([Break(new_break_coord)], new_coord)
                             element.iftrue.block_items.insert(index, new_if)
                             whiles_to_if(new_if.iftrue, conditii)
 
@@ -336,7 +345,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                                 element.iffalse.block_items[index + 1:] = []
                                 element.iffalse.block_items.remove(element.iffalse.block_items[index])
                                 new_if.iffalse = Compound(lista, coord)
-                                new_if.iffalse = Compound([Break()], coord_aux)
+                                # new_if.iffalse = Compound([Break()], coord_aux)
                                 element.iffalse.block_items.insert(index, new_if)
                                 whiles_to_if(new_if.iffalse, conditii)
 

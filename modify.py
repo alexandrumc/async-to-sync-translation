@@ -2,21 +2,16 @@ import copy
 
 from take_lab import take_code_from_file, get_extern_while_body_from_func
 from pycparser import parse_file
-# from take_old import *
-# from cod_alex import show_func_calls
-from parse_test import RoundGenerator
 
+from parse_test import get_label, prune_tree
 from modify_whiles import *
 generator = c_generator.CGenerator()
-# print(generator.visit(ast))
-
-# main_function = ast.ext[1]
 
 
 
 
 #
-ast = parse_file(filename="examples/c_files/broadcast.c", use_cpp=False)
+ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
 extern_while_body = None
 
 x = get_extern_while_body_from_func(ast, "main")
@@ -28,14 +23,19 @@ remove_mbox(x)
 
 # test = get_labels_order("examples/c_files/broadcast.c",'round')
 # print test
-print generator.visit(x)
-
-take_code_from_file(ast,"examples/c_files/broadcast.c",'round')
-# copie = copy.deepcopy(ast)
-
-
-
 # print generator.visit(x)
 
+take_code_from_file(ast,"examples/c_files/tpc_AMIT_modificat.c",'lab')
+# copie = copy.deepcopy(x)
+
+# labels_start = get_label(copie, 'lab', 'THIRD_ROUND')
+# labels_end = get_label(copie, 'lab', 'FOURTH_ROUND')
+# prune_tree(copie,labels_start[0],labels_end[0],[],[])
+# print generator.visit(copie)
+
+
+
+# prostie(copie)
+# print len(labels_start), len(labels_end)
 
 
