@@ -554,17 +554,17 @@ def print_rounds(labels, trees_dict, trees_paths_dict):
 
         list_of_lists_of_tuples = trees_paths_dict[label]
         for list_of_tuples in list_of_lists_of_tuples:
-            tuple_el = list_of_tuples[0]
-            gen = RoundGenerator("send", tuple_el[1])
-            gen.first_compound = False
-            result = gen.visit(get_extern_while_body(tuple_el[0]))
-            if gen.send_reached:
-                if result not in history_of_strings:
-                    print result
-                    history_of_strings.append(result)
-                found_send_list.append(True)
-            else:
-                found_send_list.append(False)
+            for tuple_el in list_of_tuples:
+                gen = RoundGenerator("send", tuple_el[1])
+                gen.first_compound = False
+                result = gen.visit(get_extern_while_body(tuple_el[0]))
+                if gen.send_reached:
+                    if result not in history_of_strings:
+                        print result
+                        history_of_strings.append(result)
+                    found_send_list.append(True)
+                else:
+                    found_send_list.append(False)
 
         print "  UPDATE():"
         history_of_strings = []
@@ -580,16 +580,16 @@ def print_rounds(labels, trees_dict, trees_paths_dict):
 
         i = len(trees_dict[label])
         for list_of_tuples in list_of_lists_of_tuples:
-            tuple_el = list_of_tuples[0]
-            gen = RoundGenerator("update", tuple_el[1])
-            gen.first_compound = False
-            if not found_send_list[i]:
-                gen.send_reached = True
-            result = gen.visit(get_extern_while_body(tuple_el[0]))
-            if result not in history_of_strings:
-                print result
-                history_of_strings.append(result)
-            i = i + 1
+            for tuple_el in list_of_tuples:
+                gen = RoundGenerator("update", tuple_el[1])
+                gen.first_compound = False
+                if not found_send_list[i]:
+                    gen.send_reached = True
+                result = gen.visit(get_extern_while_body(tuple_el[0]))
+                if result not in history_of_strings:
+                    print result
+                    history_of_strings.append(result)
+                i = i + 1
 
 
 def take_code_from_file(ast, filename, labelname):
@@ -599,8 +599,8 @@ def take_code_from_file(ast, filename, labelname):
 
     trees_dict, trees_paths_dict = get_paths_trees(ast, labels, labels_sorted, labelname)
 
-    print_code(trees_dict, trees_paths_dict, labels_sorted)
+    #print_code(trees_dict, trees_paths_dict, labels_sorted)
 
-    # print_rounds(labels_sorted, trees_dict, trees_paths_dict)
+    print_rounds(labels_sorted, trees_dict, trees_paths_dict)
 
     return trees_dict

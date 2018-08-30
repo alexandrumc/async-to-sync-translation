@@ -238,7 +238,6 @@ class Assignment(Node):
         self.lvalue = lvalue
         self.rvalue = rvalue
         self.coord = coord
-        #self.trace_counter = trace_counter
 
     def children(self):
         nodelist = []
@@ -257,9 +256,6 @@ class Assignment(Node):
     def __eq__(self, other):
         """Override the default Equals behavior"""
         if isinstance(other, self.__class__):
-            #if self.trace_counter and other.trace_counter:
-             #   return self.trace_counter == other.trace_counter
-            #else:
                 return self.coord.line == other.coord.line and self.coord.file == other.coord.file\
                    and self.coord.column == other.coord.column
         return False

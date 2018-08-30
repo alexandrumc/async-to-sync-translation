@@ -72,7 +72,7 @@ int main(int pid, int num, int estimate) {
 			}
 
 
-			if (mbox[num_mbox].round == 4) {
+			if (num_mbox >= 1 && mbox[num_mbox].round == FOURTH_ROUND) {
 				round = FOURTH_ROUND;
 				estimate = mbox[num_mbox].estimate;
 				state = 1;
@@ -185,7 +185,7 @@ int main(int pid, int num, int estimate) {
 
 		round = FOURTH_ROUND;
 
-		if (pid == leader) {
+		if (pid == leader && ack == 1) {
 			m = (msg *) malloc(sizeof(msg));
 			m->sender = myidl;
 			m->phase = phase;

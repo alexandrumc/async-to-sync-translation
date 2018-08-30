@@ -44,7 +44,7 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 				num_mbox = num_mbox + 1;
 			}
 
-			if (num_mbox_propose == 1)
+			if (num_mbox == 1)
 			    break;
 
 			if (timeout())
@@ -87,9 +87,10 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 
 				if (num_box > (n / 2)) {
 					log[i][1] = true;
-
 					out_external(log[i][0]);
-					round = AUX_ROUND;
+				}
+				else {
+				    out();
 				}
 				round = THIRD_ROUND;
 			}
@@ -115,7 +116,7 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 					num_mbox = num_mbox + 1;
 				}
 
-				if (num_mbox_propose == 1)
+				if (num_mbox == 1)
 				    break;
 			}
 
