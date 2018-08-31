@@ -1,7 +1,7 @@
 import copy
 
 from parse_test import get_label, duplicate_element, get_label_assign_num, find_all_paths_to_label_modified, \
-    TreeGenerator, generate_c_code_from_paths_and_trees, RoundGenerator, find_parent, find_node
+    TreeGenerator, generate_c_code_from_paths_and_trees, RoundGenerator, find_parent, find_node, CheckIfGenerator
 from pycparser import c_generator
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
     For
@@ -200,7 +200,7 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
 
                     dest_list = []
                     source_list = []
-                    # prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
+                    #prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
                     ifs_to_dest = []
                     conds_to_source_and_dest(get_extern_while_body(cop), start, end, dest_list, source_list, [],
                                              ifs_to_dest)
@@ -210,10 +210,26 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
                         modify_conds(label1, conds_dict, cop, ast)
 
                         assign = get_label_assign_num(cop, labelname)
-                        if assign <= 2:
 
-                            new_conds = add_ghost_assign_in_tree(cop, ifs_to_dest, label1)
-                            trees_list.append(cop)
+                        #print get_extern_while_body(cop)
+
+                        if assign <= 2:
+                            check_if_gen = CheckIfGenerator(start, end, 1)
+                            #print TreeGenerator().visit(get_extern_while_body(cop))
+                            check_if_gen.visit(get_extern_while_body(cop))
+                            #print check_if_gen.is_jumping
+                            #print check_if_gen.is_blocking
+                            #print "\n\nUNUL\n\n"
+                            if not check_if_gen.is_blocking and not check_if_gen.is_jumping:
+                                new_conds = add_ghost_assign_in_tree(cop, ifs_to_dest, label1)
+                                trees_list.append(cop)
+                            else:
+                                #if labels != labels_sorted:
+                                aux = find_all_paths_to_label_modified(cop, start, end)
+                                test = take_2assigns_to_label_only(aux, labelname)
+
+                                if test:
+                                    trees_paths_list.append(test)
 
 
 

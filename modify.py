@@ -25,7 +25,7 @@ remove_mbox(x)
 # print test
 # print generator.visit(x)
 
-take_code_from_file(ast,"examples/c_files/tpc_AMIT_modificat.c",'lab')
+take_code_from_file(ast,"examples/c_files/tpc_AMIT_modificat.c",'round')
 # copie = copy.deepcopy(x)
 
 # labels_start = get_label(copie, 'lab', 'THIRD_ROUND')

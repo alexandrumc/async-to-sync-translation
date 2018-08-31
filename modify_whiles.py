@@ -1,5 +1,6 @@
 from pycparser import c_generator
 from pycparser.c_ast import *
+from pycparser.plyparser import Coord
 
 generator = c_generator.CGenerator()
 
@@ -310,15 +311,21 @@ def whiles_to_if(extern_while_body, conditii=None):
                             element.iftrue.block_items.remove(element.iftrue.block_items[index])
                             new_if.iftrue = Compound(lista, coord)
 
-
-                            new_coord = coord
+                            new_coord = Coord(coord.file, coord.line, coord.column)
                             new_coord.line = coord_aux
-                            new_break_coord = new_coord
+                            new_coord.column = coord_aux
+
                             coord_aux -=1
+                            new_break_coord = Coord(coord.file, coord.line, coord.column)
                             new_break_coord.line = coord_aux
+                            new_break_coord.column = coord_aux
 
+                            coord_aux -= 1
+                            id_coord = Coord(coord.file, coord.line, coord.column)
+                            id_coord.line = coord_aux
+                            id_coord.column = coord_aux
 
-                            new_if.iffalse = Compound([Break(new_break_coord)], new_coord)
+                            new_if.iffalse = Compound([FuncCall(ID("wait_for_messages", id_coord), None, new_break_coord)], new_coord)
                             element.iftrue.block_items.insert(index, new_if)
                             whiles_to_if(new_if.iftrue, conditii)
 

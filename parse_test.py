@@ -278,14 +278,23 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                 check_if_gen = CheckIfGenerator(source_node, dest_node)
                 check_if_gen.visit(child.iftrue)
+
                 jump_on_iftrue = check_if_gen.is_jumping
+                blocking_on_iftrue = check_if_gen.is_blocking
+
                 jump_on_iffalse = False
+                blocking_on_iffalse = False
+
                 check_if_gen.is_jumping = False
+                check_if_gen.is_blocking = False
+
                 if child.iffalse is not None:
                     check_if_gen.visit(child.iffalse)
                     jump_on_iffalse = check_if_gen.is_jumping
+                    blocking_on_iffalse = check_if_gen.is_blocking
 
-                if not jump_on_iffalse and not jump_on_iftrue:
+                if not jump_on_iffalse and not jump_on_iftrue \
+                        and not blocking_on_iftrue and not blocking_on_iffalse:
                     path.append(child)
 
                     if last_if is not None:
@@ -318,8 +327,7 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 pi1 = parent_index[:]
                 pi2 = parent_index[:]
 
-
-                if jump_on_iftrue:
+                if jump_on_iftrue or blocking_on_iftrue:
 
                     if child.iffalse is not None:
 
@@ -493,7 +501,7 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                                                      new_grandparent_list, paths_list, source_reached, new_tree,
                                                      new_parent.iffalse, pi2, last_if_child_aux)
 
-                elif jump_on_iffalse:
+                elif jump_on_iffalse or blocking_on_iffalse:
 
                     new_tree_1 = duplicate_element(tree)
                     new_tree_2 = duplicate_element(tree)
@@ -792,14 +800,23 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                     check_if_gen = CheckIfGenerator(source_node, dest_node)
                     check_if_gen.visit(child.iftrue)
+
                     jump_on_iftrue = check_if_gen.is_jumping
+                    blocking_on_iftrue = check_if_gen.is_blocking
+
                     jump_on_iffalse = False
+                    blocking_on_iffalse = False
+
                     check_if_gen.is_jumping = False
+                    check_if_gen.is_blocking = False
+
                     if child.iffalse is not None:
                         check_if_gen.visit(child.iffalse)
                         jump_on_iffalse = check_if_gen.is_jumping
+                        blocking_on_iffalse = check_if_gen.is_blocking
 
-                    if not jump_on_iffalse and not jump_on_iftrue:
+                    if not jump_on_iffalse and not jump_on_iftrue \
+                            and not blocking_on_iftrue and not blocking_on_iffalse:
                         path.append(child)
 
                         if last_if is not None:
@@ -1014,7 +1031,7 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                                                      new_parent.iffalse, pi2, last_if_child_aux)
                     '''
 
-                    if jump_on_iftrue:
+                    if jump_on_iftrue or blocking_on_iftrue:
 
                         if child.iffalse is not None:
 
@@ -1198,7 +1215,7 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                                                          new_grandparent_list, paths_list, source_reached, new_tree,
                                                          new_parent.iffalse, pi2, last_if_child_aux)
 
-                    elif jump_on_iffalse:
+                    elif jump_on_iffalse or blocking_on_iffalse:
                         new_tree_1 = duplicate_element(tree)
                         new_tree_2 = duplicate_element(tree)
 
@@ -1447,6 +1464,11 @@ class LocateChild(c_generator.CGenerator):
         return ''
 
     def visit_DeclList(self, n):
+        if self.node_to_find == n:
+            self.discovered_node = n
+        return ''
+
+    def visit_For(self, n):
         if self.node_to_find == n:
             self.discovered_node = n
         return ''
@@ -1757,6 +1779,25 @@ class PathGenerator(c_generator.CGenerator):
             return s
         return ''
 
+    def visit_For(self, n):
+        if n in self.path or self.visit_condition or self.extend_visit:
+            changed_value = False
+            if self.extend_visit is False:
+                self.extend_visit = True
+                changed_value = True
+            s = 'for ('
+            if n.init: s += self.visit(n.init)
+            s += ';'
+            if n.cond: s += ' ' + self.visit(n.cond)
+            s += ';'
+            if n.next: s += ' ' + self.visit(n.next)
+            s += ')\n'
+            s += self._generate_stmt(n.stmt, add_indent=True)
+            if changed_value:
+                self.extend_visit = False
+            return s
+        return ''
+
 
 class RoundGenerator(c_generator.CGenerator):
     def __init__(self, mode, path=None):
@@ -1824,7 +1865,7 @@ class RoundGenerator(c_generator.CGenerator):
             if n in self.path or self.extend_visit or self.visit_cond:
                 if self.mode == "send" and not self.send_reached \
                         or self.mode == "update" and self.send_reached \
-                        or self.visit_cond:
+                        or self.visit_cond or self.extend_visit:
                     changed_value = False
                     if self.extend_visit is False:
                         self.extend_visit = True
@@ -1851,7 +1892,7 @@ class RoundGenerator(c_generator.CGenerator):
         if self.path is not None:
             if n in self.path or self.extend_visit or self.visit_cond:
                 if self.mode == "send" and not self.send_reached \
-                        or self.visit_cond:
+                        or self.visit_cond or self.extend_visit:
                     changed_value = False
                     if self.extend_visit is False:
                         self.extend_visit = True
@@ -1931,7 +1972,7 @@ class RoundGenerator(c_generator.CGenerator):
         else:
             if self.mode == "send" and not self.send_reached \
                     or self.mode == "update" and self.send_reached \
-                    or self.visit_cond or self.extend_visit:
+                    or self.visit_cond:
                 operand = self._parenthesize_unless_simple(n.expr)
                 if n.op == 'p++':
                     return '%s++' % operand
@@ -1950,7 +1991,7 @@ class RoundGenerator(c_generator.CGenerator):
             if n in self.path or self.extend_visit or self.visit_cond:
                 if self.mode == "send" and not self.send_reached \
                         or self.mode == "update" and self.send_reached \
-                        or self.visit_cond:
+                        or self.visit_cond or self.extend_visit:
                     changed_value = False
                     if self.extend_visit is False:
                         self.extend_visit = True
@@ -1973,12 +2014,47 @@ class RoundGenerator(c_generator.CGenerator):
                 return '%s %s %s' % (lval_str, n.op, rval_str)
         return ""
 
+    def visit_For(self, n):
+        if self.path is not None:
+            if n in self.path or self.extend_visit or self.visit_cond:
+                if self.mode == "send" and not self.send_reached \
+                        or self.mode == "update" and self.send_reached \
+                        or self.visit_cond or self.extend_visit:
+                    changed_value = False
+                    if self.extend_visit is False:
+                        self.extend_visit = True
+                        changed_value = True
+                    s = 'for ('
+                    if n.init: s += self.visit(n.init)
+                    s += ';'
+                    if n.cond: s += ' ' + self.visit(n.cond)
+                    s += ';'
+                    if n.next: s += ' ' + self.visit(n.next)
+                    s += ')\n'
+                    s += self._generate_stmt(n.stmt, add_indent=True)
+                    if changed_value:
+                        self.extend_visit = False
+                    return s
+        else:
+            if self.mode == "send" and not self.send_reached \
+                    or self.mode == "update" and self.send_reached \
+                    or self.visit_cond:
+                s = 'for ('
+                if n.init: s += self.visit(n.init)
+                s += ';'
+                if n.cond: s += ' ' + self.visit(n.cond)
+                s += ';'
+                if n.next: s += ' ' + self.visit(n.next)
+                s += ')\n'
+                s += self._generate_stmt(n.stmt, add_indent=True)
+                return s
+
     def visit_Assignment(self, n):
         if self.path is not None:
             if n in self.path or self.extend_visit or self.visit_cond:
                 if self.mode == "send" and not self.send_reached \
                         or self.mode == "update" and self.send_reached \
-                        or self.visit_cond:
+                        or self.visit_cond or self.extend_visit:
                     changed_value = False
                     if self.extend_visit is False:
                         self.extend_visit = True
@@ -2059,7 +2135,8 @@ class RoundGenerator(c_generator.CGenerator):
             return s
 
         elif (self.mode == "update" and self.path is None) or \
-                (self.mode == "update" and self.path is not None and n in self.path):
+                (self.mode == "update" and self.path is not None and n in self.path) or \
+                (self.mode == "update" and self.path is not None and self.extend_visit):
             ok1 = False
             ok2 = False
             s = ''
@@ -2191,16 +2268,29 @@ class RoundGenerator(c_generator.CGenerator):
 
 
 class CheckIfGenerator(c_generator.CGenerator):
-    def __init__(self, s, d):
+    def __init__(self, s, d, not_weak=None):
         c_generator.CGenerator.__init__(self)
         self.is_jumping = False
         self.source = s
         self.dest = d
         self.label_name = s.lvalue.name
+        self.is_blocking = False
+        self.not_weak = not_weak
 
     def visit_Assignment(self, n):
-        if n.lvalue.name == self.label_name:
-            self.is_jumping = True
+        if self.not_weak is not None:
+            if n.lvalue.name == self.label_name:
+                if not self.source == n and not self.dest == n:
+                    print n
+                    self.is_jumping = True
+        else:
+            if n.lvalue.name == self.label_name:
+                    self.is_jumping = True
+        return ''
+
+    def visit_FuncCall(self, n):
+        if n.name.name == "wait_for_messages":
+            self.is_blocking = True
         return ''
 
 
@@ -2318,8 +2408,8 @@ if __name__ == "__main__":
     #ast.show()
     #print tree_gen.visit(get_extern_while_body(ast))
 
-    label1_list = get_label(ast, "round", "SECOND_ROUND")
-    label2_list = get_label(ast, "round", "THIRD_ROUND")
+    label1_list = get_label(ast, "round", "FOURTH_ROUND")
+    label2_list = get_label(ast, "round", "AUX_ROUND")
     # print label1_list
     # print label2_list
 

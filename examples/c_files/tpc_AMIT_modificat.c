@@ -17,6 +17,7 @@ void main(int pid, int leader, int num) {
 
 		round = FIRST_ROUND;
 
+
 		if (pid == leader) {
 			msg *m = (msg *) malloc(sizeof(msg));
 			m->count = count;
@@ -33,7 +34,7 @@ void main(int pid, int leader, int num) {
 				mbox.messages[num_msg] = m;
 				mbox.num_msg++;
 			}
-			if ((dama >= 1 && mbox.messages[num_msg].sender == leader))
+			if ((mbox.num_msg >= 1 && mbox.messages[num_msg].sender == leader))
 				break;
 		}
 		if (mbox.messages[num_msg].payload > 0) {
