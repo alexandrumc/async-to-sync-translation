@@ -20,12 +20,12 @@ whiles_to_if(x, conditii)
 
 identify_recv_exits(x, conditii)
 remove_mbox(x)
-
+print generator.visit(x)
 # test = get_labels_order("examples/c_files/broadcast.c",'round')
 # print test
 # print generator.visit(x)
 
-take_code_from_file(ast,"examples/c_files/tpc_AMIT_modificat.c",'round')
+# take_code_from_file(ast,"examples/c_files/tpc_AMIT_modificat.c",'round')
 # copie = copy.deepcopy(x)
 
 # labels_start = get_label(copie, 'lab', 'THIRD_ROUND')
