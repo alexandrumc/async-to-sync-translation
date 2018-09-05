@@ -115,7 +115,7 @@ def get_labels(filename, labelname):
             if aux.endswith("ROUND"):
                 if aux not in labels and "old" not in aux:
                     labels.append(aux)
-
+    labels.append("ERR_ROUND")
     return labels
 
 
@@ -145,7 +145,7 @@ def get_labels_order(filename, labelname):
     for i in xrange(len(labels)):
         if labels[i] not in labels[i + 1:]:
             aux_list.append(labels[i])
-
+    aux_list.append("ERR_ROUND")
     return aux_list
 
 
@@ -182,7 +182,12 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
     trees_paths_dict = {}
     aux_list = []
     conds_dict = {}
+
     for label1 in labels_sorted:
+
+        if label1 == "AUX_ROUND" or label1 == "ERR_ROUND":
+            continue
+
         trees_list = []
         trees_paths_list = []
         labels_start = get_label(ast, labelname, label1)
@@ -192,6 +197,7 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
             labels_end = get_label(ast, labelname, label2)
             # print label1, label2
             new_conds = []
+
             for start in labels_start:
                 # la final sa bag conditiile pt urmatorul element de iterat
                 for end in labels_end:
@@ -236,8 +242,6 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
 
 
                         else:
-
-                            if labels != labels_sorted:
                                 aux = find_all_paths_to_label_modified(cop, start, end)
                                 test = take_2assigns_to_label_only(aux, labelname)
 
@@ -547,8 +551,11 @@ def print_code(trees_dict, trees_paths_dict, labels):
     print_code_from_trees_paths(trees_paths_dict, labels)
 
 
-def print_rounds(labels, trees_dict, trees_paths_dict):
+def print_rounds(labels, trees_dict, trees_paths_dict, labelname):
     for label in labels[:len(labels) - 1]:
+        if label == "AUX_ROUND":
+            continue
+
         print "def round " + label + ":"
 
         print "  SEND():"
@@ -557,8 +564,11 @@ def print_rounds(labels, trees_dict, trees_paths_dict):
         history_of_strings = []
 
         for tree in trees_dict[label]:
-            gen = RoundGenerator("send")
+            gen = RoundGenerator("send", labelname, label)
             gen.first_compound = False
+            # print "\nCOPAC\n"
+            # print TreeGenerator().visit(get_extern_while_body(tree))
+            # print "\nGATA\n"
             result = gen.visit(get_extern_while_body(tree))
             if gen.send_reached:
                 if result not in history_of_strings:
@@ -571,8 +581,11 @@ def print_rounds(labels, trees_dict, trees_paths_dict):
         list_of_lists_of_tuples = trees_paths_dict[label]
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
-                gen = RoundGenerator("send", tuple_el[1])
+                gen = RoundGenerator("send", labelname, label, tuple_el[1])
                 gen.first_compound = False
+                #print "\nCOPAC\n"
+                #print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
+                #print "\nGATA\n"
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
                 if gen.send_reached:
                     if result not in history_of_strings:
@@ -585,10 +598,13 @@ def print_rounds(labels, trees_dict, trees_paths_dict):
         print "  UPDATE():"
         history_of_strings = []
         for i, tree in enumerate(trees_dict[label]):
-            gen = RoundGenerator("update")
+            gen = RoundGenerator("update", labelname, label)
             gen.first_compound = False
             if not found_send_list[i]:
                 gen.send_reached = True
+            # print "\nCOPAC\n"
+            # print TreeGenerator().visit(get_extern_while_body(tree))
+            # print "\nGATA\n"
             result = gen.visit(get_extern_while_body(tree))
             if result not in history_of_strings:
                 print result
@@ -597,10 +613,13 @@ def print_rounds(labels, trees_dict, trees_paths_dict):
         i = len(trees_dict[label])
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
-                gen = RoundGenerator("update", tuple_el[1])
+                gen = RoundGenerator("update", labelname, label, tuple_el[1])
                 gen.first_compound = False
                 if not found_send_list[i]:
                     gen.send_reached = True
+                # print "\nCOPAC\n"
+                # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
+                # print "\nGATA\n"
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
                 if result not in history_of_strings:
                     print result
@@ -617,6 +636,6 @@ def take_code_from_file(ast, filename, labelname):
 
     #print_code(trees_dict, trees_paths_dict, labels_sorted)
 
-    print_rounds(labels_sorted, trees_dict, trees_paths_dict)
+    print_rounds(labels_sorted, trees_dict, trees_paths_dict, labelname)
 
     return trees_dict

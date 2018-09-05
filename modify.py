@@ -11,7 +11,7 @@ generator = c_generator.CGenerator()
 
 
 #
-ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
+ast = parse_file(filename="examples/c_files/ct-terminating.c", use_cpp=False)
 extern_while_body = None
 
 x = get_extern_while_body_from_func(ast, "main")
@@ -20,12 +20,12 @@ whiles_to_if(x, conditii)
 
 identify_recv_exits(x, conditii)
 remove_mbox(x)
-print generator.visit(x)
-# test = get_labels_order("examples/c_files/broadcast.c",'round')
+#print generator.visit(x)
+#test = get_labels_order("examples/c_files/broadcast.c",'round')
 # print test
 # print generator.visit(x)
 
-# take_code_from_file(ast,"examples/c_files/tpc_AMIT_modificat.c",'round')
+take_code_from_file(ast,"examples/c_files/ct-terminating.c",'round')
 # copie = copy.deepcopy(x)
 
 # labels_start = get_label(copie, 'lab', 'THIRD_ROUND')

@@ -295,10 +295,14 @@ def whiles_to_if(extern_while_body, conditii=None):
                 id_coord.line = coord_aux
                 id_coord.column = coord_aux
 
-                new_if.iffalse = Compound([FuncCall(ID("wait_for_messages", id_coord), None, new_break_coord)],
-                                          new_coord)
+                coord_aux -= 1
+                assign_coord = Coord(coord.file, coord.line, coord.column)
+                assign_coord.line = coord_aux
+                assign_coord.column = coord_aux
 
+                new_if.iffalse = Compound([Assignment('=', ID("round"), ID("ERR_ROUND"), assign_coord)], new_coord)
 
+                #FuncCall(ID("wait_for_messages", id_coord), None, new_break_coord)
 
                 aux.block_items.insert(i, new_if)
                 whiles_to_if(new_if.iftrue, conditii)
@@ -344,7 +348,15 @@ def whiles_to_if(extern_while_body, conditii=None):
                             id_coord.line = coord_aux
                             id_coord.column = coord_aux
 
-                            new_if.iffalse = Compound([FuncCall(ID("wait_for_messages", id_coord), None, new_break_coord)], new_coord)
+                            coord_aux -= 1
+                            assign_coord = Coord(coord.file, coord.line, coord.column)
+                            assign_coord.line = coord_aux
+                            assign_coord.column = coord_aux
+
+                            new_if.iffalse = Compound(
+                                [
+                                 Assignment('=', ID("round"), ID("ERR_ROUND"), assign_coord)], new_coord)
+
                             element.iftrue.block_items.insert(index, new_if)
                             whiles_to_if(new_if.iftrue, conditii)
 

@@ -53,14 +53,14 @@ int main(int pid, int num, int estimate) {
 			while (true) {
 				m = recv();
 
-				if (m->round == 1 && m->phase == phase) {
+				if (m->round == FIRST_ROUND && m->phase == phase) {
 					mbox[num_mbox] = *m;
 					num_mbox = num_mbox + 1;
 					if (num_mbox >= (num + 1) / 2) {
 						break;
 					}
 				}
-				if (m->round == 4) {
+				if (m->round == FOURTH_ROUND) {
 					mbox[num_mbox] = *m;
 					break;
 				}
@@ -107,7 +107,7 @@ int main(int pid, int num, int estimate) {
 
 		while (1) {
 			m = recv();
-			if (m->round == 2 && m->phase == phase) {
+			if (m->round == SECOND_ROUND && m->phase == phase) {
 				mbox[num_mbox] = *m;
 				num_mbox = num_mbox + 1;
 				if (m->sender == leader) {
@@ -115,7 +115,7 @@ int main(int pid, int num, int estimate) {
 				}
 			}
 
-			if (m->round == 4) {
+			if (m->round == FOURTH_ROUND) {
 				mbox[num_mbox] = *m;
 				break;
 			}
@@ -124,14 +124,14 @@ int main(int pid, int num, int estimate) {
 			}
 		}
 
-		if (mbox[num_mbox].round == 4) {
+		if (mbox[num_mbox].round == FOURTH_ROUND) {
 			round = FOURTH_ROUND;
 			estimate = mbox[num_mbox].estimate;
 			state = 1;
 			break;
 			round = AUX_ROUND;
 		}
-		if (mbox[num_mbox].round == 2) {
+		if (mbox[num_mbox].round == SECOND_ROUND) {
 			estimate = mbox[num_mbox].estimate;
 			timestamp = phase;
 		}
@@ -152,7 +152,7 @@ int main(int pid, int num, int estimate) {
 			num_mbox = 0;
 			while (1) {
 				m = recv();
-				if (m->round == 3 && m->phase == phase) {
+				if (m->round == THIRD_ROUND && m->phase == phase) {
 					mbox_est[num_mbox] = *m;
 					num_mbox = num_mbox + 1;
 					if (num_mbox >= (num + 1) / 2) {
@@ -161,7 +161,7 @@ int main(int pid, int num, int estimate) {
 				}
 
 
-				if (m->round == 4) {
+				if (m->round == FOURTH_ROUND) {
 					mbox_est[num_mbox] = *m;
 					break;
 				}
@@ -171,7 +171,7 @@ int main(int pid, int num, int estimate) {
 			}
 
 
-			if (mbox_est[num_mbox].round == 4) {
+			if (mbox_est[num_mbox].round == FOURTH_ROUND) {
 				round = FOURTH_ROUND;
 				estimate = mbox_est[num_mbox].estimate;
 				state = 1;
@@ -196,7 +196,7 @@ int main(int pid, int num, int estimate) {
 
 		while (1) {
 			m = recv();
-			if (m->round == 4) {
+			if (m->round == FOURTH_ROUND) {
 
 				break;
 			}

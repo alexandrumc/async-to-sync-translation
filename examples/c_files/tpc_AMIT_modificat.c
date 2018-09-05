@@ -79,10 +79,6 @@ void main(int pid, int leader, int num) {
 
 		}
 
-		num_mbox = 0;
-
-		retry = random;
-
 		while (1) {
 			m = recv();
 			if (m.round == THIRD_ROUND && m.count == count) {

@@ -859,7 +859,6 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                     pi2 = parent_index[:]
                     pi2.append(grandparent.block_items.index(parent))
 
-
                     '''
                     if child.iffalse is not None:
 
@@ -1646,7 +1645,8 @@ class PathGenerator(c_generator.CGenerator):
             s = self._make_indent() + '{\n'
             self.indent_level += 2
             if n.block_items:
-                s += ''.join(self._generate_stmt(stmt) for stmt in n.block_items if stmt in self.path or self.extend_visit)
+                s += ''.join(
+                    self._generate_stmt(stmt) for stmt in n.block_items if stmt in self.path or self.extend_visit)
             self.indent_level -= 2
             s += self._make_indent() + '}\n'
             return s
@@ -1682,7 +1682,7 @@ class PathGenerator(c_generator.CGenerator):
             s += ')\n'
 
             if (n.iftrue and n.iftrue not in self.path and not n.iffalse) or \
-                (n.iftrue and n.iffalse and n.iftrue not in self.path and n.iffalse not in self.path):
+                    (n.iftrue and n.iffalse and n.iftrue not in self.path and n.iffalse not in self.path):
                 self.extend_visit = True
                 s += self._generate_stmt(n.iftrue, add_indent=True)
                 if n.iffalse:
@@ -1800,7 +1800,7 @@ class PathGenerator(c_generator.CGenerator):
 
 
 class RoundGenerator(c_generator.CGenerator):
-    def __init__(self, mode, path=None):
+    def __init__(self, mode, labelname, current_round, path=None):
         c_generator.CGenerator.__init__(self)
         # send or update mode
         self.mode = mode
@@ -1817,6 +1817,10 @@ class RoundGenerator(c_generator.CGenerator):
         self.path = path
         # extend powers to visit the whole element
         self.extend_visit = False
+        # label name
+        self.labelname = labelname
+        # current round
+        self.current_round = current_round
 
     """
     def visit_Constant(self, n):
@@ -1859,6 +1863,9 @@ class RoundGenerator(c_generator.CGenerator):
             return sref + n.type + self.visit(n.field)
         return ""
     """
+
+    def visit_Break(self, n):
+        return 'out();'
 
     def visit_Decl(self, n, no_type=False):
         if self.path is not None:
@@ -2055,6 +2062,10 @@ class RoundGenerator(c_generator.CGenerator):
                 if self.mode == "send" and not self.send_reached \
                         or self.mode == "update" and self.send_reached \
                         or self.visit_cond or self.extend_visit:
+                    if self.mode == "update" and self.send_reached:
+                        if n.lvalue.name == self.labelname and isinstance(n.rvalue, ID) \
+                                and n.rvalue.name == "AUX_ROUND":
+                            n.rvalue.name = "FIRST_ROUND"
                     changed_value = False
                     if self.extend_visit is False:
                         self.extend_visit = True
@@ -2069,6 +2080,10 @@ class RoundGenerator(c_generator.CGenerator):
             if self.mode == "send" and not self.send_reached \
                     or self.mode == "update" and self.send_reached \
                     or self.visit_cond:
+                if self.mode == "update" and self.send_reached:
+                    if n.lvalue.name == self.labelname and isinstance(n.rvalue, ID) \
+                            and n.rvalue.name == "AUX_ROUND":
+                        n.rvalue.name = "FIRST_ROUND"
                 rval_str = self._parenthesize_if(
                     n.rvalue,
                     lambda n: isinstance(n, c_ast.Assignment))
@@ -2084,6 +2099,19 @@ class RoundGenerator(c_generator.CGenerator):
             if (self.path and n in self.path and n.iftrue and n.iftrue not in self.path and not n.iffalse) or \
                     (self.path and n in self.path and n.iftrue and n.iffalse
                      and n.iftrue not in self.path and n.iffalse not in self.path):
+                if n.iftrue and not n.iffalse and len(n.iftrue.block_items) == 1:
+                    child = n.iftrue.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
+
+                if n.iffalse and not n.iftrue and len(n.iffalse.block_items) == 1:
+                    child = n.iffalse.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
                 self.extend_visit = True
                 s = 'if ('
                 self.visit_cond = True
@@ -2092,10 +2120,24 @@ class RoundGenerator(c_generator.CGenerator):
                 s += ')\n'
                 s += self._generate_stmt(n.iftrue, add_indent=True)
                 if n.iffalse:
-                    s += self._make_indent() + 'else\n'
+                    if n.iftrue is not None:
+                        s += self._make_indent() + 'else\n'
                     s += self._generate_stmt(n.iffalse, add_indent=True)
                 self.extend_visit = False
             elif self.path and n in self.path:
+                if n.iftrue and not n.iffalse and len(n.iftrue.block_items) == 1:
+                    child = n.iftrue.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
+
+                if n.iffalse and not n.iftrue and len(n.iffalse.block_items) == 1:
+                    child = n.iffalse.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
                 s = 'if ('
                 if n.cond:
                     if n.iffalse is not None and n.iffalse in self.path:
@@ -2112,6 +2154,19 @@ class RoundGenerator(c_generator.CGenerator):
                     if n.iffalse:
                         s += self._generate_stmt(n.iffalse, add_indent=True)
             elif (self.path and self.extend_visit) or not self.path:
+                if n.iftrue and not n.iffalse and len(n.iftrue.block_items) == 1:
+                    child = n.iftrue.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
+
+                if n.iffalse and not n.iftrue and len(n.iffalse.block_items) == 1:
+                    child = n.iffalse.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
                 if self.path and self.extend_visit:
                     s = 'if ('
                     self.visit_cond = True
@@ -2130,7 +2185,8 @@ class RoundGenerator(c_generator.CGenerator):
                 if n.iftrue:
                     s += self._generate_stmt(n.iftrue, add_indent=True)
                 if n.iffalse:
-                    s += self._make_indent() + 'else\n'
+                    if n.iftrue is not None:
+                        s += self._make_indent() + 'else\n'
                     s += self._generate_stmt(n.iffalse, add_indent=True)
             return s
 
@@ -2142,8 +2198,22 @@ class RoundGenerator(c_generator.CGenerator):
             s = ''
 
             if (self.path and n in self.path and n.iftrue and n.iftrue not in self.path and not n.iffalse) or \
-                (self.path and n in self.path and n.iftrue and n.iffalse
-                 and n.iftrue not in self.path and n.iffalse not in self.path):
+                    (self.path and n in self.path and n.iftrue and n.iffalse
+                     and n.iftrue not in self.path and n.iffalse not in self.path):
+                if n.iftrue and not n.iffalse and len(n.iftrue.block_items) == 1:
+                    child = n.iftrue.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
+
+                if n.iffalse and not n.iftrue and len(n.iffalse.block_items) == 1:
+                    child = n.iffalse.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
+
                 self.extend_visit = True
                 s = 'if ('
                 self.visit_cond = True
@@ -2155,13 +2225,27 @@ class RoundGenerator(c_generator.CGenerator):
                     ok1 = True
                     self.send_last_instr = False
                 if n.iffalse:
-                    s += self._make_indent() + 'else\n'
+                    if n.iftrue is not None:
+                        s += self._make_indent() + 'else\n'
                     s += self._generate_stmt(n.iffalse, add_indent=True)
                     if self.send_last_instr:
                         ok2 = True
                         self.send_last_instr = False
                 self.extend_visit = False
             elif self.path and n in self.path:
+                if n.iftrue and not n.iffalse and len(n.iftrue.block_items) == 1:
+                    child = n.iftrue.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
+
+                if n.iffalse and not n.iftrue and len(n.iffalse.block_items) == 1:
+                    child = n.iffalse.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
                 s = 'if ('
                 if n.cond:
                     if n.iffalse is not None and n.iffalse in self.path:
@@ -2184,6 +2268,19 @@ class RoundGenerator(c_generator.CGenerator):
                             ok2 = True
                             self.send_last_instr = False
             elif (self.path and self.extend_visit) or not self.path:
+                if n.iftrue and not n.iffalse and len(n.iftrue.block_items) == 1:
+                    child = n.iftrue.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
+
+                if n.iffalse and not n.iftrue and len(n.iffalse.block_items) == 1:
+                    child = n.iffalse.children()[0][1]
+                    if isinstance(child, Assignment):
+                        if isinstance(child.rvalue, ID):
+                            if child.rvalue.name == self.current_round:
+                                return ""
                 if self.path and self.extend_visit:
                     s = 'if ('
                     self.visit_cond = True
@@ -2207,7 +2304,8 @@ class RoundGenerator(c_generator.CGenerator):
                         ok1 = True
                         self.send_last_instr = False
                 if n.iffalse:
-                    s += self._make_indent() + 'else\n'
+                    if n.iftrue is not None:
+                        s += self._make_indent() + 'else\n'
                     s += self._generate_stmt(n.iffalse, add_indent=True)
                     if self.send_last_instr:
                         ok2 = True
@@ -2235,13 +2333,17 @@ class RoundGenerator(c_generator.CGenerator):
                 for stmt in n.block_items:
                     if not self.send_reached:
                         if self.path is None or (self.path and stmt in self.path) or (self.path and self.extend_visit):
+                            if self.mode == "send" and not self.send_reached:
+                                if isinstance(stmt, Assignment):
+                                    if stmt.lvalue.name == self.labelname:
+                                        continue
                             s += self._generate_stmt(stmt)
             self.indent_level -= 2
             if not remeber_compound:
                 s += self._make_indent() + '}\n'
             return s
         elif (self.mode == "update" and self.path is None) or \
-                (self.mode == "update" and self.path is not None and n in self.path) or\
+                (self.mode == "update" and self.path is not None and n in self.path) or \
                 (self.mode == "update" and self.path is not None and self.extend_visit):
             s = ""
             if not remeber_compound:
@@ -2285,7 +2387,7 @@ class CheckIfGenerator(c_generator.CGenerator):
                     self.is_jumping = True
         else:
             if n.lvalue.name == self.label_name:
-                    self.is_jumping = True
+                self.is_jumping = True
         return ''
 
     def visit_FuncCall(self, n):
@@ -2324,6 +2426,9 @@ def generate_c_code_from_paths_and_trees(tuples):
     for pair in tuples:
         gen = PathGenerator(pair[1])
         print "\n\n\n\n NEW CODE \n\n\n\n"
+        print "\n\nCOPACUL\n\n"
+        print TreeGenerator().visit(pair[0])
+        print "\n\nCODUL\n\n"
         print(gen.visit(pair[0]))
 
 
@@ -2405,10 +2510,10 @@ if __name__ == "__main__":
     identify_recv_exits(get_extern_while_body(ast), cond)
     remove_mbox(get_extern_while_body(ast))
 
-    #ast.show()
-    #print tree_gen.visit(get_extern_while_body(ast))
+    # ast.show()
+    # print tree_gen.visit(get_extern_while_body(ast))
 
-    label1_list = get_label(ast, "round", "FOURTH_ROUND")
+    label1_list = get_label(ast, "round", "FIRST_ROUND")
     label2_list = get_label(ast, "round", "AUX_ROUND")
     # print label1_list
     # print label2_list
@@ -2419,7 +2524,7 @@ if __name__ == "__main__":
 
     paths_list = []
 
-    #tree_gen = RoundGenerator("send")
+    # tree_gen = RoundGenerator("send")
 
     for source in label1_list:
         for dest in label2_list:
@@ -2428,12 +2533,9 @@ if __name__ == "__main__":
             source_list = []
             prune_tree(get_extern_while_body(aux_ast), source, dest, dest_list, source_list)
             if dest_list and source_list:
-                #print tree_gen.visit(get_extern_while_body(aux_ast))
+                # print tree_gen.visit(get_extern_while_body(aux_ast))
                 paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
                 generate_c_code_from_paths_and_trees(paths_list)
-
-
-
 
 # bug undeva cu 3 if-uri unul sub altul in exemplul ct-term
 # intre second si third round

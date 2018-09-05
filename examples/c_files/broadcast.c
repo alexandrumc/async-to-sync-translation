@@ -52,7 +52,7 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 		}
 
 		if (timeout()) {
-			out();
+			break;
 		}
 
 		if (num_mbox == 1) {
@@ -90,7 +90,7 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 					out_external(log[i][0]);
 				}
 				else {
-				    out();
+				    break;
 				}
 				round = THIRD_ROUND;
 			}
@@ -118,10 +118,14 @@ int main(int pid, int leader, int lab, int view, int lastIndex) {
 
 				if (num_mbox == 1)
 				    break;
+
+				if (timeout())
+				    break;
+
 			}
 
 			if (timeout()) {
-				out();
+				break;
 			}
 
 			if (num_mbox == 1) {
