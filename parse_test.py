@@ -1,5 +1,5 @@
 from pycparser import parse_file, c_parser, c_generator, c_ast
-from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall
+from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, Break
 from modify_whiles import whiles_to_if
 from modify_whiles import remove_mbox, identify_recv_exits
 import copy
@@ -84,183 +84,8 @@ def prune_tree(current_node, lab_source, lab_dest, destination_reached, source_r
         current_node.block_items.remove(node)
 
 
-def prune_tree_mod(current_node, lab_source, lab_dest, destination_reached, source_reached,
-                   source_ast, trees, parent_list, grandparent_list):
-    to_delete = []
-    if current_node is not None:
-        grandparent = current_node
-
-        for tupleChild in current_node.children():
-            child = tupleChild[1]
-            parent = child
-
-            if not source_reached:
-                if isinstance(child, If) is False:
-                    if child == lab_source:
-                        source_reached.append(True)
-                    else:
-                        to_delete.append(child)
-                    continue
-                else:
-                    new_ast = duplicate_element(source_ast)
-
-                    new_parent_list = []
-                    for node in parent_list:
-                        new_parent_list.append(find_node(new_ast, node))
-
-                    new_grandparent_list = []
-                    for node in grandparent_list:
-                        new_grandparent_list.append(find_node(new_ast, node))
-
-                    parent_list.append(parent)
-                    grandparent_list.append(grandparent)
-
-                    new_parent = find_node(new_ast, child)
-                    new_grandparent = find_node(new_ast, current_node)
-
-                    new_parent_list.append(new_parent)
-                    new_grandparent_list.append(new_grandparent)
-
-                    child.iffalse = None
-                    new_parent.iftrue = None
-
-                    prune_tree_mod(child.iftrue, lab_source, lab_dest, destination_reached, source_reached,
-                                   source_ast, trees, parent_list, grandparent_list)
-                    prune_tree_mod(new_parent.iffalse, lab_source, lab_dest, duplicate_element(destination_reached),
-                                   duplicate_element(source_reached), new_ast, trees, new_parent_list,
-                                   new_grandparent_list)
-
-                    if source_reached:
-                        child.iffalse = None
-                    elif child.iffalse is not None:
-                        child.iftrue = None
-                        prune_tree_mod(child.iffalse, lab_source, lab_dest, destination_reached, source_reached,
-                                       source_ast, trees, parent_list, grandparent_list)
-                        if not source_reached:
-                            child.iffalse = None
-                            to_delete.append(child)
-                    else:
-                        to_delete.append(child)
-                    continue
-            else:
-                if not destination_reached:
-                    if isinstance(child, If) is False:
-                        if child == lab_dest:
-                            destination_reached.append(True)
-                        continue
-                    else:
-                        prune_tree_mod(child.iftrue, lab_source, lab_dest, destination_reached, source_reached,
-                                       source_ast, trees, parent_list, grandparent_list)
-                        if destination_reached:
-                            child.iffalse = None
-                        elif child.iffalse is not None:
-                            prune_tree_mod(child.iffalse, lab_source, lab_dest, destination_reached, source_reached,
-                                           source_ast, trees, parent_list, grandparent_list)
-                            if destination_reached:
-                                child.iftrue = None
-                        continue
-                else:
-                    to_delete.append(child)
-
-    for node in to_delete:
-        current_node.block_items.remove(node)
-
-    if current_node == source_ast and source_reached and destination_reached:
-        trees.append(current_node)
-
-
-def find_all_paths_util(current_node, source_node, dest_node, path, parent_list, grandparent_list,
-                        paths_list, source_reached):
-    ok = True
-    if current_node is not None:
-        grandparent = current_node
-        path.append(grandparent)
-        ok = True
-        for tupleChild in current_node.children():
-            child = tupleChild[1]
-            parent = child
-
-            if isinstance(child, If):
-                parent_list.append(parent)
-                grandparent_list.append(grandparent)
-
-                path1 = path[:]
-                path2 = path[:]
-                path1.append(parent)
-                path2.append(parent)
-
-                pl1 = parent_list[:]
-                gp1 = grandparent_list[:]
-                pl2 = parent_list[:]
-                gp2 = grandparent_list[:]
-                if child.iffalse is not None:
-                    find_all_paths_util(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                        source_reached)
-                    find_all_paths_util(child.iffalse, source_node, dest_node, path2, pl2, gp2, paths_list,
-                                        source_reached)
-                else:
-                    find_all_paths_util(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                        source_reached)
-                    find_all_paths_util(None, source_node, dest_node, path, pl2, gp2, paths_list,
-                                        source_reached)
-                ok = False
-                break
-            else:
-                path.append(child)
-                if child == source_node:
-                    source_reached = True
-                if child == dest_node:
-                    if source_reached is True:
-                        paths_list.append(path)
-                    ok = False
-                    break
-
-    if parent_list and grandparent_list and ok is True:
-        while grandparent_list:
-            grandparent = grandparent_list[-1]
-            parent = parent_list.pop()
-            j = 0
-            for j, tupleChild in enumerate(grandparent.children()):
-                if tupleChild[1] == parent:
-                    break
-            remained_children = grandparent.children()[(j + 1):]
-            for tupleChild in remained_children:
-                child = tupleChild[1]
-                parent = child
-                if isinstance(child, If):
-                    parent_list.append(parent)
-                    path1 = path[:]
-                    path2 = path[:]
-                    path1.append(parent)
-                    path2.append(parent)
-
-                    pl1 = parent_list[:]
-                    gp1 = grandparent_list[:]
-                    pl2 = parent_list[:]
-                    gp2 = grandparent_list[:]
-                    if child.iffalse is not None:
-                        find_all_paths_util(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                            source_reached)
-                        find_all_paths_util(child.iffalse, source_node, dest_node, path2, pl2, gp2, paths_list,
-                                            source_reached)
-                    else:
-                        find_all_paths_util(child.iftrue, source_node, dest_node, path1, pl1, gp1, paths_list,
-                                            source_reached)
-                        find_all_paths_util(None, source_node, dest_node, path, pl2, gp2, paths_list, source_reached)
-                    break
-                else:
-                    path.append(child)
-                    if child == source_node:
-                        source_reached = True
-                    if child == dest_node:
-                        if source_reached is True:
-                            paths_list.append(path)
-                        break
-            grandparent_list.pop()
-
-
-def find_all_paths_util_modified(current_node, source_node, dest_node, path, parent_list, grandparent_list, paths_list,
-                                 source_reached, tree, last_if, parent_index, last_if_child):
+def find_all_paths_util_modified(current_node, source_node, dest_node, path, parent_list, grandparent_list,
+                                 paths_list, source_reached, tree, last_if, parent_index, last_if_child, is_job):
     to_delete = []
     ok = True
 
@@ -285,6 +110,11 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 jump_on_iffalse = False
                 blocking_on_iffalse = False
 
+                if check_if_gen.true_jump or check_if_gen.is_blocking:
+                    if not is_job:
+                        is_job.append(True)
+
+                check_if_gen.true_jump = False
                 check_if_gen.is_jumping = False
                 check_if_gen.is_blocking = False
 
@@ -292,6 +122,10 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                     check_if_gen.visit(child.iffalse)
                     jump_on_iffalse = check_if_gen.is_jumping
                     blocking_on_iffalse = check_if_gen.is_blocking
+
+                if check_if_gen.true_jump or check_if_gen.is_blocking:
+                    if not is_job:
+                        is_job.append(True)
 
                 if not jump_on_iffalse and not jump_on_iftrue \
                         and not blocking_on_iftrue and not blocking_on_iffalse:
@@ -318,11 +152,6 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 path2 = path[:]
                 path1.append(parent)
                 path2.append(parent)
-
-                pl1 = parent_list[:]
-                gp1 = grandparent_list[:]
-                pl2 = parent_list[:]
-                gp2 = grandparent_list[:]
 
                 pi1 = parent_index[:]
                 pi2 = parent_index[:]
@@ -378,12 +207,12 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                             find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
                                                          new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         last_if_in_new_tree_1, pi1, last_if_child_aux)
+                                                         last_if_in_new_tree_1, pi1, last_if_child_aux, is_job)
 
                             find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
-                                                         new_parent_list_2,
-                                                         new_grandparent_list_2, paths_list, source_reached, new_tree_2,
-                                                         child_copy.iffalse, pi2, last_if_child_aux)
+                                                         new_parent_list_2, new_grandparent_list_2, paths_list,
+                                                         source_reached, new_tree_2, child_copy.iffalse, pi2,
+                                                         last_if_child_aux, is_job)
 
                         else:
 
@@ -404,12 +233,12 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                             find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
                                                          new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         None, pi1, last_if_child_aux)
+                                                         None, pi1, last_if_child_aux, is_job)
 
                             find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
-                                                         new_parent_list_2,
-                                                         new_grandparent_list_2, paths_list, source_reached, new_tree_2,
-                                                         new_last_if, pi2, last_if_child_aux)
+                                                         new_parent_list_2, new_grandparent_list_2, paths_list,
+                                                         source_reached, new_tree_2, new_last_if, pi2,
+                                                         last_if_child_aux, is_job)
 
                     else:
                         # nu pe parinti - jump pe iftrue si nu am iffalse
@@ -443,7 +272,7 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                             find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
                                                          new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         last_if_in_new_tree_1, pi1, last_if_child_aux)
+                                                         last_if_in_new_tree_1, pi1, last_if_child_aux, is_job)
 
                         else:
 
@@ -459,7 +288,7 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                             find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
                                                          new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         None, pi1, last_if_child_aux)
+                                                         None, pi1, last_if_child_aux, is_job)
 
                         new_tree = duplicate_element(tree)
                         new_parent = find_node(new_tree, child)
@@ -499,7 +328,7 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                         find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list,
                                                      new_grandparent_list, paths_list, source_reached, new_tree,
-                                                     new_parent.iffalse, pi2, last_if_child_aux)
+                                                     new_parent.iffalse, pi2, last_if_child_aux, is_job)
 
                 elif jump_on_iffalse or blocking_on_iffalse:
 
@@ -547,11 +376,11 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                         find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
                                                      new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                     child_copy.iftrue, pi1, last_if_child_aux)
+                                                     child_copy.iftrue, pi1, last_if_child_aux, is_job)
 
                         find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, new_parent_list_2,
                                                      new_grandparent_list_2, paths_list, source_reached, new_tree_2,
-                                                     last_if_in_new_tree_2, pi2, last_if_child_aux)
+                                                     last_if_in_new_tree_2, pi2, last_if_child_aux, is_job)
 
                     else:
                         # nu pe parinti - jump pe iffalse si last_if e None
@@ -571,178 +400,11 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                         find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
                                                      new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                     new_last_if, pi1, last_if_child_aux)
+                                                     new_last_if, pi1, last_if_child_aux, is_job)
 
                         find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, new_parent_list_2,
                                                      new_grandparent_list_2, paths_list, source_reached, new_tree_2,
-                                                     None, pi2, last_if_child_aux)
-                '''
-                if child.iffalse is not None:
-
-                    # nu pe parinti - ambele ramuri ale lui if sunt True
-
-                    new_tree_1 = duplicate_element(tree)
-                    new_tree_2 = duplicate_element(tree)
-
-                    new_parent_list_1 = []
-                    new_grandparent_list_1 = []
-                    new_grandparent_list_2 = []
-                    new_parent_list_2 = []
-
-                    for parent_node in parent_list:
-                        new_parent_list_1.append(find_node(new_tree_1, parent_node))
-                        new_parent_list_2.append(find_node(new_tree_2, parent_node))
-
-                    for grandparent_node in grandparent_list:
-                        new_grandparent_list_1.append(find_node(new_tree_1, grandparent_node))
-                        new_grandparent_list_2.append(find_node(new_tree_2, grandparent_node))
-
-                    if last_if is not None:
-
-                        # nu pe parinti - ambele ramuri ale lui if sunt True si last_if este o ramura valida
-
-                        last_if_in_new_tree_1 = find_node(new_tree_1, last_if)
-                        if find_node(last_if_in_new_tree_1, child) is None:
-                            last_if_in_new_tree_1.block_items.append(child)
-                            to_delete.append(child)
-
-                        last_if_in_new_tree_2 = find_node(new_tree_2, last_if)
-                        if find_node(last_if_in_new_tree_2, child) is None:
-                            last_if_in_new_tree_2.block_items.append(child)
-                            if child not in to_delete:
-                                to_delete.append(child)
-
-                        new_grandparent_1 = find_node(new_tree_1, grandparent)
-                        new_grandparent_2 = find_node(new_tree_2, grandparent)
-
-                        for node in to_delete:
-                            new_grandparent_1.block_items.remove(node)
-                            new_grandparent_2.block_items.remove(node)
-
-                        if len(to_delete) >= 2:
-                            pi1[-1] = pi1[-1] - len(to_delete) + 1
-                            pi2[-1] = pi2[-1] - len(to_delete) + 1
-
-                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
-                                                     new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                     last_if_in_new_tree_1, pi1, last_if_child_aux)
-
-                        find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, new_parent_list_2,
-                                                     new_grandparent_list_2, paths_list, source_reached, new_tree_2,
-                                                     last_if_in_new_tree_2, pi2, last_if_child_aux)
-                    else:
-
-                        # nu pe parinti -ambele ramuri ale lui if sunt True si last_if e None
-
-                        new_grandparent_1 = find_node(new_tree_1, grandparent)
-                        new_grandparent_2 = find_node(new_tree_2, grandparent)
-
-                        for node in to_delete:
-                            new_grandparent_1.block_items.remove(node)
-                            new_grandparent_2.block_items.remove(node)
-
-                        if len(to_delete) >= 2:
-                            pi1[-1] = pi1[-1] - len(to_delete) + 1
-                            pi2[-1] = pi2[-1] - len(to_delete) + 1
-
-                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
-                                                     new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                     None, pi1, last_if_child_aux)
-
-                        find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2, new_parent_list_2,
-                                                     new_grandparent_list_2, paths_list, source_reached, new_tree_2,
-                                                     None, pi2, last_if_child_aux)
-                else:
-
-                    #  nu pe parinti - ramura iffalse nu exista
-
-                    new_tree_1 = duplicate_element(tree)
-                    new_parent_list_1 = []
-                    new_grandparent_list_1 = []
-
-                    for parent_node in parent_list:
-                        new_parent_list_1.append(find_node(new_tree_1, parent_node))
-
-                    for grandparent_node in grandparent_list:
-                        new_grandparent_list_1.append(find_node(new_tree_1, grandparent_node))
-
-                    if last_if is not None:
-
-                        #  nu pe parinti - ramura iffalse nu exista si last_if e valida
-
-                        last_if_in_new_tree_1 = find_node(new_tree_1, last_if)
-                        if find_node(last_if_in_new_tree_1, child) is None:
-                            last_if_in_new_tree_1.block_items.append(child)
-                            to_delete.append(child)
-
-                        new_grandparent_1 = find_node(new_tree_1, grandparent)
-
-                        for node in to_delete:
-                            new_grandparent_1.block_items.remove(node)
-
-                        if len(to_delete) >= 2:
-                            pi1[-1] = pi1[-1] - len(to_delete) + 1
-
-                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
-                                                     new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                     last_if_in_new_tree_1, pi1, last_if_child_aux)
-
-                    else:
-
-                        # nu pe parinti - ramura iffalse nu exista si last_if e None
-
-                        new_grandparent_1 = find_node(new_tree_1, grandparent)
-
-                        for node in to_delete:
-                            new_grandparent_1.block_items.remove(node)
-
-                        if len(to_delete) >= 2:
-                            pi1[-1] = pi1[-1] - len(to_delete) + 1
-
-                        find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
-                                                     new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                     None, pi1, last_if_child_aux)
-
-                    new_tree = duplicate_element(tree)
-                    new_parent = find_node(new_tree, child)
-
-                    gen = c_generator.CGenerator()
-                    condition = ''
-                    condition += gen.visit(child.cond)
-
-                    new_parent.cond = ID(condition, child.coord)
-                    new_parent.iffalse = Compound([], new_parent.iftrue.coord)
-                    new_parent.iftrue = None
-
-                    path.append(new_parent)
-                    path.append(new_parent.iffalse)
-
-                    new_parent_list = []
-                    new_grandparent_list = []
-
-                    for parent_node in parent_list:
-                        new_parent_list.append(find_node(new_tree, parent_node))
-
-                    for grandparent_node in grandparent_list:
-                        new_grandparent_list.append(find_node(new_tree, grandparent_node))
-
-                    if last_if is not None:
-                        last_if_in_new_tree = find_node(new_tree, last_if)
-                        if find_node(last_if_in_new_tree, new_parent) is None:
-                            last_if_in_new_tree.block_items.append(new_parent)
-
-                    new_grandparent = find_node(new_tree, grandparent)
-
-                    for node in to_delete:
-                        new_grandparent.block_items.remove(node)
-
-                    if len(to_delete) >= 2:
-                        pi2[-1] = pi2[-1] - len(to_delete) + 1
-
-                    find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list,
-                                                 new_grandparent_list, paths_list, source_reached, new_tree,
-                                                 new_parent.iffalse, pi2, last_if_child_aux)
-                '''
+                                                     None, pi2, last_if_child_aux, is_job)
 
                 ok = False
                 break
@@ -804,16 +466,25 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                     jump_on_iftrue = check_if_gen.is_jumping
                     blocking_on_iftrue = check_if_gen.is_blocking
 
+                    if check_if_gen.true_jump or check_if_gen.is_blocking:
+                        if not is_job:
+                            is_job.append(True)
+
                     jump_on_iffalse = False
                     blocking_on_iffalse = False
 
                     check_if_gen.is_jumping = False
                     check_if_gen.is_blocking = False
+                    check_if_gen.true_jump = False
 
                     if child.iffalse is not None:
                         check_if_gen.visit(child.iffalse)
                         jump_on_iffalse = check_if_gen.is_jumping
                         blocking_on_iffalse = check_if_gen.is_blocking
+
+                    if check_if_gen.true_jump or check_if_gen.is_blocking:
+                        if not is_job:
+                            is_job.append(True)
 
                     if not jump_on_iffalse and not jump_on_iftrue \
                             and not blocking_on_iftrue and not blocking_on_iffalse:
@@ -858,177 +529,6 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                     pi2 = parent_index[:]
                     pi2.append(grandparent.block_items.index(parent))
-
-                    '''
-                    if child.iffalse is not None:
-
-                        # ne intoarcem pe stramosi - ambele ramuri ale lui if sunt valide
-
-                        new_tree_1 = duplicate_element(tree)
-                        new_tree_2 = duplicate_element(tree)
-
-                        new_parent_list_1 = []
-                        new_grandparent_list_1 = []
-                        new_grandparent_list_2 = []
-                        new_parent_list_2 = []
-
-                        for parent_node in pl1:
-                            new_parent_list_1.append(find_node(new_tree_1, parent_node))
-                            new_parent_list_2.append(find_node(new_tree_2, parent_node))
-
-                        for grandparent_node in gp1:
-                            new_grandparent_list_1.append(find_node(new_tree_1, grandparent_node))
-                            new_grandparent_list_2.append(find_node(new_tree_2, grandparent_node))
-
-                        if last_if is not None:
-
-                            # ne intoarcem pe stramosi - ambele ramuri ale lui if sunt valide si last_if valid
-
-                            last_if_in_new_tree_1 = find_node(new_tree_1, last_if)
-                            if find_node(last_if_in_new_tree_1, child) is None:
-                                last_if_in_new_tree_1.block_items.append(child)
-                                to_delete.append(child)
-
-                            last_if_in_new_tree_2 = find_node(new_tree_2, last_if)
-                            if find_node(last_if_in_new_tree_2, child) is None:
-                                last_if_in_new_tree_2.block_items.append(child)
-                                if child not in to_delete:
-                                    to_delete.append(child)
-
-                            new_grandparent_1 = find_node(new_tree_1, grandparent)
-                            new_grandparent_2 = find_node(new_tree_2, grandparent)
-
-                            for node in to_delete:
-                                new_grandparent_1.block_items.remove(node)
-                                new_grandparent_2.block_items.remove(node)
-
-                            if len(to_delete) >= 2:
-                                pi1[-1] = pi1[-1] - len(to_delete) + 1
-                                pi2[-1] = pi2[-1] - len(to_delete) + 1
-
-                            find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
-                                                         new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         last_if_in_new_tree_1, pi1, last_if_child_aux)
-
-                            find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
-                                                         new_parent_list_2, new_grandparent_list_2, paths_list,
-                                                         source_reached, new_tree_2, last_if_in_new_tree_2, pi2,
-                                                         last_if_child_aux)
-                        else:
-
-                            # ne intoarcem pe stramosi - ambele ramuri ale lui if sunt valide si last_if None
-
-                            new_grandparent_1 = find_node(new_tree_1, grandparent)
-                            new_grandparent_2 = find_node(new_tree_2, grandparent)
-
-                            for node in to_delete:
-                                new_grandparent_1.block_items.remove(node)
-                                new_grandparent_2.block_items.remove(node)
-
-                            if len(to_delete) >= 2:
-                                pi1[-1] = pi1[-1] - len(to_delete) + 1
-                                pi2[-1] = pi2[-1] - len(to_delete) + 1
-
-                            find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
-                                                         new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         None, pi1, last_if_child_aux)
-
-                            find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
-                                                         new_parent_list_2, new_grandparent_list_2, paths_list,
-                                                         source_reached, new_tree_2, None, pi2,
-                                                         last_if_child_aux)
-
-                    else:
-
-                        # ne intoarcem pe stramosi - ramura iffalse a lui if nu exista
-
-                        new_tree_1 = duplicate_element(tree)
-                        new_parent_list_1 = []
-                        new_grandparent_list_1 = []
-
-                        for parent_node in pl1:
-                            new_parent_list_1.append(find_node(new_tree_1, parent_node))
-
-                        for grandparent_node in gp1:
-                            new_grandparent_list_1.append(find_node(new_tree_1, grandparent_node))
-
-                        if last_if is not None:
-
-                            # ne intoarcem pe stramosi - ramura iffalse a lui if nu exista si last_if valida
-
-                            last_if_in_new_tree_1 = find_node(new_tree_1, last_if)
-                            if find_node(last_if_in_new_tree_1, child) is None:
-                                last_if_in_new_tree_1.block_items.append(child)
-                                to_delete.append(child)
-
-                            new_grandparent_1 = find_node(new_tree_1, grandparent)
-
-                            for node in to_delete:
-                                new_grandparent_1.block_items.remove(node)
-
-                            if len(to_delete) >= 2:
-                                pi1[-1] = pi1[-1] - len(to_delete) + 1
-
-                            find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
-                                                         new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         last_if_in_new_tree_1, pi1, last_if_child_aux)
-
-                        else:
-
-                            # ne intoarcem pe stramosi - ramura iffalse a lui if nu exista si last_if e None
-
-                            new_grandparent_1 = find_node(new_tree_1, grandparent)
-
-                            for node in to_delete:
-                                new_grandparent_1.block_items.remove(node)
-
-                            if len(to_delete) >= 2:
-                                pi1[-1] = pi1[-1] - len(to_delete) + 1
-
-                            find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
-                                                         new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         None, pi1, last_if_child_aux)
-
-                        new_tree = duplicate_element(tree)
-                        new_parent = find_node(new_tree, child)
-
-                        gen = c_generator.CGenerator()
-                        condition = ''
-                        condition += gen.visit(child.cond)
-
-                        new_parent.cond = ID(condition, child.coord)
-                        new_parent.iffalse = Compound([], new_parent.iftrue.coord)
-                        new_parent.iftrue = None
-
-                        path.append(new_parent)
-                        path.append(new_parent.iffalse)
-
-                        new_parent_list = []
-                        new_grandparent_list = []
-
-                        for parent_node in pl2:
-                            new_parent_list.append(find_node(new_tree, parent_node))
-
-                        for grandparent_node in gp2:
-                            new_grandparent_list.append(find_node(new_tree, grandparent_node))
-
-                        if last_if is not None:
-                            last_if_in_new_tree = find_node(new_tree, last_if)
-                            if find_node(last_if_in_new_tree, new_parent) is None:
-                                last_if_in_new_tree.block_items.append(new_parent)
-
-                        new_grandparent = find_node(new_tree, grandparent)
-
-                        for node in to_delete:
-                            new_grandparent.block_items.remove(node)
-
-                        if len(to_delete) >= 2:
-                            pi2[-1] = pi2[-1] - len(to_delete) + 1
-
-                        find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list,
-                                                     new_grandparent_list, paths_list, source_reached, new_tree,
-                                                     new_parent.iffalse, pi2, last_if_child_aux)
-                    '''
 
                     if jump_on_iftrue or blocking_on_iftrue:
 
@@ -1080,16 +580,14 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                                     pi2[-1] = pi2[-1] - len(to_delete) + 1
 
                                 find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1,
-                                                             new_parent_list_1,
-                                                             new_grandparent_list_1, paths_list, source_reached,
-                                                             new_tree_1,
-                                                             last_if_in_new_tree_1, pi1, last_if_child_aux)
+                                                             new_parent_list_1, new_grandparent_list_1, paths_list,
+                                                             source_reached, new_tree_1, last_if_in_new_tree_1, pi1,
+                                                             last_if_child_aux, is_job)
 
                                 find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
-                                                             new_parent_list_2,
-                                                             new_grandparent_list_2, paths_list, source_reached,
-                                                             new_tree_2,
-                                                             child_copy.iffalse, pi2, last_if_child_aux)
+                                                             new_parent_list_2, new_grandparent_list_2, paths_list,
+                                                             source_reached, new_tree_2, child_copy.iffalse, pi2,
+                                                             last_if_child_aux, is_job)
 
                             else:
 
@@ -1109,16 +607,14 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                                 new_last_if = find_node(new_tree_2, child.iffalse)
 
                                 find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1,
-                                                             new_parent_list_1,
-                                                             new_grandparent_list_1, paths_list, source_reached,
-                                                             new_tree_1,
-                                                             None, pi1, last_if_child_aux)
+                                                             new_parent_list_1, new_grandparent_list_1, paths_list,
+                                                             source_reached, new_tree_1, None, pi1, last_if_child_aux,
+                                                             is_job)
 
                                 find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
-                                                             new_parent_list_2,
-                                                             new_grandparent_list_2, paths_list, source_reached,
-                                                             new_tree_2,
-                                                             new_last_if, pi2, last_if_child_aux)
+                                                             new_parent_list_2, new_grandparent_list_2, paths_list,
+                                                             source_reached, new_tree_2, new_last_if, pi2,
+                                                             last_if_child_aux, is_job)
 
                         else:
                             # nu pe parinti - jump pe iftrue si nu am iffalse
@@ -1151,10 +647,9 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                                     pi1[-1] = pi1[-1] - len(to_delete) + 1
 
                                 find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1,
-                                                             new_parent_list_1,
-                                                             new_grandparent_list_1, paths_list, source_reached,
-                                                             new_tree_1,
-                                                             last_if_in_new_tree_1, pi1, last_if_child_aux)
+                                                             new_parent_list_1, new_grandparent_list_1, paths_list,
+                                                             source_reached, new_tree_1, last_if_in_new_tree_1, pi1,
+                                                             last_if_child_aux, is_job)
 
                             else:
 
@@ -1169,10 +664,8 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                                     pi1[-1] = pi1[-1] - len(to_delete) + 1
 
                                 find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1,
-                                                             new_parent_list_1,
-                                                             new_grandparent_list_1, paths_list, source_reached,
-                                                             new_tree_1,
-                                                             None, pi1, last_if_child_aux)
+                                                             new_parent_list_1, new_grandparent_list_1, paths_list,
+                                                             source_reached, new_tree_1, None, pi1, last_if_child_aux, is_job)
 
                             new_tree = duplicate_element(tree)
                             new_parent = find_node(new_tree, child)
@@ -1212,7 +705,7 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                             find_all_paths_util_modified(None, source_node, dest_node, path, new_parent_list,
                                                          new_grandparent_list, paths_list, source_reached, new_tree,
-                                                         new_parent.iffalse, pi2, last_if_child_aux)
+                                                         new_parent.iffalse, pi2, last_if_child_aux, is_job)
 
                     elif jump_on_iffalse or blocking_on_iffalse:
                         new_tree_1 = duplicate_element(tree)
@@ -1259,12 +752,12 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                             find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
                                                          new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         child_copy.iftrue, pi1, last_if_child_aux)
+                                                         child_copy.iftrue, pi1, last_if_child_aux, is_job)
 
                             find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
-                                                         new_parent_list_2,
-                                                         new_grandparent_list_2, paths_list, source_reached, new_tree_2,
-                                                         last_if_in_new_tree_2, pi2, last_if_child_aux)
+                                                         new_parent_list_2, new_grandparent_list_2, paths_list,
+                                                         source_reached, new_tree_2, last_if_in_new_tree_2, pi2,
+                                                         last_if_child_aux, is_job)
 
                         else:
                             # nu pe parinti - jump pe iffalse si last_if e None
@@ -1284,12 +777,11 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
 
                             find_all_paths_util_modified(child.iftrue, source_node, dest_node, path1, new_parent_list_1,
                                                          new_grandparent_list_1, paths_list, source_reached, new_tree_1,
-                                                         new_last_if, pi1, last_if_child_aux)
+                                                         new_last_if, pi1, last_if_child_aux, is_job)
 
                             find_all_paths_util_modified(child.iffalse, source_node, dest_node, path2,
-                                                         new_parent_list_2,
-                                                         new_grandparent_list_2, paths_list, source_reached, new_tree_2,
-                                                         None, pi2, last_if_child_aux)
+                                                         new_parent_list_2, new_grandparent_list_2, paths_list,
+                                                         source_reached, new_tree_2, None, pi2, last_if_child_aux, is_job)
 
                     return_after_call = True
                     break
@@ -1318,26 +810,16 @@ def find_all_paths_util_modified(current_node, source_node, dest_node, path, par
                 break
 
 
-def find_all_paths(root, source_node, dest_node):
-    path = []
-    parent_list = []
-    grandparent_list = []
-    paths_list = []
-    find_all_paths_util(root, source_node, dest_node, path, parent_list, grandparent_list, paths_list, False)
-    # print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
-    return paths_list
-
-
 def find_all_paths_modified(root, source_node, dest_node):
     path = []
     parent_list = []
     grandparent_list = []
     paths_list = []
     parent_index = []
+    is_job = []
     find_all_paths_util_modified(root, source_node, dest_node, path, parent_list, grandparent_list, paths_list, False,
-                                 root, None, parent_index, True)
-    # print "\nDRUMURI GASITE:\n {0}".format(len(paths_list))
-    return paths_list
+                                 root, None, parent_index, True, is_job)
+    return paths_list, is_job
 
 
 class LabelVisitor(c_ast.NodeVisitor):
@@ -1503,14 +985,10 @@ def get_label_line(ast_tree, label_name, label_value):
     return v.label_line
 
 
-def find_all_paths_to_label(ast_tree, label_source, label_dest):
-    extern_while_body = get_extern_while_body(ast_tree)
-    return find_all_paths(extern_while_body, label_source, label_dest)
-
-
 def find_all_paths_to_label_modified(ast_tree, label_source, label_dest):
     extern_while_body = get_extern_while_body(ast_tree)
-    return find_all_paths_modified(extern_while_body, label_source, label_dest)
+    list_of_paths, is_job = find_all_paths_modified(extern_while_body, label_source, label_dest)
+    return list_of_paths, is_job
 
 
 class TreeGenerator(c_generator.CGenerator):
@@ -1821,48 +1299,6 @@ class RoundGenerator(c_generator.CGenerator):
         self.labelname = labelname
         # current round
         self.current_round = current_round
-
-    """
-    def visit_Constant(self, n):
-        if self.mode == "send" and not self.send_reached \
-                or self.mode == "update" and self.send_reached \
-                or self.visit_cond:
-            return n.value
-        return ""
-
-    def visit_ID(self, n):
-        if self.mode == "send" and not self.send_reached \
-                or self.mode == "update" and self.send_reached \
-                or self.visit_cond:
-            return n.name
-        return ""
-
-    def visit_Pragma(self, n):
-        if self.mode == "send" and not self.send_reached \
-                or self.mode == "update" and self.send_reached \
-                or self.visit_cond:
-            ret = '#pragma'
-            if n.string:
-                ret += ' ' + n.string
-            return ret
-        return ""
-
-    def visit_ArrayRef(self, n):
-        if self.mode == "send" and not self.send_reached \
-                or self.mode == "update" and self.send_reached \
-                or self.visit_cond:
-            arrref = self._parenthesize_unless_simple(n.name)
-            return arrref + '[' + self.visit(n.subscript) + ']'
-        return ""
-
-    def visit_StructRef(self, n):
-        if self.mode == "send" and not self.send_reached \
-                or self.mode == "update" and self.send_reached \
-                or self.visit_cond:
-            sref = self._parenthesize_unless_simple(n.name)
-            return sref + n.type + self.visit(n.field)
-        return ""
-    """
 
     def visit_Break(self, n):
         return 'out();'
@@ -2321,22 +1757,31 @@ class RoundGenerator(c_generator.CGenerator):
         if self.first_compound:
             remeber_compound = True
             self.first_compound = False
+
         if (self.mode == "send" and not self.send_reached and self.path is None) \
                 or (self.mode == "send" and not self.send_reached and self.path is not None
                     and n in self.path) or (self.mode == "send" and not self.send_reached and
                                             self.path is not None and self.extend_visit):
             s = ""
+            out_break_reached = False
             if not remeber_compound:
                 s = self._make_indent() + '{\n'
             self.indent_level += 2
             if n.block_items:
                 for stmt in n.block_items:
+                    if out_break_reached:
+                        continue
                     if not self.send_reached:
                         if self.path is None or (self.path and stmt in self.path) or (self.path and self.extend_visit):
                             if self.mode == "send" and not self.send_reached:
                                 if isinstance(stmt, Assignment):
                                     if stmt.lvalue.name == self.labelname:
                                         continue
+                            if isinstance(stmt, Break):
+                                out_break_reached = True
+                            if isinstance(stmt, FuncCall):
+                                if stmt.name.name == "out":
+                                    out_break_reached = True
                             s += self._generate_stmt(stmt)
             self.indent_level -= 2
             if not remeber_compound:
@@ -2346,11 +1791,14 @@ class RoundGenerator(c_generator.CGenerator):
                 (self.mode == "update" and self.path is not None and n in self.path) or \
                 (self.mode == "update" and self.path is not None and self.extend_visit):
             s = ""
+            out_break_reached = False
             if not remeber_compound:
                 s = self._make_indent() + '{\n'
             self.indent_level += 2
             if n.block_items:
                 for index, stmt in enumerate(n.block_items):
+                    if out_break_reached:
+                        continue
                     if self.path is None or (self.path and stmt in self.path) or (self.path and self.extend_visit):
                         if not self.send_reached:
                             aux_s = self._generate_stmt(stmt)
@@ -2360,6 +1808,14 @@ class RoundGenerator(c_generator.CGenerator):
                             elif self.send_reached:
                                 s += aux_s
                         else:
+                            if isinstance(stmt, Assignment):
+                                if isinstance(stmt.rvalue, ID) and stmt.rvalue.name == self.current_round:
+                                    continue
+                            if isinstance(stmt, Break):
+                                out_break_reached = True
+                            if isinstance(stmt, FuncCall):
+                                if stmt.name.name == "out":
+                                    out_break_reached = True
                             s += self._generate_stmt(stmt)
             self.indent_level -= 2
             if not remeber_compound:
@@ -2370,24 +1826,20 @@ class RoundGenerator(c_generator.CGenerator):
 
 
 class CheckIfGenerator(c_generator.CGenerator):
-    def __init__(self, s, d, not_weak=None):
+    def __init__(self, s, d):
         c_generator.CGenerator.__init__(self)
         self.is_jumping = False
         self.source = s
         self.dest = d
         self.label_name = s.lvalue.name
         self.is_blocking = False
-        self.not_weak = not_weak
+        self.true_jump = False
 
     def visit_Assignment(self, n):
-        if self.not_weak is not None:
-            if n.lvalue.name == self.label_name:
-                if not self.source == n and not self.dest == n:
-                    print n
-                    self.is_jumping = True
-        else:
-            if n.lvalue.name == self.label_name:
-                self.is_jumping = True
+        if n.lvalue.name == self.label_name:
+            self.is_jumping = True
+            if not self.source == n and not self.dest == n:
+                self.true_jump = True
         return ''
 
     def visit_FuncCall(self, n):
@@ -2426,9 +1878,6 @@ def generate_c_code_from_paths_and_trees(tuples):
     for pair in tuples:
         gen = PathGenerator(pair[1])
         print "\n\n\n\n NEW CODE \n\n\n\n"
-        print "\n\nCOPACUL\n\n"
-        print TreeGenerator().visit(pair[0])
-        print "\n\nCODUL\n\n"
         print(gen.visit(pair[0]))
 
 
@@ -2534,8 +1983,5 @@ if __name__ == "__main__":
             prune_tree(get_extern_while_body(aux_ast), source, dest, dest_list, source_list)
             if dest_list and source_list:
                 # print tree_gen.visit(get_extern_while_body(aux_ast))
-                paths_list = find_all_paths_to_label_modified(aux_ast, source, dest)
+                paths_list, is_job = find_all_paths_to_label_modified(aux_ast, source, dest)
                 generate_c_code_from_paths_and_trees(paths_list)
-
-# bug undeva cu 3 if-uri unul sub altul in exemplul ct-term
-# intre second si third round
