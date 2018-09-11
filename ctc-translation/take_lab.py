@@ -604,7 +604,9 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
         if is_job:
             print "}\n"
 
-            print "  UPDATE():\n"
+        print "  UPDATE():\n"
+
+        if is_job:
             print "if(round == {0})".format(label)
             print "{"
 
