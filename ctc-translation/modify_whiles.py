@@ -6,6 +6,7 @@ generator = c_generator.CGenerator()
 
 coord_aux = 0
 
+
 def remove_mbox_assign_to_zero(extern_while_body):
     """
     assign mbox = 0 will be removed from the tree

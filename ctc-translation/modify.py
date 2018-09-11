@@ -1,9 +1,6 @@
-import copy
-
 from take_lab import take_code_from_file, get_extern_while_body_from_func
 from pycparser import parse_file
 
-from parse_test import get_label, prune_tree
 from modify_whiles import *
 generator = c_generator.CGenerator()
 

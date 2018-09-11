@@ -1,4 +1,4 @@
-from parse_test import *
+from compute_paths import *
 from pycparser.c_ast import *
 
 generator = c_generator.CGenerator()

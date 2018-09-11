@@ -1,14 +1,16 @@
 import copy
 import os
-from parse_test import get_label, duplicate_element, get_label_assign_num, find_all_paths_to_label_modified, \
-    TreeGenerator, generate_c_code_from_paths_and_trees, RoundGenerator, find_parent, find_node, CheckIfGenerator
+from utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
+    find_parent, find_node
+from generators import TreeGenerator, RoundGenerator, CheckIfGenerator
+from compute_paths import find_all_paths_between_two_nodes
 from pycparser import c_generator
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
     For
+from modify_whiles import coord_aux
 
 generator = c_generator.CGenerator()
 
-from modify_whiles import coord_aux
 
 def conds_to_source_and_dest(current_node, lab_source, lab_dest, destination_reached, source_reached, to_source,
                              to_dest):
@@ -233,7 +235,7 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
                             else:
                                 #if labels != labels_sorted:
                                 is_job = True
-                                aux, is_job_aux = find_all_paths_to_label_modified(cop, start, end)
+                                aux, is_job_aux = find_all_paths_between_two_nodes(cop, start, end)
                                 test = take_2assigns_to_label_only(aux, labelname)
 
                                 if test:
@@ -244,7 +246,7 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
 
 
                         else:
-                                aux, is_job_aux = find_all_paths_to_label_modified(cop, start, end)
+                                aux, is_job_aux = find_all_paths_between_two_nodes(cop, start, end)
                                 test = take_2assigns_to_label_only(aux, labelname)
 
                                 if test:
