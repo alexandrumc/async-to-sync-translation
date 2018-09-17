@@ -24,10 +24,12 @@ int main() {
         mbox = 0;
         while(true){
             tuplu_mesaj_pid = recv();
-            if (m != NULL && m.epoch >= epoch && m.round == ELECT_ME)
+            if (m != NULL && m.epoch >= epoch && m.round == ELECT_ME){
                 mbox = mbox + tuplu_mesaj_pid;
-            if (timeout() || mbox != 0)
+                }
+            if (timeout() || mbox != 0){
                 break;
+                }
         }
         if (mbox != 0) {
             epoch = m.epoch;
@@ -40,10 +42,12 @@ int main() {
             mbox = 0;
             while (true){
                 tuplu_mesaj_pid = recv(cond_LEADER_IS);
-                if (m != NULL) 
+                if (m != NULL) {
                     mbox = mbox + tuplu_mesaj_pid;
-                if (timeout() || mbox >= n/2)
+                    }
+                if (timeout() || mbox >= n/2){
                     break;
+                    }
             }
             if (mbox > n/2){
                 log[epoch] = leader();

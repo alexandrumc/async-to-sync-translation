@@ -24,6 +24,19 @@ class LabelVisitor(c_ast.NodeVisitor):
                     self.label_item.append(node)
 
 
+class EpochVisitor(c_ast.NodeVisitor):
+    """
+    Takes the name of the epoch variable and returns the list with all occurences
+    """
+    def __init__(self, epoch_name):
+        self.epoch_name = epoch_name
+        self.epoch_list = []
+
+    def visit_Assignment(self, node):
+        if node.lvalue.name == self.epoch_name:
+            self.epoch_list.append(node)
+
+
 class CheckLabelNumber(c_ast.NodeVisitor):
     """
     Takes a label name as argument and checks the number of label assignments in a AST.
@@ -61,6 +74,61 @@ class LocateParentNode(c_generator.CGenerator):
                     break
                 self._generate_stmt(stmt)
         return s
+
+
+class LocateParentNodeAndrei(c_generator.CGenerator):
+    """
+    Takes a node as argument and find his parent in the AST.
+    The parent is stored in self.discovered_node
+    """
+
+    def __init__(self, node):
+        c_generator.CGenerator.__init__(self)
+        self.node_to_find = node
+        self.discovered_node = None
+
+    # def visit_While(self, n):
+    #     s = ''
+    #     if self.node_to_find == n:
+    #         self.discovered_node = n
+    #     for stmt in n.stmt.block_items:
+    #         if stmt == self.node_to_find:
+    #             self.discovered_node = n
+    #             break
+    #         self._generate_stmt(stmt)
+    #     return s
+
+    def visit_If(self, n):
+        if self.node_to_find == n:
+            self.discovered_node = n
+        s = ''
+        if n.iftrue:
+            for stmt in n.iftrue.block_items:
+                if stmt == self.node_to_find:
+                    self.discovered_node = n
+                    break
+                self._generate_stmt(stmt)
+        if n.iffalse:
+            for stmt in n.iffalse.block_items:
+                if stmt == self.node_to_find:
+                    self.discovered_node = n
+                    break
+                self._generate_stmt(stmt)
+
+        return s
+
+    def visit_Compound(self, n):
+        if self.node_to_find == n:
+            self.discovered_node = n
+        s = ''
+        if n.block_items:
+            for stmt in n.block_items:
+                if stmt == self.node_to_find:
+                    self.discovered_node = n
+                    break
+                self._generate_stmt(stmt)
+        return s
+
 
 
 class LocateNode(c_generator.CGenerator):

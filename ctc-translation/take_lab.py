@@ -1,15 +1,18 @@
 import copy
 import os
 from utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
-    find_parent, find_node
+    find_parent, find_node, get_epochs_assigns, find_parentAndrei, get_main_function
 from generators import TreeGenerator, RoundGenerator, CheckIfGenerator
 from compute_paths import find_all_paths_between_two_nodes
 from pycparser import c_generator
+from pycparser.plyparser import Coord
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
-    For
+    For, Compound
 from modify_whiles import coord_aux
 
 generator = c_generator.CGenerator()
+
+added_vars = []
 
 
 def conds_to_source_and_dest(current_node, lab_source, lab_dest, destination_reached, source_reached, to_source,
@@ -209,31 +212,32 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
 
                     dest_list = []
                     source_list = []
-                    #prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
+                    # prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
                     ifs_to_dest = []
                     conds_to_source_and_dest(get_extern_while_body(cop), start, end, dest_list, source_list, [],
                                              ifs_to_dest)
 
                     if dest_list and source_list:
 
-                        modify_conds(label1, conds_dict, cop, ast)
+                        # modify_conds(label1, conds_dict, cop, ast)
 
                         assign = get_label_assign_num(cop, labelname)
 
-                        #print get_extern_while_body(cop)
+                        # print get_extern_while_body(cop)
 
                         if assign <= 2:
                             check_if_gen = CheckIfGenerator(start, end)
-                            #print TreeGenerator().visit(get_extern_while_body(cop))
+                            # print TreeGenerator().visit(get_extern_while_body(cop))
                             check_if_gen.visit(get_extern_while_body(cop))
-                            #print check_if_gen.is_jumping
-                            #print check_if_gen.is_blocking
-                            #print "\n\nUNUL\n\n"
+                            # print check_if_gen.is_jumping
+                            # print check_if_gen.is_blocking
+                            # print "\n\nUNUL\n\n"
+                            # print ifs_to_dest
                             if not check_if_gen.is_blocking and not check_if_gen.true_jump:
                                 new_conds = add_ghost_assign_in_tree(cop, ifs_to_dest, label1)
                                 trees_list.append(cop)
                             else:
-                                #if labels != labels_sorted:
+                                # if labels != labels_sorted:
                                 is_job = True
                                 aux, is_job_aux = find_all_paths_between_two_nodes(cop, start, end)
                                 test = take_2assigns_to_label_only(aux, labelname)
@@ -246,13 +250,14 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
 
 
                         else:
-                                aux, is_job_aux = find_all_paths_between_two_nodes(cop, start, end)
-                                test = take_2assigns_to_label_only(aux, labelname)
 
-                                if test:
-                                    if is_job_aux:
-                                        is_job = True
-                                    trees_paths_list.append(test)
+                            aux, is_job_aux = find_all_paths_between_two_nodes(cop, start, end)
+                            test = take_2assigns_to_label_only(aux, labelname)
+
+                            if test:
+                                if is_job_aux:
+                                    is_job = True
+                                trees_paths_list.append(test)
 
                 # aici bag conditiile
             if new_conds:
@@ -276,6 +281,14 @@ def modify_cond(cond, new_vals):
                 if cond.name in val:
                     cond.name = val
                     # new_vals.remove(val)
+
+    elif isinstance(cond, StructRef):
+        if isinstance(cond.name, ID):
+            if not any(x in cond.name.name for x in strings):
+                for val in new_vals:
+                    if cond.name.name in val:
+                        cond.name.name = val
+
     elif isinstance(cond.left, StructRef):
         if isinstance(cond.left.name, ID):
             if not any(x in cond.left.name.name for x in strings):
@@ -336,6 +349,13 @@ def take_cond_name(cond, lista):
             if aux not in lista:
                 lista.append(aux)
 
+    elif isinstance(cond, StructRef):
+        if isinstance(cond.name, ID):
+            if not any(x in cond.name.name for x in strings):
+                aux = cond.name.name
+                if aux not in lista:
+                    lista.append(aux)
+
     elif isinstance(cond.left, StructRef):
         if isinstance(cond.left.name, ID):
             if not any(x in cond.left.name.name for x in strings):
@@ -379,16 +399,25 @@ def take_cond_name(cond, lista):
 
 def create_new_cond_name(cond_name, label, count):
     new_name = label + "_" + str(count) + "_" + cond_name
+
     return new_name
 
 
-def create_new_assign(old_cond, new_cond):
+def create_new_assign(old_cond, new_cond, coord):
     global coord_aux
-    assign = Assignment('=', ID(new_cond), ID(old_cond), coord_aux)
+
+    coord_aux -= 1
+    # coord = old_cond.coord
+    new_coord = Coord(coord.file, coord.line, coord.column)
+    new_coord.line = coord_aux
+    new_coord.column = coord_aux
+
+    assign = Assignment('=', ID(new_cond), ID(old_cond), new_coord)
     return assign
 
 
 def add_ghost_assign_in_tree(tree, ifs_to_des, label):
+    global added_vars
     """
     adauga in copac assignmentul de variabila si intoarce o lista de tupluri de genul (if de modificat, noile nume de variabile)
     :param tree:
@@ -396,8 +425,7 @@ def add_ghost_assign_in_tree(tree, ifs_to_des, label):
     :param label:
     :return:
     """
-    to_add = []
-    var_old = []
+
     ifs_new_names = []
     for elem in ifs_to_des:
         conds_list = []
@@ -405,15 +433,16 @@ def add_ghost_assign_in_tree(tree, ifs_to_des, label):
         take_cond_name(elem.cond, conds_list)
         # print conds_list
         for cond in conds_list:
-            new_names = []
-            count = var_old.count(cond)
-            var_old.append(cond)
             parent = find_parent(tree, elem)
             index = parent.block_items.index(elem)
-
+            count = 0
             new_cond = create_new_cond_name(cond, label, count)
+
+            # new_cond = correct_added_vars(cond, new_cond ,label,count)
+            added_vars.append(new_cond)
             new_conds_list.append(new_cond)
-            assign = create_new_assign(cond, new_cond)
+
+            assign = create_new_assign(cond, new_cond, elem.coord)
             parent.block_items.insert(index, assign)
 
         # print new_conds_list
@@ -421,6 +450,18 @@ def add_ghost_assign_in_tree(tree, ifs_to_des, label):
         ifs_new_names.append(aux)
         # print new_names
     return ifs_new_names
+
+
+def correct_added_vars(cond, new_cond, label, count):
+    i = 0
+    while i < len(added_vars):
+        if new_cond in added_vars:
+            count += 1
+
+        i += 1
+
+    aux = create_new_cond_name(cond, label, count)
+    return aux
 
 
 def add_assign_in_tree(tree, label, variabile_old, original_ast):
@@ -538,18 +579,20 @@ def take_2assigns_to_label_only(paths, labelname):
 
 def print_code_from_trees_paths(trees_paths_dict, labels):
     for x in labels:
-        paths = trees_paths_dict[x]
-        for path in paths:
-            if path is not None:
-                generate_c_code_from_paths_and_trees(path)
+        if x in trees_paths_dict:
+            paths = trees_paths_dict[x]
+            for path in paths:
+                if path is not None:
+                    generate_c_code_from_paths_and_trees(path)
 
 
 def print_code_from_trees(trees_dict, labels):
     gen = TreeGenerator()
     for x in labels:
-        trees_list = trees_dict[x]
-        for tree in trees_list:
-            print gen.visit(get_extern_while_body(tree))
+        if x in trees_dict:
+            trees_list = trees_dict[x]
+            for tree in trees_list:
+                print gen.visit(get_extern_while_body(tree))
 
 
 def print_code(trees_dict, trees_paths_dict, labels):
@@ -574,7 +617,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
         history_of_strings = []
 
         for tree in trees_dict[label]:
-            #print TreeGenerator().visit(get_extern_while_body(tree))
+            # print TreeGenerator().visit(get_extern_while_body(tree))
             gen = RoundGenerator("send", labelname, label)
             result = gen.visit(get_extern_while_body(tree))
             result = os.linesep.join([s for s in result.splitlines() if s])
@@ -589,7 +632,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
         list_of_lists_of_tuples = trees_paths_dict[label]
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
-                #print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
+                # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
                 gen = RoundGenerator("send", labelname, label, tuple_el[1])
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
                 result = os.linesep.join([s for s in result.splitlines() if s])
@@ -612,7 +655,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
 
         history_of_strings = []
         for i, tree in enumerate(trees_dict[label]):
-            #print TreeGenerator().visit(get_extern_while_body(tree))
+            # print TreeGenerator().visit(get_extern_while_body(tree))
             gen = RoundGenerator("update", labelname, label)
             if not found_send_list[i]:
                 gen.send_reached = True
@@ -625,7 +668,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
         i = len(trees_dict[label])
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
-                #print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
+                # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
                 gen = RoundGenerator("update", labelname, label, tuple_el[1])
                 if not found_send_list[i]:
                     gen.send_reached = True
@@ -640,15 +683,155 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
             print "}"
         print "\n"
 
+
+def identify_epoch_jumps(ast_tree, epoch_name):
+    epoch_list = get_epochs_assigns(ast_tree, epoch_name)
+    if epoch_list is []:
+        return False
+    else:
+        return True
+
+
+def assign_unique_coord(elem, coord):
+    global coord_aux
+    coord_aux -= 1
+    coord.column = coord_aux
+    coord.line = coord_aux
+    elem.coord = coord
+    # return elem
+
+
+def create_blockb(ast, epoch_name):
+    ast_tree = duplicate_element(ast)
+    if identify_epoch_jumps(ast_tree, epoch_name):
+        epoch_jumps = get_epochs_assigns(get_extern_while_body(ast_tree), epoch_name)
+        coord = get_extern_while_body(ast_tree).coord
+        if len(epoch_jumps) == 1:
+            epoch = epoch_jumps[0]
+
+            parent_compound = find_parent(ast_tree, epoch)
+
+            parent = find_parentAndrei(ast_tree, epoch)
+            grandparent = find_parentAndrei(ast_tree, parent)
+
+            index = grandparent.block_items.index(parent)
+
+            to_add = grandparent.block_items[index + 1:]
+
+            parent_compound.block_items.remove(epoch)
+
+            assign = create_new_assign('true', 'b', coord)  # create assign b = true
+            assign_unique_coord(assign, coord)
+
+            parent_compound.block_items.append(assign)
+            parent_compound.block_items = parent_compound.block_items + to_add
+            # parent_compound.block_items.append(assign)
+            block_b = parent_compound
+
+            return block_b
+
+    return ast_tree
+
+
+def create_block_a(ast, epoch_name):
+    ast_tree = duplicate_element(ast)
+    if identify_epoch_jumps(ast_tree, epoch_name):
+        epoch_jumps = get_epochs_assigns(get_extern_while_body(ast_tree), epoch_name)
+        coord = get_extern_while_body(ast_tree).coord
+        if len(epoch_jumps) == 1:
+            epoch = epoch_jumps[0]
+
+            parent_compound = find_parent(ast_tree, epoch)
+            index = parent_compound.block_items.index(epoch)
+
+            assign_false = create_new_assign('false', 'b', coord)  # create assign b = false
+            assign_unique_coord(assign_false, coord)
+
+            comp_false = Compound([assign_false], coord)
+            assign_unique_coord(comp_false, coord)
+
+            lista = parent_compound.block_items[index + 1:]
+            new_comp = Compound(lista, coord)
+            assign_unique_coord(new_comp, coord)
+
+            cond = BinaryOp('==', ID('iter'), ID(epoch_name))
+            iter_if = If(cond, new_comp, comp_false)
+            assign_unique_coord(iter_if, coord)
+
+            parent_compound.block_items = parent_compound.block_items[:index + 1]
+            parent_compound.block_items.append(iter_if)
+
+            # print generator.visit(get_extern_while_body(ast_tree))
+            return get_extern_while_body(ast_tree)
+
+
+def check_epoch_jumps(ast_tree, epoch_name):
+    cop = duplicate_element(ast_tree)
+    cop_aux = duplicate_element(ast_tree)
+    if identify_epoch_jumps(cop, epoch_name):
+        epoch_jumps = get_epochs_assigns(get_extern_while_body(cop), epoch_name)
+        coord = get_extern_while_body(cop).coord
+        if len(epoch_jumps) == 1:
+            epoch = epoch_jumps[0]
+
+            parent_compound = find_parent(cop_aux, epoch)
+
+            block_a = create_block_a(cop, 'epoch')
+            assign_unique_coord(block_a, coord)
+
+            block_b = create_blockb(cop, epoch_name)
+            assign_unique_coord(block_b, coord)
+            # print generator.visit(block_a)
+            # print generator.visit(block_b)
+
+            iter_assign = create_new_assign('0', 'iter', coord)  # initialize iter to 0
+
+            iter_inc = UnaryOp('p++', ID('iter'), coord)  # iter ++
+            assign_unique_coord(iter_inc, coord)
+
+            assign_true = create_new_assign('true', 'b', coord)  # create assign b = true
+            assign_unique_coord(assign_true, coord)
+
+            assign_false = create_new_assign('false', 'b', coord)  # create assign b = false
+            assign_unique_coord(assign_false, coord)
+
+            main = get_main_function(cop).body
+            main.block_items.insert(0, assign_true)
+            main.block_items.insert(0, iter_assign)
+            # am adaugat in arbore initializarea lui b si a lui iter
+
+            # block_b = create_blockb(cop, epoch_name)
+            # assign_unique_coord(block_b, coord)
+
+            # create_block_a(ast_tree, epoch_name)
+
+            cond = BinaryOp('==', ID('iter'), ID(epoch_name))
+            uncond = UnaryOp('!', ID('b'))
+
+            iter_if = If(cond, None, None)
+            assign_unique_coord(iter_if, coord)
+
+            blockb_if = If(uncond, block_b, block_a)
+
+            iter_if.iftrue = blockb_if
+            body = get_extern_while_body(cop)
+            body.block_items.insert(1, iter_if)
+            body.block_items.insert(1, iter_inc)
+            body.block_items = body.block_items[:3]
+            print generator.visit(cop)
+
+
 def take_code_from_file(ast, filename, labelname):
     x = copy.deepcopy(ast)
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename, labelname)
 
+    check_epoch_jumps(ast, 'epoch')
+
     trees_dict, trees_paths_dict, is_job = get_paths_trees(ast, labels, labels_sorted, labelname)
 
-    #print_code(trees_dict, trees_paths_dict, labels_sorted)
+    # print_code(trees_dict, trees_paths_dict, labels_sorted)
 
-    print_rounds(labels_sorted, trees_dict, trees_paths_dict, labelname, is_job)
+    # print_rounds(labels_sorted, trees_dict, trees_paths_dict, labelname, is_job)
 
     return trees_dict

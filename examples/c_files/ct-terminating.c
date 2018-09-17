@@ -39,8 +39,6 @@ int main(int pid, int num, int estimate) {
 		m->estimate = estimate;
 		m->sender = myid;
 		m->timestamp = timestamp;
-        round = SECOND_ROUND
-        round = THIRD_ROUND
 
 		send(m, to_leader);
 
