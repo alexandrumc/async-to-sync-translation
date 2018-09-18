@@ -4,7 +4,7 @@ from utils import get_label, duplicate_element, get_label_assign_num, generate_c
     find_parent, find_node, get_epochs_assigns, find_parentAndrei, get_main_function
 from generators import TreeGenerator, RoundGenerator, CheckIfGenerator
 from compute_paths import find_all_paths_between_two_nodes
-from pycparser import c_generator
+from pycparser import c_generator, parse_file
 from pycparser.plyparser import Coord
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
     For, Compound
@@ -811,23 +811,36 @@ def check_epoch_jumps(ast_tree, epoch_name):
             iter_if = If(cond, None, None)
             assign_unique_coord(iter_if, coord)
 
-            blockb_if = If(uncond, block_b, block_a)
+            # comp_bloc_a = Compound([block_a],coord)
+            # assign_unique_coord(comp_bloc_a,coord)
+            # comp_bloc_b = Compound([block_b], coord)
+            # assign_unique_coord(comp_bloc_b,coord)
 
-            iter_if.iftrue = blockb_if
+            blockb_if = If(uncond, block_b, block_a)
+            comp_block_b_if = Compound([blockb_if],coord)
+            assign_unique_coord(comp_block_b_if, coord)
+
+            iter_if.iftrue = comp_block_b_if
             body = get_extern_while_body(cop)
             body.block_items.insert(1, iter_if)
             body.block_items.insert(1, iter_inc)
             body.block_items = body.block_items[:3]
-            print generator.visit(cop)
 
+            return cop
+
+
+def async_to_async(ast, epoch_name, filename):
+    if identify_epoch_jumps(ast, epoch_name):
+        async = check_epoch_jumps(ast, epoch_name)
+        print generator.visit(async)
 
 def take_code_from_file(ast, filename, labelname):
     x = copy.deepcopy(ast)
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename, labelname)
 
-    check_epoch_jumps(ast, 'epoch')
-
+    async_to_async(ast, 'epoch', filename)
+    # print generator.visit(ast)
     trees_dict, trees_paths_dict, is_job = get_paths_trees(ast, labels, labels_sorted, labelname)
 
     # print_code(trees_dict, trees_paths_dict, labels_sorted)

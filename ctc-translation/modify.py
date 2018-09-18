@@ -14,10 +14,10 @@ extern_while_body = None
 
 x = get_extern_while_body_from_func(ast, "main")
 conditii = []
-# whiles_to_if(x, conditii)
+whiles_to_if(x, conditii)
 
-# identify_recv_exits(x, conditii)
-# remove_mbox(x)
+identify_recv_exits(x, conditii)
+remove_mbox(x)
 #print generator.visit(x)
 #test = get_labels_order("examples/c_files/broadcast.c",'round')
 # print test
