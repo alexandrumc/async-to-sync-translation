@@ -723,7 +723,8 @@ def create_blockb(ast, epoch_name):
             assign = create_new_assign('true', 'b', coord)  # create assign b = true
             assign_unique_coord(assign, coord)
 
-            parent_compound.block_items.append(assign)
+            length = len(parent_compound.block_items)
+            parent_compound.block_items.insert(length-1, assign) #inserez elementul, dar nu pe ultima pozitie
             parent_compound.block_items = parent_compound.block_items + to_add
             # parent_compound.block_items.append(assign)
             block_b = parent_compound
@@ -792,18 +793,13 @@ def check_epoch_jumps(ast_tree, epoch_name):
             assign_true = create_new_assign('true', 'b', coord)  # create assign b = true
             assign_unique_coord(assign_true, coord)
 
-            assign_false = create_new_assign('false', 'b', coord)  # create assign b = false
-            assign_unique_coord(assign_false, coord)
+            # assign_false = create_new_assign('false', 'b', coord)  # create assign b = false
+            # assign_unique_coord(assign_false, coord)
 
             main = get_main_function(cop).body
             main.block_items.insert(0, assign_true)
             main.block_items.insert(0, iter_assign)
             # am adaugat in arbore initializarea lui b si a lui iter
-
-            # block_b = create_blockb(cop, epoch_name)
-            # assign_unique_coord(block_b, coord)
-
-            # create_block_a(ast_tree, epoch_name)
 
             cond = BinaryOp('==', ID('iter'), ID(epoch_name))
             uncond = UnaryOp('!', ID('b'))
@@ -811,13 +807,8 @@ def check_epoch_jumps(ast_tree, epoch_name):
             iter_if = If(cond, None, None)
             assign_unique_coord(iter_if, coord)
 
-            # comp_bloc_a = Compound([block_a],coord)
-            # assign_unique_coord(comp_bloc_a,coord)
-            # comp_bloc_b = Compound([block_b], coord)
-            # assign_unique_coord(comp_bloc_b,coord)
-
             blockb_if = If(uncond, block_b, block_a)
-            comp_block_b_if = Compound([blockb_if],coord)
+            comp_block_b_if = Compound([blockb_if], coord)
             assign_unique_coord(comp_block_b_if, coord)
 
             iter_if.iftrue = comp_block_b_if
@@ -832,19 +823,26 @@ def check_epoch_jumps(ast_tree, epoch_name):
 def async_to_async(ast, epoch_name, filename):
     if identify_epoch_jumps(ast, epoch_name):
         async = check_epoch_jumps(ast, epoch_name)
-        print generator.visit(async)
+        # print generator.visit(async)
+        with open('aux.c', 'w') as file:
+            file.write(generator.visit(async))
+        aux = parse_file(filename="aux.c", use_cpp=False)
+        return aux
+    else:
+        return ast
+
 
 def take_code_from_file(ast, filename, labelname):
     x = copy.deepcopy(ast)
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename, labelname)
 
-    async_to_async(ast, 'epoch', filename)
+    ast = async_to_async(ast, 'epoch', filename)
     # print generator.visit(ast)
     trees_dict, trees_paths_dict, is_job = get_paths_trees(ast, labels, labels_sorted, labelname)
 
     # print_code(trees_dict, trees_paths_dict, labels_sorted)
 
-    # print_rounds(labels_sorted, trees_dict, trees_paths_dict, labelname, is_job)
+    print_rounds(labels_sorted, trees_dict, trees_paths_dict, labelname, is_job)
 
     return trees_dict
