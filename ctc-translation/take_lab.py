@@ -1,7 +1,7 @@
 import copy
 import os
 from utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
-    find_parent, find_node, get_epochs_assigns, find_parentAndrei, get_main_function, find_lca
+    find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca
 from generators import TreeGenerator, RoundGenerator, CheckIfGenerator
 from compute_paths import find_all_paths_between_two_nodes
 from pycparser import c_generator, parse_file
@@ -705,22 +705,21 @@ def assign_unique_coord(elem, coord):
     # return elem
 
 
-
 def take_code_between_epoch_assigns(ast_tree, epoch1, epoch2):
     lca = find_lca(ast_tree, epoch1, epoch2)
 
-    epoch1_parent = find_parentAndrei(ast_tree, epoch1)
-    epoch2_parent = find_parentAndrei(ast_tree, epoch2)
+    epoch1_parent = find_parentUpdated(ast_tree, epoch1)
+    epoch2_parent = find_parentUpdated(ast_tree, epoch2)
 
-    epoch1_grandparent = find_parentAndrei(ast_tree, epoch1_parent)
-    epoch2_grandparent = find_parentAndrei(ast_tree, epoch2_parent)
+    epoch1_grandparent = find_parentUpdated(ast_tree, epoch1_parent)
+    epoch2_grandparent = find_parentUpdated(ast_tree, epoch2_parent)
 
     while lca != epoch1_grandparent:
         epoch1_parent = epoch1_grandparent
-        epoch1_grandparent = find_parentAndrei(ast_tree, epoch1_parent)
+        epoch1_grandparent = find_parentUpdated(ast_tree, epoch1_parent)
     while lca != epoch2_grandparent:
         epoch2_parent = epoch2_grandparent
-        epoch2_grandparent = find_parentAndrei(ast_tree, epoch2_parent)
+        epoch2_grandparent = find_parentUpdated(ast_tree, epoch2_parent)
 
     index1 = lca.block_items.index(epoch1_parent)
     index2 = lca.block_items.index(epoch2_parent)
@@ -730,15 +729,29 @@ def take_code_between_epoch_assigns(ast_tree, epoch1, epoch2):
     return code_between_epochs
 
 
+def insert_assigns(ast_tree, epoch_name, var_num):
+    extern_while_body = get_extern_while_body(ast_tree)
+    coord = extern_while_body.coord
+    main = get_main_function(ast_tree).body
+
+    iter_assign = create_new_assign('0', 'iter', coord)
+    assign_unique_coord(iter_assign, coord)
+
+    for i in xrange(1,var_num+1):
+        assign = create_new_assign('true', 'b' + str(i), coord)  # create assign b = true
+        assign_unique_coord(assign, coord)
+        main.block_items.insert(0, assign)
+
+    main.block_items.insert(0, iter_assign)
+
+
 def more_epoch_jumps(ast_tree, epoch_name):
     new_ast = duplicate_element(ast_tree)
     epoch_jumps = get_epochs_assigns(get_extern_while_body(ast_tree), epoch_name)
     epoch_jumps.reverse()
     coord = epoch_jumps[0].coord
 
-
-    iter_assign = create_new_assign('0', 'iter', coord)
-    # extern_while = get_extern_while_body(new)
+    insert_assigns(new_ast, epoch_name, len(epoch_jumps))
 
     ifs_list = []
     for i in xrange(len(epoch_jumps)):
@@ -804,7 +817,7 @@ def identify_block_b(ast, epoch, epoch_name):
     global var_b
     ast_tree = duplicate_element(ast)
     parent_comp = find_parent(ast_tree, epoch)
-    parent = find_parentAndrei(ast_tree, epoch)
+    parent = find_parentUpdated(ast_tree, epoch)
     # print generator.visit(parent_comp)
     epoch_index = parent_comp.block_items.index(epoch)
     to_add = parent_comp.block_items[epoch_index + 1:]
@@ -812,7 +825,7 @@ def identify_block_b(ast, epoch, epoch_name):
     changed_parent = True
     while changed_parent:
         grandparent_comp = find_parent(ast_tree, parent)
-        grandparent = find_parentAndrei(ast_tree, parent)
+        grandparent = find_parentUpdated(ast_tree, parent)
 
         # print type(grandparent_comp.block_items)
         # print generator.visit(grandparent_comp)
