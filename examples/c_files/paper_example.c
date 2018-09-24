@@ -9,8 +9,7 @@ typedef struct _msg {
 } msg;
 
 int main() {
-    epoch = 1;
-    round = FIRST_ROUND;
+    epoch = 0;
     while(true){
         round = FIRST_ROUND;
         if (pid == leader)

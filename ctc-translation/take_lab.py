@@ -688,6 +688,8 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
 
 def identify_epoch_jumps(ast_tree, epoch_name):
     epoch_list = get_epochs_assigns(ast_tree, epoch_name)
+    for elem in epoch_list:
+        print elem.coord
     if epoch_list is []:
         return False
     else:
@@ -702,136 +704,6 @@ def assign_unique_coord(elem, coord):
     elem.coord = coord
     # return elem
 
-
-def create_blockb(ast, epoch_name):
-    ast_tree = duplicate_element(ast)
-    if identify_epoch_jumps(ast_tree, epoch_name):
-        epoch_jumps = get_epochs_assigns(get_extern_while_body(ast_tree), epoch_name)
-        coord = get_extern_while_body(ast_tree).coord
-        if len(epoch_jumps) == 1:
-            epoch = epoch_jumps[0]
-
-            parent_compound = find_parent(ast_tree, epoch)
-
-            parent = find_parentAndrei(ast_tree, epoch)
-            grandparent = find_parentAndrei(ast_tree, parent)
-
-            index = grandparent.block_items.index(parent)
-
-            to_add = grandparent.block_items[index + 1:]
-
-            parent_compound.block_items.remove(epoch)
-
-            assign = create_new_assign('true', 'b', coord)  # create assign b = true
-            assign_unique_coord(assign, coord)
-
-            length = len(parent_compound.block_items)
-            parent_compound.block_items.insert(length - 1, assign)  # inserez elementul, dar nu pe ultima pozitie
-            parent_compound.block_items = parent_compound.block_items + to_add
-            # parent_compound.block_items.append(assign)
-            block_b = parent_compound
-
-            return block_b
-
-    return ast_tree
-
-
-def create_block_a(ast, epoch_name):
-    ast_tree = duplicate_element(ast)
-    if identify_epoch_jumps(ast_tree, epoch_name):
-        epoch_jumps = get_epochs_assigns(get_extern_while_body(ast_tree), epoch_name)
-        coord = get_extern_while_body(ast_tree).coord
-        if len(epoch_jumps) == 1:
-            epoch = epoch_jumps[0]
-
-            parent_compound = find_parent(ast_tree, epoch)
-            index = parent_compound.block_items.index(epoch)
-
-            assign_false = create_new_assign('false', 'b', coord)  # create assign b = false
-            assign_unique_coord(assign_false, coord)
-
-            comp_false = Compound([assign_false], coord)
-            assign_unique_coord(comp_false, coord)
-
-            lista = parent_compound.block_items[index + 1:]
-            new_comp = Compound(lista, coord)
-            assign_unique_coord(new_comp, coord)
-
-            cond = BinaryOp('==', ID('iter'), ID(epoch_name))
-            iter_if = If(cond, new_comp, comp_false)
-            assign_unique_coord(iter_if, coord)
-
-            parent_compound.block_items = parent_compound.block_items[:index + 1]
-            parent_compound.block_items.append(iter_if)
-
-            # print generator.visit(get_extern_while_body(ast_tree))
-            return get_extern_while_body(ast_tree)
-
-
-def check_epoch_jumps(ast_tree, epoch_name):
-    cop = duplicate_element(ast_tree)
-    cop_aux = duplicate_element(ast_tree)
-    if identify_epoch_jumps(cop, epoch_name):
-        epoch_jumps = get_epochs_assigns(get_extern_while_body(cop), epoch_name)
-        coord = get_extern_while_body(cop).coord
-        if len(epoch_jumps) == 1:
-            epoch = epoch_jumps[0]
-
-            parent_compound = find_parent(cop_aux, epoch)
-
-            block_a = create_block_a(cop, 'epoch')
-            assign_unique_coord(block_a, coord)
-
-            block_b = create_blockb(cop, epoch_name)
-            assign_unique_coord(block_b, coord)
-            # print generator.visit(block_a)
-            # print generator.visit(block_b)
-
-            iter_assign = create_new_assign('0', 'iter', coord)  # initialize iter to 0
-
-            iter_inc = UnaryOp('p++', ID('iter'), coord)  # iter ++
-            assign_unique_coord(iter_inc, coord)
-
-            assign_true = create_new_assign('true', 'b', coord)  # create assign b = true
-            assign_unique_coord(assign_true, coord)
-
-            # assign_false = create_new_assign('false', 'b', coord)  # create assign b = false
-            # assign_unique_coord(assign_false, coord)
-
-            main = get_main_function(cop).body
-            main.block_items.insert(0, assign_true)
-            main.block_items.insert(0, iter_assign)
-            # am adaugat in arbore initializarea lui b si a lui iter
-
-            cond = BinaryOp('==', ID('iter'), ID(epoch_name))
-            uncond = UnaryOp('!', ID('b'))
-
-            iter_if = If(cond, None, None)
-            assign_unique_coord(iter_if, coord)
-
-            blockb_if = If(uncond, block_b, block_a)
-            comp_block_b_if = Compound([blockb_if], coord)
-            assign_unique_coord(comp_block_b_if, coord)
-
-            iter_if.iftrue = comp_block_b_if
-            body = get_extern_while_body(cop)
-            body.block_items.insert(1, iter_if)
-            body.block_items.insert(1, iter_inc)
-            body.block_items = body.block_items[:3]
-
-            return cop
-
-
-def async_to_async(ast, epoch_name, filename):
-    if identify_epoch_jumps(ast, epoch_name):
-        async = check_epoch_jumps(ast, epoch_name)
-        # print generator.visit(async)
-        with open('aux.c', 'w') as file:
-            file.write(generator.visit(async))
-        aux = parse_file(filename="aux.c", use_cpp=False)
-        print generator.visit(aux)
-
-    return ast
 
 
 def take_code_between_epoch_assigns(ast_tree, epoch1, epoch2):
@@ -860,9 +732,10 @@ def take_code_between_epoch_assigns(ast_tree, epoch1, epoch2):
 
 def more_epoch_jumps(ast_tree, epoch_name):
     new_ast = duplicate_element(ast_tree)
-    epoch_jumps = get_epochs_assigns(ast_tree, epoch_name)
+    epoch_jumps = get_epochs_assigns(get_extern_while_body(ast_tree), epoch_name)
     epoch_jumps.reverse()
     coord = epoch_jumps[0].coord
+
 
     iter_assign = create_new_assign('0', 'iter', coord)
     # extern_while = get_extern_while_body(new)
@@ -902,11 +775,16 @@ def more_epoch_jumps(ast_tree, epoch_name):
 
 
 def create_blockb_if(block_b, epoch):
+    """
+    creates the if from the bB block
+    :param block_b:
+    :param epoch:
+    :return:
+    """
     global var_b
 
     new_cond = UnaryOp('!', ID('b' + str(var_b)))
 
-    # iffalse = create_new_assign("ce_sa_pun_aici", "nu_stiu", epoch.coord)
     iffalse_comp = Compound([], epoch.coord)
 
     new_if = If(new_cond, block_b, iffalse_comp, epoch.coord)
@@ -916,6 +794,13 @@ def create_blockb_if(block_b, epoch):
 
 
 def identify_block_b(ast, epoch, epoch_name):
+    """
+    identifies and creates the bB block
+    :param ast:
+    :param epoch:
+    :param epoch_name:
+    :return:
+    """
     global var_b
     ast_tree = duplicate_element(ast)
     parent_comp = find_parent(ast_tree, epoch)
@@ -930,6 +815,8 @@ def identify_block_b(ast, epoch, epoch_name):
         grandparent = find_parentAndrei(ast_tree, parent)
 
         # print type(grandparent_comp.block_items)
+        # print generator.visit(grandparent_comp)
+        # print generator.visit(parent)
         index = grandparent_comp.block_items.index(parent)
         to_add = to_add + grandparent_comp.block_items[index + 1:]
         parent = grandparent
@@ -959,7 +846,6 @@ def modify_block(ast_tree, epoch, epoch_name):
     :return:
     """
     parent_comp = find_parent(ast_tree, epoch)
-    # parent = find_parentAndrei(ast_tree, epoch)
     epoch_index = parent_comp.block_items.index(epoch)
     cond = BinaryOp('!=', ID('iter'), ID(epoch_name))
 
@@ -990,8 +876,8 @@ def take_code_from_file(ast, filename, labelname):
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename, labelname)
 
-    more_epoch_jumps(cop, 'epoch')
-    ast = async_to_async(cop, 'epoch', filename)
+    more_epoch_jumps(cop, 'view')
+    # ast = async_to_async(cop, 'epoch', filename)
     # print generator.visit(ast)
     # print labels
     # trees_dict, trees_paths_dict, is_job = get_paths_trees(ast, labels, labels_sorted, labelname)

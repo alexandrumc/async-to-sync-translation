@@ -1,12 +1,3 @@
-//
-//  ViewChange.c
-//  test
-//
-//  Created by C on 18/09/2018.
-//  Copyright © 2018 C. All rights reserved.
-//
-
-#include "ViewChange.h"
 typedef struct _msg {
     int round;
     int pid;
@@ -19,7 +10,7 @@ typedef struct _msg {
 
 typedef enum ROUNDS {START_VIEW_CHANGE, DO_VIEW_CHANGE, START_VIEW, PREPARE_OK};
 
-int ViewChange(int pid, int num_processes){
+int main(int pid, int num_processes){
     int round = START_VIEW_CHANGE;
     int view = 0;
     int commit;
@@ -45,21 +36,22 @@ int ViewChange(int pid, int num_processes){
             send(m, all);
         }
         
-        
-        // Empty mbox
+
         memset(mbox,0,sizeof(mbox));
         num_mbox = 0;
             
-        // receive
         while(true){
-            m = recv(); //typed receives otherwise more complex code to do the casts
+            m = recv();
             if (m != NULL && m.view == view && m.round == START_VIEW_CHANGE){
                     mbox[num_mbox] = m;
                     num_mbox++;
             }
-            if (m != NULL && m.view > view) break;
-            if (timeout() || (num_mbox >= num_processes/2))
+            if (m != NULL && m.view > view) {
+            break;
+            }
+            if (timeout() || (num_mbox >= num_processes/2)){
                     break;
+                    }
         }
         
             
@@ -67,14 +59,11 @@ int ViewChange(int pid, int num_processes){
                 round = DO_VIEW_CHANGE;
         }else{
             if(m.view > view){
-                        view = m.view; //jump
+                        view = m.view;
                         round = START_VIEW_CHANGE;
                         continue;
             }else{
-                //round = START_VIEW_CHANGE;
-                // increase view or not ???
-                //continue;
-                //AUX_ROUND ?
+                   nu_stiu_ce_e_aici();
                 }
         }
         
@@ -91,7 +80,7 @@ int ViewChange(int pid, int num_processes){
         
         if(leader == pid){
         
-            // Empty mbox
+
             memset(mbox,0,sizeof(mbox));
             num_mbox = 0;
         
@@ -107,7 +96,7 @@ int ViewChange(int pid, int num_processes){
             }
         
             if(num_mbox >= num_processes/2) {
-                view = get_view(mbox); // jump
+                view = get_view(mbox);
                 history = get_longest_history(mbox);
                 commit_nb = get_biggest_commit(mbox);
                 round = START_VIEW;
@@ -124,11 +113,10 @@ int ViewChange(int pid, int num_processes){
             m->round = round;
             m->history = history;
             m->history_lenght = history_lenght;
-            m->commit_nb = commit_nb
+            m->commit_nb = commit_nb;
             send (m, to_all);
         }
-        
-        // Empty mbox
+
         memset(mbox,0,sizeof(mbox));
         num_mbox = 0;
         
@@ -143,11 +131,13 @@ int ViewChange(int pid, int num_processes){
         }
  
         if(num_mbox >=1) {
-            view = mbox[num_mbox].view; // jump
-            round = mbox[num_mbox].round; // into view and round start-view
+            view = mbox[num_mbox].view;
+            round = mbox[num_mbox].round;
             history = mbox[num_mbox].history;
             history_lenght = mbox[num_mbox].history_lenght;
-            if(unprepared_log(history)) round = PREPARE_OK;
+            if(unprepared_log(history)) {
+            round = PREPARE_OK;
+            }
         }else {
             round = START_VIEW_CHANGE;
             continue;
@@ -163,6 +153,8 @@ int ViewChange(int pid, int num_processes){
             m->commit_nb = commit_nb;
             send (m, leader);
         }
-        if (round == START_VIEW || round == PREPARE_OK) NormalOp();
+        if (round == START_VIEW || round == PREPARE_OK) {
+        NormalOp();
+        }
     }
 }
