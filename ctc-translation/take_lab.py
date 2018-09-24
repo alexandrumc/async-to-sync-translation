@@ -199,71 +199,71 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
         trees_paths_list = []
         labels_start = get_label(ast, labelname, label1)
 
-        for label2 in labels_sorted[labels_sorted.index(label1) + 1:]:
+        for label2 in labels_sorted:
+            if label2 != label1:
+                labels_end = get_label(ast, labelname, label2)
+                # print label1, label2
+                new_conds = []
 
-            labels_end = get_label(ast, labelname, label2)
-            # print label1, label2
-            new_conds = []
+                for start in labels_start:
+                    # la final sa bag conditiile pt urmatorul element de iterat
+                    for end in labels_end:
+                        cop = duplicate_element(ast)
+                        # prune_tree(get_extern_while_body_from_func(cop),start,end,[],[])
 
-            for start in labels_start:
-                # la final sa bag conditiile pt urmatorul element de iterat
-                for end in labels_end:
-                    cop = duplicate_element(ast)
-                    # prune_tree(get_extern_while_body_from_func(cop),start,end,[],[])
+                        dest_list = []
+                        source_list = []
+                        # prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
+                        ifs_to_dest = []
+                        # print label1, label2
+                        conds_to_source_and_dest(get_extern_while_body(cop), start, end, dest_list, source_list, [],
+                                                 ifs_to_dest)
 
-                    dest_list = []
-                    source_list = []
-                    # prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
-                    ifs_to_dest = []
-                    # print label1, label2
-                    conds_to_source_and_dest(get_extern_while_body(cop), start, end, dest_list, source_list, [],
-                                             ifs_to_dest)
+                        if dest_list and source_list:
 
-                    if dest_list and source_list:
+                            # modify_conds(label1, conds_dict, cop, ast)
 
-                        # modify_conds(label1, conds_dict, cop, ast)
+                            assign = get_label_assign_num(cop, labelname)
 
-                        assign = get_label_assign_num(cop, labelname)
+                            # print get_extern_while_body(cop)
 
-                        # print get_extern_while_body(cop)
+                            if assign <= 2:
+                                check_if_gen = CheckIfGenerator(start, end)
+                                # print TreeGenerator().visit(get_extern_while_body(cop))
+                                check_if_gen.visit(get_extern_while_body(cop))
+                                # print check_if_gen.is_jumping
+                                # print check_if_gen.is_blocking
+                                # print "\n\nUNUL\n\n"
+                                # print ifs_to_dest
+                                if not check_if_gen.is_blocking and not check_if_gen.true_jump:
+                                    # new_conds = add_ghost_assign_in_tree(cop, ifs_to_dest, label1)
+                                    trees_list.append(cop)
+                                else:
+                                    # if labels != labels_sorted:
+                                    is_job = True
+                                    aux, is_job_aux = find_all_paths_between_two_nodes(cop, start, end)
+                                    test = take_2assigns_to_label_only(aux, labelname)
 
-                        if assign <= 2:
-                            check_if_gen = CheckIfGenerator(start, end)
-                            # print TreeGenerator().visit(get_extern_while_body(cop))
-                            check_if_gen.visit(get_extern_while_body(cop))
-                            # print check_if_gen.is_jumping
-                            # print check_if_gen.is_blocking
-                            # print "\n\nUNUL\n\n"
-                            # print ifs_to_dest
-                            if not check_if_gen.is_blocking and not check_if_gen.true_jump:
-                                # new_conds = add_ghost_assign_in_tree(cop, ifs_to_dest, label1)
-                                trees_list.append(cop)
+                                    if test:
+                                        trees_paths_list.append(test)
+
+
+
+
+
                             else:
-                                # if labels != labels_sorted:
-                                is_job = True
+
                                 aux, is_job_aux = find_all_paths_between_two_nodes(cop, start, end)
                                 test = take_2assigns_to_label_only(aux, labelname)
 
                                 if test:
+                                    if is_job_aux:
+                                        is_job = True
                                     trees_paths_list.append(test)
 
-
-
-
-
-                        else:
-
-                            aux, is_job_aux = find_all_paths_between_two_nodes(cop, start, end)
-                            test = take_2assigns_to_label_only(aux, labelname)
-
-                            if test:
-                                if is_job_aux:
-                                    is_job = True
-                                trees_paths_list.append(test)
-
-                # aici bag conditiile
-            if new_conds:
-                conds_dict[label2] = new_conds
+                    # aici bag conditiile
+                if new_conds:
+                    conds_dict[label2] = new_conds
 
         trees_dict[label1] = trees_list
         trees_paths_dict[label1] = trees_paths_list
@@ -688,9 +688,11 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
 
 def identify_epoch_jumps(ast_tree, epoch_name):
     epoch_list = get_epochs_assigns(ast_tree, epoch_name)
+    # print epoch_list
     # for elem in epoch_list:
     #     print elem.coord
-    if epoch_list is []:
+    if not epoch_list:
+        # print "epoch list e []"
         return False
     else:
         return True
@@ -894,7 +896,9 @@ def async_to_async(ast, epoch_name):
         aux = parse_file(filename="aux.c", use_cpp=False)
         # print generator.visit(aux)
 
-    return aux
+        return aux
+    else:
+        return ast
 
 
 def take_code_from_file(ast, filename, labelname):
@@ -903,14 +907,15 @@ def take_code_from_file(ast, filename, labelname):
     labels = get_labels(filename, labelname)
 
     # more_epoch_jumps(cop, 'view')
-    test = async_to_async(ast, 'view')
-    print generator.visit(test)
+    # print identify_epoch_jumps(ast, 'epoch')
+    ast = async_to_async(cop, 'epoch')
+    # print generator.visit(test)
     # print generator.visit(ast)
     # print labels
-    # trees_dict, trees_paths_dict, is_job = get_paths_trees(ast, labels, labels_sorted, labelname)
+    trees_dict, trees_paths_dict, is_job = get_paths_trees(ast, labels, labels_sorted, labelname)
 
     # print_code(trees_dict, trees_paths_dict, labels_sorted)
 
-    # print_rounds(labels_sorted, trees_dict, trees_paths_dict, labelname, is_job)
+    print_rounds(labels_sorted, trees_dict, trees_paths_dict, labelname, is_job)
 
     # return trees_dict

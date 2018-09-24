@@ -33,6 +33,7 @@ int main() {
         if (mbox != 0) {
             epoch = m.epoch;
             round = SECOND_ROUND;
+            x++;
             m = (msg *) malloc(sizeof(msg));
             m.epoch = epoch;
             m.round = SECOND_ROUND;

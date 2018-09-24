@@ -9,7 +9,7 @@ generator = c_generator.CGenerator()
 
 
 #
-ast = parse_file(filename="../examples/c_files/ViewChange.c", use_cpp=False)
+ast = parse_file(filename="../examples/c_files/zab-leaderElect.c", use_cpp=False)
 extern_while_body = None
 
 x = get_extern_while_body_from_func(ast, "main")
@@ -25,7 +25,7 @@ remove_mbox(x)
 
 
 
-take_code_from_file(ast,"../examples/c_files/ViewChange.c",'round')
+take_code_from_file(ast,"../examples/c_files/zab-leaderElect.c",'round')
 # copie = copy.deepcopy(x)
 
 
