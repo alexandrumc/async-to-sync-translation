@@ -688,8 +688,8 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
 
 def identify_epoch_jumps(ast_tree, epoch_name):
     epoch_list = get_epochs_assigns(ast_tree, epoch_name)
-    for elem in epoch_list:
-        print elem.coord
+    # for elem in epoch_list:
+    #     print elem.coord
     if epoch_list is []:
         return False
     else:
@@ -784,7 +784,8 @@ def more_epoch_jumps(ast_tree, epoch_name):
     body = get_extern_while_body(new_ast)
     body.block_items = new_while_body
 
-    print generator.visit(new_ast)
+    # print generator.visit(new_ast)
+    return new_ast
 
 
 def create_blockb_if(block_b, epoch):
@@ -884,13 +885,26 @@ def modify_block(ast_tree, epoch, epoch_name):
     parent_comp.block_items.insert(epoch_index + 1, new_if)
 
 
+def async_to_async(ast, epoch_name):
+    if identify_epoch_jumps(ast, epoch_name):
+        aux_ast = more_epoch_jumps(ast, epoch_name)
+        # print generator.visit(async)
+        with open('aux.c', 'w') as file:
+            file.write(generator.visit(aux_ast))
+        aux = parse_file(filename="aux.c", use_cpp=False)
+        # print generator.visit(aux)
+
+    return aux
+
+
 def take_code_from_file(ast, filename, labelname):
     cop = copy.deepcopy(ast)
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename, labelname)
 
-    more_epoch_jumps(cop, 'view')
-    # ast = async_to_async(cop, 'epoch', filename)
+    # more_epoch_jumps(cop, 'view')
+    test = async_to_async(ast, 'view')
+    print generator.visit(test)
     # print generator.visit(ast)
     # print labels
     # trees_dict, trees_paths_dict, is_job = get_paths_trees(ast, labels, labels_sorted, labelname)

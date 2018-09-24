@@ -76,7 +76,7 @@ class LocateParentNode(c_generator.CGenerator):
         return s
 
 
-class LocateParentNodeAndrei(c_generator.CGenerator):
+class LocateParentNodeUpdated(c_generator.CGenerator):
     """
     Takes a node as argument and find his parent in the AST.
     The parent is stored in self.discovered_node
@@ -96,6 +96,16 @@ class LocateParentNodeAndrei(c_generator.CGenerator):
     #             self.discovered_node = n
     #             break
     #         self._generate_stmt(stmt)
+    #     return s
+    #
+    # def visit_FuncDef(self, n):
+    #     if self.node_to_find ==n:
+    #         self.discovered_node = n
+    #     s = ''
+    #     for stmt in n.body:
+    #         if stmt == self.node_to_find:
+    #             self.discovered_node = n
+    #             break
     #     return s
 
     def visit_If(self, n):
