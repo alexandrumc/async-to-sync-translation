@@ -7,8 +7,10 @@ from compute_paths import find_all_paths_between_two_nodes
 from pycparser import c_generator, parse_file
 from pycparser.plyparser import Coord
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
-    For, Compound, Continue
-from modify_whiles import coord_aux
+    For, Compound, Continue, FuncCall, FuncDecl, IdentifierType, Decl, TypeDecl
+from modify_whiles import coord_aux, to_modify, whiles_to_if, identify_recv_exits, remove_mbox
+from cStringIO import StringIO
+import sys
 
 generator = c_generator.CGenerator()
 
@@ -82,6 +84,7 @@ def get_extern_while_body_from_func(ast, func_name):
     """
     for ext in ast.ext:
         if isinstance(ext, FuncDef) and ext.decl.name == func_name:
+            # print ext
             amain_body = ext
             if amain_body is not None:
                 for operation in amain_body.body:
@@ -739,7 +742,7 @@ def insert_assigns(ast_tree, epoch_name, var_num):
     iter_assign = create_new_assign('0', 'iter', coord)
     assign_unique_coord(iter_assign, coord)
 
-    for i in xrange(1,var_num+1):
+    for i in xrange(1, var_num + 1):
         assign = create_new_assign('true', 'b' + str(i), coord)  # create assign b = true
         assign_unique_coord(assign, coord)
         main.block_items.insert(0, assign)
@@ -888,6 +891,12 @@ def modify_block(ast_tree, epoch, epoch_name):
 
 
 def async_to_async(ast, epoch_name):
+    """
+    writest the ast in an auxiliary file and reads it again(to keep the coords safe)
+    :param ast:
+    :param epoch_name:
+    :return: the new ast or the original one if there is no epoch jump
+    """
     if identify_epoch_jumps(ast, epoch_name):
         aux_ast = more_epoch_jumps(ast, epoch_name)
         # print generator.visit(async)
@@ -901,21 +910,91 @@ def async_to_async(ast, epoch_name):
         return ast
 
 
+def identify_nested_algorithms_bodies(extern_body, list):
+    for elem in extern_body.block_items:
+        if isinstance(elem, While) and (not to_modify(elem)):
+            list.append(elem)
+            identify_nested_algorithms_bodies(elem.stmt, list)
+        if isinstance(elem, If):
+            if elem.iftrue:
+                identify_nested_algorithms_bodies(elem.iftrue, list)
+            if elem.iffalse:
+                identify_nested_algorithms_bodies(elem.iffalse, list)
+
+
+def identify_nested(ast_tree, epoch_name):
+    ast = ast_tree
+    old_stdout = sys.stdout
+    sys.stdout = mystdout = StringIO()
+    aux_ast = duplicate_element(ast)
+    list = []
+    extern_while = get_extern_while_body(aux_ast)
+    identify_nested_algorithms_bodies(extern_while, list)
+    if list:
+        list.reverse()
+        labels = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
+        for elem in list:
+            conditii = []
+            whiles_to_if(elem.stmt, conditii)
+
+            identify_recv_exits(elem.stmt, conditii)
+            remove_mbox(elem.stmt)
+            trees_dict, trees_paths_dict, is_job = get_paths_trees(elem.stmt, labels, labels, 'round')
+            print_rounds(labels, trees_dict, trees_paths_dict, 'round', is_job)
+            parent = find_parent(ast, elem)
+            index = parent.block_items.index(elem)
+            parent.block_items.remove(elem)
+            func = FuncCall(ID("inner_algorithm"), None, None)
+            parent.block_items.insert(index, func)
+
+            funcdecl = FuncDecl(None, TypeDecl('inner_algorithm', None, IdentifierType(['int'])))
+            decl = Decl('inner_algorithm', None, None, None, funcdecl, None, None)
+            funcdef = FuncDef(decl, None, None)
+            code = mystdout.getvalue()
+            funcdef.body = Compound([code])
+
+        sys.stdout = old_stdout
+        return ast, code
+    else:
+        sys.stdout = old_stdout
+
+        return ast_tree
+
+
+def check_inner_algo(ast_tree):
+    list = []
+    extern_while = get_extern_while_body(ast_tree)
+    if list:
+        return True
+    else:
+        return False
+
+
 def take_code_from_file(ast, filename, labelname):
     cop = copy.deepcopy(ast)
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename, labelname)
-
+    # print labels
     # more_epoch_jumps(cop, 'view')
     # print identify_epoch_jumps(ast, 'epoch')
-    ast = async_to_async(cop, 'epoch')
-    # print generator.visit(test)
-    # print generator.visit(ast)
-    # print labels
-    trees_dict, trees_paths_dict, is_job = get_paths_trees(ast, labels, labels_sorted, labelname)
+    if check_inner_algo(ast):
+        cop, code = identify_nested(cop, 'epoch')
+        if code:
+            print "Inner algo code:\n"
+            print code
+            print "End of inner algo code\n"
 
-    # print_code(trees_dict, trees_paths_dict, labels_sorted)
+        cop = async_to_async(cop, 'epoch')
+        # aici trb sa dau labelurile manual
+        trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
 
-    print_rounds(labels_sorted, trees_dict, trees_paths_dict, labelname, is_job)
+    else:
+        cop = async_to_async(cop, 'epoch')
+        trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
+
+        # print_code(trees_dict, trees_paths_dict, labels_sorted)
+        # print "Rounds:\n"
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
 
     # return trees_dict
