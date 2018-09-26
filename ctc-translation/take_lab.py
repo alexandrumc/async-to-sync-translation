@@ -933,6 +933,7 @@ def identify_nested(ast_tree, epoch_name):
     if list:
         list.reverse()
         labels = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
+        code = None
         for elem in list:
             conditii = []
             whiles_to_if(elem.stmt, conditii)
@@ -964,6 +965,7 @@ def identify_nested(ast_tree, epoch_name):
 def check_inner_algo(ast_tree):
     list = []
     extern_while = get_extern_while_body(ast_tree)
+    identify_nested_algorithms_bodies(extern_while, list)
     if list:
         return True
     else:
@@ -977,19 +979,23 @@ def take_code_from_file(ast, filename, labelname):
     # print labels
     # more_epoch_jumps(cop, 'view')
     # print identify_epoch_jumps(ast, 'epoch')
-    if check_inner_algo(ast):
+    if check_inner_algo(cop):
+        print "pe if"
         cop, code = identify_nested(cop, 'epoch')
         if code:
             print "Inner algo code:\n"
             print code
-            print "End of inner algo code\n"
+            print "End of inner algo code\n\n"
 
         cop = async_to_async(cop, 'epoch')
-        # aici trb sa dau labelurile manual
-        trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
-        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
+        input = raw_input("list of labels for the outer algorithm:")
+        labs = input.split()
+        # labs = ['FIRST_ROUND','SECOND_ROUND','AUX_ROUND']
+        trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
+        print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job)
 
     else:
+        # print "pe elese"
         cop = async_to_async(cop, 'epoch')
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
 

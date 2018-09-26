@@ -313,6 +313,9 @@ def whiles_to_if(extern_while_body, conditii=None):
                 delete.append(aux.block_items[i])  # daca are timeout, sterg bucla cu totull
                 conditii.append((new_if, coord))
                 # aux.block_items[i] = None
+        # elif isinstance(element, While) and (not to_modify(element)):
+        #         whiles_to_if(element.stmt, conditii)
+
         if isinstance(element, If):
             # if there is any if statement which contains
             # a recv loop in iftrue or iffalse it will be modified

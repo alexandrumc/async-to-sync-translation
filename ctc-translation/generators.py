@@ -1,7 +1,6 @@
 from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, \
-    Break, NodeVisitor
+    Break
 from pycparser import c_generator, c_ast
-
 
 class LabelVisitor(c_ast.NodeVisitor):
     """
@@ -28,6 +27,7 @@ class EpochVisitor(c_ast.NodeVisitor):
     """
     Takes the name of the epoch variable and returns the list with all occurences
     """
+
     def __init__(self, epoch_name):
         self.epoch_name = epoch_name
         self.epoch_list = []
@@ -35,6 +35,8 @@ class EpochVisitor(c_ast.NodeVisitor):
     def visit_Assignment(self, node):
         if node.lvalue.name == self.epoch_name:
             self.epoch_list.append(node)
+
+
 
 
 class CheckLabelNumber(c_ast.NodeVisitor):
@@ -76,6 +78,8 @@ class LocateParentNode(c_generator.CGenerator):
         return s
 
 
+
+
 class LocateParentNodeUpdated(c_generator.CGenerator):
     """
     Takes a node as argument and find his parent in the AST.
@@ -86,27 +90,6 @@ class LocateParentNodeUpdated(c_generator.CGenerator):
         c_generator.CGenerator.__init__(self)
         self.node_to_find = node
         self.discovered_node = None
-
-    # def visit_While(self, n):
-    #     s = ''
-    #     if self.node_to_find == n:
-    #         self.discovered_node = n
-    #     for stmt in n.stmt.block_items:
-    #         if stmt == self.node_to_find:
-    #             self.discovered_node = n
-    #             break
-    #         self._generate_stmt(stmt)
-    #     return s
-    #
-    # def visit_FuncDef(self, n):
-    #     if self.node_to_find ==n:
-    #         self.discovered_node = n
-    #     s = ''
-    #     for stmt in n.body:
-    #         if stmt == self.node_to_find:
-    #             self.discovered_node = n
-    #             break
-    #     return s
 
     def visit_If(self, n):
         if self.node_to_find == n:
@@ -138,7 +121,6 @@ class LocateParentNodeUpdated(c_generator.CGenerator):
                     break
                 self._generate_stmt(stmt)
         return s
-
 
 
 class LocateNode(c_generator.CGenerator):

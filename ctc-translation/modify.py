@@ -9,7 +9,7 @@ generator = c_generator.CGenerator()
 
 
 #
-ast = parse_file(filename="../examples/c_files/zab-leaderElect.c", use_cpp=False)
+ast = parse_file(filename="../examples/c_files/two_algorithms.c", use_cpp=False)
 extern_while_body = None
 
 x = get_extern_while_body_from_func(ast, "main")
@@ -24,15 +24,16 @@ remove_mbox(x)
 # print generator.visit(x)
 
 
+# print generator.visit(test)
 
-take_code_from_file(ast,"../examples/c_files/zab-leaderElect.c",'round')
+# print generator.visit(funcdef)
+
+# print generator.visit(test)
+
+take_code_from_file(ast,"../examples/c_files/two_algorithms.c",'round')
 # copie = copy.deepcopy(x)
 
 
-# labels_start = get_label(copie, 'lab', 'THIRD_ROUND')
-# labels_end = get_label(copie, 'lab', 'FOURTH_ROUND')
-# prune_tree(copie,labels_start[0],labels_end[0],[],[])
-# print generator.visit(copie)
 
 
 

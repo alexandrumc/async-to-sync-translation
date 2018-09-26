@@ -1,6 +1,7 @@
 import copy
 from pycparser.c_ast import FileAST, FuncDef, While
-from generators import PathGenerator, LabelVisitor, LocateNode, LocateParentNode, CheckLabelNumber, EpochVisitor, LocateParentNodeUpdated
+from generators import PathGenerator, LabelVisitor, LocateNode, LocateParentNode, CheckLabelNumber,\
+    EpochVisitor, LocateParentNodeUpdated
 
 main_function_name = "main"
 new_code = "\n\n\n\n NEW CODE \n\n\n\n"
@@ -62,7 +63,7 @@ def find_parentUpdated(ast_tree, child_node):
 
 def get_label_assign_num(ast_tree, label_name):
     v = CheckLabelNumber(label_name)
-    v.visit(ast_tree)
+    v.visit(get_extern_while_body(ast_tree))
     return v.count_labels
 
 
@@ -70,7 +71,6 @@ def get_label(ast_tree, label_name, label_value):
     v = LabelVisitor(label_name, label_value)
     v.visit(ast_tree)
     return v.label_item
-
 
 def get_epochs_assigns(ast_tree, epoch_name):
     v = EpochVisitor(epoch_name)
