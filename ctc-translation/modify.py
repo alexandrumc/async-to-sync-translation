@@ -1,17 +1,15 @@
-from take_lab import take_code_from_file, get_extern_while_body_from_func
+from take_lab import take_code_from_file, get_extern_while_body_from_func, get_context
 from pycparser import parse_file
 
 from modify_whiles import *
 import os
+from compute_paths import get_label, prune_tree, get_extern_while_body, duplicate_element
 generator = c_generator.CGenerator()
 
 
 
-
-#
-ast = parse_file(filename="../examples/c_files/two_algorithms.c", use_cpp=False)
+ast = parse_file(filename="../examples/c_files/broadcast.c", use_cpp=False)
 extern_while_body = None
-
 x = get_extern_while_body_from_func(ast, "main")
 conditii = []
 whiles_to_if(x, conditii)
@@ -28,9 +26,28 @@ remove_mbox(x)
 
 # print generator.visit(funcdef)
 
-# print generator.visit(test)
+# print generator.visit(ast)
+# label1_list = get_label(ast, "round", "FOURTH_ROUND")
+# label2_list = get_label(ast, "round", "AUX_ROUND")
+#
+# for source in label1_list:
+#     for dest in label2_list:
+#         print "a"
+#         aux_ast = duplicate_element(ast)
+#         dest_list = []
+#         source_list = []
+#         prune_tree(get_extern_while_body(aux_ast), source, dest, dest_list, source_list)
+#         if dest_list and source_list:
+#             print generator.visit(get_extern_while_body(aux_ast))
+#             context = []
+#             get_context(get_extern_while_body(aux_ast), context)
+#             for elem in context:
+#                 print generator.visit(elem.cond)
 
-take_code_from_file(ast,"../examples/c_files/two_algorithms.c",'round')
+
+
+take_code_from_file(ast,"../examples/c_files/broadcast.c",'round')
+# print generator.visit(ast)
 # copie = copy.deepcopy(x)
 
 
