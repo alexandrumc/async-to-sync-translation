@@ -203,6 +203,7 @@ def modify_conds(label1, conds_dict, cop, ast):
 
 
 def get_paths_trees(ast, labels, labels_sorted, labelname):
+    aux_dict = {}
     trees_dict = {}
     trees_paths_dict = {}
     used_old_vars = []
@@ -238,7 +239,19 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
                         if dest_list and source_list:
                             context = []
                             get_context(get_extern_while_body(cop),context)
-                            add_ghost_assign_in_tree(ast, context, used_old_vars, added_ifs_assignment)
+                            add_ghost_assign_in_tree(ast, context, used_old_vars, added_ifs_assignment, aux_dict)
+                            for elem in aux_dict:
+                                    test = find_node(cop, elem)
+                                    # print generator.visit(elem.cond), aux_dict[elem]
+                                    if test and test in context:
+                                        # print test
+                                        # print label1, label2
+                                        # print generator.visit(test.cond), "before"
+                                        modify_cond(test.cond, aux_dict[elem])
+                                        # print generator.visit(test.cond), "after"
+                                    # print generator.visit(elem.cond)
+                                    # print generator.visit(cop), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                    # break
                             # print generator.visit(ast)
                             # for elem in context:
                             #     print generator.visit(elem.cond), elem.coord.line
@@ -298,9 +311,13 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
 
 
 def modify_cond(cond, new_vals):
-    # print new_vals
+    # print "AAAAAAAAAAAAA"
     strings = ['pid', 'old', 'timeout']
-    if isinstance(cond, UnaryOp):
+    if isinstance(cond.right, ID) and "leader" in cond.right.name:
+        for val in new_vals:
+            if cond.right.name in val:
+                cond.right.name = val
+    elif isinstance(cond, UnaryOp):
         modify_cond(cond.expr, new_vals)
     elif isinstance(cond, ID):
         if not any(x in cond.name for x in strings):
@@ -449,7 +466,7 @@ def create_new_assign(old_cond, new_cond, coord):
     return assign
 
 
-def add_ghost_assign_in_tree(tree, context, used_old_vars, added_ifs_assignment):
+def add_ghost_assign_in_tree(tree, context, used_old_vars, added_ifs_assignment, aux_dict):
     global added_vars
     """
     adauga in copac assignmentul de variabila si intoarce o lista de tupluri de genul (if de modificat, noile nume de variabile)
@@ -474,7 +491,7 @@ def add_ghost_assign_in_tree(tree, context, used_old_vars, added_ifs_assignment)
 
 
                 new_cond = create_new_cond_name(cond, count)
-                # print new_cond, "bbbbb"
+                new_conds_list.append(new_cond)
                 assign = create_new_assign(cond, new_cond, elem.coord)
                 # print generator.visit(assign)
                 parent.block_items.insert(index, assign)
@@ -490,6 +507,10 @@ def add_ghost_assign_in_tree(tree, context, used_old_vars, added_ifs_assignment)
     #     ifs_new_names.append(aux)
     #     # print new_names
         added_ifs_assignment.append(elem)
+        if new_conds_list:
+            aux_dict[elem] = new_conds_list
+
+
     # return ifs_new_names
 
 
@@ -957,9 +978,9 @@ def take_code_from_file(ast, filename, labelname):
         cop = async_to_async(cop, 'view')
         # print generator.visit(cop)
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
-        print generator.visit(cop)
+        # print generator.visit(cop)
         #
-        # print_code(trees_dict, trees_paths_dict, labels_sorted)
+        print_code(trees_dict, trees_paths_dict, labels_sorted)
         # print "Rounds:\n"
         # print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
 
