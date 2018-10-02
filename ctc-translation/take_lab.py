@@ -956,6 +956,7 @@ def take_code_from_file(ast, filename, labelname):
     # more_epoch_jumps(cop, 'view')
     # print identify_epoch_jumps(ast, 'epoch')
     # print labels, labels_sorted
+    # print generator.visit(ast)
     if check_inner_algo(cop):
         print "\n\nLaunched procedure for nested algorithms\n\n"
         input = raw_input("\n Please insert the labels of the outer algorighm here(separated by a space) : ")
