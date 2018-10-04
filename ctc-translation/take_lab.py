@@ -210,7 +210,6 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
     added_ifs_assignment = []
     is_job = False
     labels_sorted.reverse()
-    print labels_sorted
     for label1 in labels_sorted:
 
         if label1 == "AUX_ROUND" or label1 == "ERR_ROUND":
@@ -304,9 +303,15 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
 
         trees_dict[label1] = trees_list
         trees_paths_dict[label1] = trees_paths_list
+
+        if label1 == "FIFTH_ROUND" or label1 == "SIXTH_ROUND":
+            print trees_dict[label1]
+            print trees_paths_dict[label1]
+
         # break
     # print conds_dict.keys()
     # print generator.visit(ast)
+
     return trees_dict, trees_paths_dict, is_job
 
 
@@ -582,6 +587,7 @@ def print_code(trees_dict, trees_paths_dict, labels):
 
 
 def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
+    labels.reverse()
     for label in labels[:len(labels) - 1]:
         if label == "AUX_ROUND":
             continue
@@ -981,8 +987,8 @@ def take_code_from_file(ast, filename, labelname):
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
         # print generator.visit(cop)
         #
-        print_code(trees_dict, trees_paths_dict, labels_sorted)
-        # print "Rounds:\n"
-        # print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
+        #print_code(trees_dict, trees_paths_dict, labels_sorted)
+        #print "Rounds:\n"
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
 
     # return trees_dict
