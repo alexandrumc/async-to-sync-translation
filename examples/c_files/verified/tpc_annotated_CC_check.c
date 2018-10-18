@@ -70,9 +70,7 @@ int main(int argc, char **argv) //@ : main
         //@ old_round = round;
         //@ old_phase = phase;
         
-	round = FIRST_ROUND;
-        
-        //@ close tag_leq(old_phase,old_round,phase,round);
+        round = FIRST_ROUND;
         //@assert tag_leq(old_phase,old_round,phase,round);
       
 
@@ -124,7 +122,6 @@ int main(int argc, char **argv) //@ : main
 		}
 
         //@ old_round = round;
-        //@ old_phase = phase;
 		round = SECOND_ROUND;
         //@assert tag_leq(old_phase,old_round,phase,round);
 
@@ -172,7 +169,6 @@ int main(int argc, char **argv) //@ : main
 		}
 
         //@ old_round = round;
-        //@ old_phase = phase;
 		round = THIRD_ROUND;
         //@assert tag_leq(old_phase,old_round,phase,round);
 
@@ -224,7 +220,6 @@ int main(int argc, char **argv) //@ : main
 		}
 
         //@ old_round = round;
-        //@ old_phase = phase;
 		round = FOURTH_ROUND;
         //@assert tag_leq(old_phase,old_round,phase,round);
         
