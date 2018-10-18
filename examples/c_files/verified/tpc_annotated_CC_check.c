@@ -45,10 +45,12 @@ int main(int argc, char **argv) //@ : main
     list *mbox = NULL;
     list* mbox_new = NULL;
     msg* m = NULL;
-    //@ old_phase = -1;
+   
     phase = 0;
-    //@ old_round = AUX_ROUND;
+     //@ old_phase = phase-1;
+
     round = AUX_ROUND;
+    //@ old_round = round;
     
      int response;
      int count = 1;
@@ -60,7 +62,7 @@ int main(int argc, char **argv) //@ : main
     round = FIRST_ROUND;
 
 	while (1)
-    //@invariant (old_phase < phase && round == FIRST_ROUND);
+     
     {
         //tag = (phase, round);
         
