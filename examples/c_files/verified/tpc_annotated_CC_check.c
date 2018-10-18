@@ -64,7 +64,8 @@ int main(int argc, char **argv) //@ : main
 	while (1)
      
     {
-        //tag = (phase, round);
+        //@ assert (old_phase < phase && round = FIRST_ROUND)
+        
         
         //@ old_round = round;
         //@ old_phase = phase;
