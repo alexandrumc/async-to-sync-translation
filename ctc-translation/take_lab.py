@@ -325,17 +325,22 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
 def modify_cond(cond, new_vals):
     # print "AAAAAAAAAAAAA"
     strings = ['pid', 'old', 'timeout']
-    if isinstance(cond.right, ID) and "leader" in cond.right.name:
-        for val in new_vals:
-            if cond.right.name in val:
-                cond.right.name = val
-    elif isinstance(cond, UnaryOp):
+
+    if isinstance(cond, UnaryOp):
         modify_cond(cond.expr, new_vals)
+
     elif isinstance(cond, ID):
         if not any(x in cond.name for x in strings):
             for val in new_vals:
                 if cond.name in val:
                     cond.name = val
+
+    elif isinstance(cond.right, ID) and "leader" in cond.right.name:
+        for val in new_vals:
+            if cond.right.name in val:
+                cond.right.name = val
+
+
                     # new_vals.remove(val)
 
     elif isinstance(cond, StructRef):
@@ -397,19 +402,25 @@ def take_cond_name(cond, lista):
     """
     strings = ['pid', 'old', 'timeout']
 
-    if isinstance(cond.right, ID) and cond.right.name == 'leader':
-        aux = cond.right.name
-        if aux not in lista:
-            lista.append(aux)
 
-    elif isinstance(cond, UnaryOp):
+
+
+    if isinstance(cond, UnaryOp):
         take_cond_name(cond.expr, lista)
+
 
     elif isinstance(cond, ID):
         if not any(x in cond.name for x in strings):
             aux = cond.name
             if aux not in lista:
                 lista.append(aux)
+
+    elif isinstance(cond.right, ID) and cond.right.name == 'leader':
+        aux = cond.right.name
+        if aux not in lista:
+            lista.append(aux)
+
+
 
     elif isinstance(cond, StructRef):
         if isinstance(cond.name, ID):
@@ -989,7 +1000,7 @@ def take_code_from_file(ast, filename, labelname):
 
     else:
         print "No inner algorithm detected\n"
-        cop = async_to_async(cop, 'view')
+        cop = async_to_async(cop, 'epoch')
         # print generator.visit(cop)
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
         # print generator.visit(cop)
