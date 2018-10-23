@@ -110,6 +110,7 @@ def get_labels(filename, labelname):
     :param labelname:
     :return: list with labels values
     """
+    # print labelname
     labels = []
     lab = labelname + "="
     with open(filename) as f:
@@ -117,12 +118,18 @@ def get_labels(filename, labelname):
     for each in lines:
         if labelname in each:
             aux = each.replace(" ", "")
+            # print aux
             aux = aux[aux.index(labelname):]
+            # print aux
             if "\n" in aux:
                 aux = aux.replace("\n", "")
             aux = aux.replace(lab, "")
             aux = aux.replace(";", "")
+            # aux = aux.replace(" ","")
+            if not aux[-1].isalnum(): #no idea why this happens :O
+                aux =  aux[:len(aux)-1]
             if aux.endswith("ROUND"):
+                # print aux, " se termina cu"
                 if aux not in labels and "old" not in aux:
                     labels.append(aux)
     labels.append("ERR_ROUND")
@@ -987,8 +994,9 @@ def take_code_from_file(ast, filename, labelname):
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
         # print generator.visit(cop)
         #
-        #print_code(trees_dict, trees_paths_dict, labels_sorted)
+        # print_code(trees_dict, trees_paths_dict, labels_sorted)
         #print "Rounds:\n"
         print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
+        print labels
 
     # return trees_dict

@@ -15,12 +15,15 @@ def remove_mbox_assign_to_zero(extern_while_body):
     """
     to_delete = []
     for elem in extern_while_body.block_items:
-        if isinstance(elem, Assignment) and "mbox" in elem.lvalue.name and int(elem.rvalue.value) == 0:
-            to_delete.append(elem)
+        # print elem.coord
+        if isinstance(elem, Assignment) and "mbox" in elem.lvalue.name :
+            if (isinstance(elem.rvalue,ID) and elem.rvalue.name == "NULL") or int(elem.rvalue.value) == 0 :
+                to_delete.append(elem)
         if isinstance(elem, If):
             remove_mbox_assign_to_zero(elem.iftrue)
             if elem.iffalse:
                 remove_mbox_assign_to_zero(elem.iffalse)
+        # print "aici e ok", elem.coord
 
     for x in to_delete:
         extern_while_body.block_items.remove(x)
@@ -263,7 +266,9 @@ def whiles_to_if(extern_while_body, conditii=None):
     global coord_aux
     coord_aux -=1
     i = 0
+    # print "aaaaaaaaaaa", extern_while_body.coord
     size = len(extern_while_body.block_items)
+    # print "aici e ok"
     list = []
     delete = []
 
