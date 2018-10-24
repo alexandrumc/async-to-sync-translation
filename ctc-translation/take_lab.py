@@ -978,6 +978,7 @@ def take_code_from_file(ast, filename, labelname):
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename, labelname)
     # print labels
+    # labels= ['CEpoch_ROUND', 'NewEpoch_ROUND', 'Ack_E_ROUND', 'AUX_ROUND', 'ERR_ROUND']
     # more_epoch_jumps(cop, 'view')
     # print identify_epoch_jumps(ast, 'epoch')
     # print labels, labels_sorted
@@ -1006,14 +1007,13 @@ def take_code_from_file(ast, filename, labelname):
     else:
         print "No inner algorithm detected\n"
         cop = async_to_async(cop, 'epoch')
-        print generator.visit(cop)
         # print generator.visit(cop)
-        # trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
+        trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
         # print generator.visit(cop)
         #
         # print_code(trees_dict, trees_paths_dict, labels_sorted)
         #print "Rounds:\n"
-        # print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
-        # print labels
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
+        print labels
 
     # return trees_dict

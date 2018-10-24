@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
                 list_dispose_mbox(mbox);
                 mbox = NULL;
                 epoch++;
-                break;
+                continue;
                 round = AUX_ROUND;
             }
 
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
                 list_dispose_mbox(mbox);
                 mbox = NULL;
                 epoch++;
-                break;
+                continue;
                 round = AUX_ROUND;
             }
 
@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
                 list_dispose_mbox(mbox);
                 mbox = NULL;
                 epoch++;
-                break;
+                continue;
                 round = AUX_ROUND;
 
 
