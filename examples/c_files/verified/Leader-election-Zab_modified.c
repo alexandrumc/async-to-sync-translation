@@ -93,7 +93,6 @@ int main(int argc, char **argv) {
                 list_dispose_mbox(mbox);
                 mbox = NULL;
                 epoch++;
-                round = CEpoch_ROUND;
                 break;
                 round = AUX_ROUND;
             }
@@ -156,17 +155,18 @@ int main(int argc, char **argv) {
                 list_dispose_mbox(mbox);
                 mbox = NULL;
                 epoch++;
-                round = CEpoch_ROUND;
                 break;
+                round = AUX_ROUND;
             }
 
 
-            epoch++;
-            round = CEpoch_ROUND;
 
 
             list_dispose_mbox(mbox);
             mbox = NULL;
+            epoch++;
+            round = AUX_ROUND;
+
 
 
         } else {
@@ -227,8 +227,9 @@ int main(int argc, char **argv) {
                 list_dispose_mbox(mbox);
                 mbox = NULL;
                 epoch++;
-                round = CEpoch_ROUND;
                 break;
+                round = AUX_ROUND;
+
 
             }
 
@@ -252,7 +253,7 @@ int main(int argc, char **argv) {
 
 
             epoch++;
-            round = CEpoch_ROUND;
+            round = AUX_ROUND;
 
 
         }
