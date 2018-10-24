@@ -932,6 +932,7 @@ def identify_nested(ast_tree, epoch_name):
     identify_nested_algorithms_bodies(extern_while, list)
     if list:
         list.reverse()
+        # TODO: why is the list hardcoded? will there be any problems if we also have FOURTH_ROUND in the algorithm?
         labels = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
         code = None
         for elem in list:
@@ -982,6 +983,10 @@ def take_code_from_file(ast, filename, labelname):
     # print labels, labels_sorted
     # print generator.visit(ast)
     if check_inner_algo(cop):
+        # TODO: - use labels from config.py and do not ask for them to be entered from the keyboard
+        # TODO: - in config.py will also be a variable that will indicate how many nested algorithms are there
+                # you should have a loop, because now you only handle a <- b
+                # what if a <- b <- c? where a is the biggest algorithm, b is nested in a, c is nested in b
         print "\n\nLaunched procedure for nested algorithms\n\n"
         input = raw_input("\n Please insert the labels of the outer algorighm here(separated by a space) : ")
         labs = input.split()
@@ -993,7 +998,7 @@ def take_code_from_file(ast, filename, labelname):
             print "End of inner algo code\n\n"
 
         cop = async_to_async(cop, 'view')
-
+        # TODO: - why is the list hardcoded?
         labs = ['FIRST_ROUND','SECOND_ROUND','AUX_ROUND']
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
         print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job)

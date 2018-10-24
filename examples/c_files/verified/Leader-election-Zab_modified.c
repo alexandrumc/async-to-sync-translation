@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
                 epoch++;
                 round = CEpoch_ROUND;
                 break;
+                round = AUX_ROUND;
             }
 
 
