@@ -97,6 +97,7 @@ mailbox_1 = "Insert mailbox name here"
 # Modify with clean mailbox function name
 clean_mailbox_1 = "Insert clean mailbox function name here"
 
+# Add as many fields as you need
 
 ######################################################################################################################
 
