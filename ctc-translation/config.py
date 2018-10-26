@@ -4,12 +4,12 @@
     Exemple of configuration file:
 
     Let A, B, C be 3 algorithms that follow the scheme:
-                    A -> B -> C, where "->" means "calls"
+        A -> B -> C, where "->" means "calls"
     i.e., A has a nested algorithm in it, B, and B in its turn has also a nested algorithm in it, C.
 
     For 3 nested algorithms:
 
-    nested_algorithms_number = 3
+    number_of_nested_algorithms = 3
 
     We need to specify the phase and round variables for each algorithm and how each message structure
     (for each algorithm) looks like.
@@ -77,7 +77,7 @@
 
 
 # Number of nested algorithms
-nested_algorithms = 1
+number_of_nested_algorithms = 1
 
 # Modify with phase and round variables names
 variables_1 = dict(
