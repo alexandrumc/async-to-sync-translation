@@ -1,0 +1,21 @@
+#!/bin/bash
+examples_folder="examples"
+export PYTHONPATH="$PYTHONPATH:$PWD"
+if [ $# == 0 ]; then
+	echo "./run-translation [option] /path/to/file"
+elif [ $# == 1 ]; then
+	if [ $1 == "-allExamples" ]; then
+		for entry in $examples_folder/*
+		do
+			echo "$entry"
+		done
+	else
+		python ctc-translation/translation.py $1
+	fi
+
+elif [ $# == 2 ]; then
+	echo "Cu 2 arg n-avem. Mai baga o fisa"
+
+fi
+
+
