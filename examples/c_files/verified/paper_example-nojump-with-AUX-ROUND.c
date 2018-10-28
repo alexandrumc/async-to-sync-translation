@@ -110,7 +110,7 @@ msg* recv()
 //@ ensures result->round |-> ?v1 &*& result->epoch |-> ?v &*& malloc_block_Msg(result) &*& INT_MIN <v &*& v < INT_MAX;
 {
     msg* m = (msg *)malloc(sizeof(msg));
-    if(m == 0) abort();
+    if(m == 0) {abort();}
     //@ assume(m->epoch > INT_MIN && m->epoch < INT_MAX);
     return m;
 }
@@ -175,7 +175,7 @@ int main(int argc, char **argv)//@ : main
     int to_all = n+1;
     
     int* log = (int*)malloc(100*sizeof(int));
-    if(log==0) abort();
+    if(log==0){ abort();}
     
     enum round_typ round;
     int epoch, old_epoch;
@@ -199,7 +199,7 @@ int main(int argc, char **argv)//@ : main
         if (pid == leader(epoch,n))
         {
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {abort();}
             m->epoch = epoch;
             m->round = FIRST_ROUND;
             //@assert(m->epoch == epoch && m->round == round);
@@ -218,7 +218,7 @@ int main(int argc, char **argv)//@ : main
             if (m != NULL && m->epoch == epoch && m->round == FIRST_ROUND){
                 
                 mbox_new = (list*) malloc(sizeof(list));
-                if(mbox_new==0) abort();
+                if(mbox_new==0){ abort();}
                 mbox_new->message =m;
                 if(mbox!=0)
                     mbox_new->size = mbox->size + 1;
@@ -296,7 +296,7 @@ int main(int argc, char **argv)//@ : main
              //@ close eq_val_list_pred(epoch,round,mbox);
              //@ eq_val_list_pred_to_list_pred_lemma(mbox);
             
-            if(mbox!=0) list_dispose(mbox);
+            if(mbox!=0) {list_dispose(mbox);}
         }
        
         
