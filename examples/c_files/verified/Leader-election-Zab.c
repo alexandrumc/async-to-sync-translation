@@ -32,7 +32,7 @@ int main(int argc, char **argv)//@ : main
     int pid;
 
     epoch = 0;
-    round = CEpoch;
+    round = CEpoch_ROUND;
 
     //@ int old_epoch = epoch-1;
     //@ enum round_typ_A old_round = round;
@@ -45,7 +45,7 @@ int main(int argc, char **argv)//@ : main
 
 
    while (true)
-   //@ invariant ((old_epoch<epoch && round == CEpoch)) &*& arraylist(log,?log_data);
+   //@ invariant ((old_epoch<epoch && round == CEpoch_ROUND)) &*& arraylist(log,?log_data);
    {
 
 
@@ -55,7 +55,7 @@ int main(int argc, char **argv)//@ : main
        	    //@assert tag_leq(old_epoch,old_round,epoch,round);
             //@open  tag_leq(old_epoch,old_round,epoch,round);
 
-            round = CEpoch;
+            round = CEpoch_ROUND;
             //@ old_epoch = epoch;
             //@ old_round = round;
 
@@ -69,7 +69,7 @@ int main(int argc, char **argv)//@ : main
             {
 
                 m = recv();
-                if (m != NULL && m->epoch >= epoch && m->round == CEpoch){
+                if (m != NULL && m->epoch >= epoch && m->round == CEpoch_ROUND){
                      //@ open mbox_tag_geq(epoch, round,mbox);
                     mbox_new = (list*) malloc(sizeof(list));
                     if(mbox_new==0) abort();
@@ -131,7 +131,7 @@ int main(int argc, char **argv)//@ : main
                 //@ max_tag_mbox_to_list_pred_lemma(mbox);
 
                 //@ old_round = round;
-                round = NewEpoch;
+                round = NewEpoch_ROUND;
 
                 //@ close tag_leq(old_epoch,old_round,epoch,round);
                 //@assert tag_leq(old_epoch,old_round,epoch,round);
@@ -147,22 +147,23 @@ int main(int argc, char **argv)//@ : main
                 mbox = NULL;
                  //@ old_epoch = epoch;
                 epoch++;
-                //@ old_round = round;
-                round = CEpoch;
+               
                 //@ close tag_leq(old_epoch,old_round,epoch,round);
                 //@assert tag_leq(old_epoch,old_round,epoch,round);
                 //@ open tag_leq(old_epoch,old_round,epoch,round);
-                break; // replace by continue
+                continue; // replace by continue
+                //@ old_round = round;
+                round = AUX_ROUND;
             }//timeout go back to the loops begining with new epoch.
 
 
 
-            //@ assert round == NewEpoch;
+            //@ assert round == NewEpoch_ROUND;
 
             m = (msg *) malloc(sizeof(msg));
             if(m==0) abort();
             m->epoch = epoch;
-            m->round = NewEpoch;
+            m->round = NewEpoch_ROUND;
 
             //@assert(m->epoch == epoch && m->round == round);
             send(m, to_all);
@@ -171,7 +172,7 @@ int main(int argc, char **argv)//@ : main
             m = NULL;
 
             //@ old_round = round;
-            round = Ack_E;
+            round = Ack_E_ROUND;
 
             //@ close tag_leq(old_epoch,old_round,epoch,round);
             //@ assert tag_leq(old_epoch,old_round,epoch,round);
@@ -186,7 +187,7 @@ int main(int argc, char **argv)//@ : main
             {
 
                 m = recv();
-                if (m != NULL && m->epoch == epoch && m->round == Ack_E){
+                if (m != NULL && m->epoch == epoch && m->round == Ack_E_ROUND){
                      //@ open mbox_tag_eq(epoch, round,mbox);
                     mbox_new = (list*) malloc(sizeof(list));
                     if(mbox_new==0) abort();
@@ -238,27 +239,29 @@ int main(int argc, char **argv)//@ : main
                 	//@ old_epoch = epoch;
                 	epoch++;
                 	//@ old_round = round;
-                	round = CEpoch;
+                    continue; // replace by continue
+                	round = AUX_ROUND;
                 	//@ close tag_leq(old_epoch,old_round,epoch,round);
                 	//@assert tag_leq(old_epoch,old_round,epoch,round);
                 	//@ open tag_leq(old_epoch,old_round,epoch,round);
-                	break; // replace by continue
+                	
                }//timeout on loop reception go back to the loop's begining into a new epoch
 
             //TODO Synchronization
-
+            list_dispose_mbox(mbox);
+            mbox = NULL;
+            
             //Move away this it the " normal " end of a leadership when it loses quorum
                 //@ old_epoch = epoch;
                 epoch++;
                 //@ old_round = round;
-                round = CEpoch;
+                round = AUX_ROUND;
 
                 //@ close tag_leq(old_epoch,old_round,epoch,round);
                 //@assert tag_leq(old_epoch,old_round,epoch,round);
                 //@ open tag_leq(old_epoch,old_round,epoch,round);
 
-                list_dispose_mbox(mbox);
-                mbox = NULL;
+            
 
 
         }//end LEADER
@@ -269,14 +272,14 @@ int main(int argc, char **argv)//@ : main
        		//@assert tag_leq(old_epoch,old_round,epoch,round);
        		//@open  tag_leq(old_epoch,old_round,epoch,round);
 
-       		round = CEpoch;
+       		round = CEpoch_ROUND;
        		//@ old_epoch = epoch;
        		//@ old_round = round;
 
         	m = (msg *) malloc(sizeof(msg));
             	if(m==0) abort();
             	m->epoch = epoch;
-            	m->round = CEpoch;
+            	m->round = CEpoch_ROUND;
 
             	//@assert(m->epoch == epoch && m->round == round);
             	send(m, leader(epoch,n));
@@ -285,7 +288,7 @@ int main(int argc, char **argv)//@ : main
             	m = NULL;
 
             	//@ old_round = round;
-            	round = NewEpoch;
+            	round = NewEpoch_ROUND;
 
             	//@ close tag_leq(old_epoch,old_round,epoch,round);
                 //@assert tag_leq(old_epoch,old_round,epoch,round);
@@ -301,7 +304,7 @@ int main(int argc, char **argv)//@ : main
             	{
 
             		  m = recv();
-            		  if (m != NULL && m->epoch >= epoch && m->round == NewEpoch){
+            		  if (m != NULL && m->epoch >= epoch && m->round == NewEpoch_ROUND){
                 		//@open mbox_tag_geq(epoch, round,mbox);
                 		mbox_new = (list*) malloc(sizeof(list));
                			if(mbox_new==0) abort();
@@ -347,7 +350,7 @@ int main(int argc, char **argv)//@ : main
 
 
                 	//@ old_round = round;
-                	round = Ack_E;
+                	round = Ack_E_ROUND;
                 	//@ close tag_leq(old_epoch,old_round,epoch,round);
                 	//@assert tag_leq(old_epoch,old_round,epoch,round);
                 	//@ open tag_leq(old_epoch,old_round,epoch,round);
@@ -362,24 +365,25 @@ int main(int argc, char **argv)//@ : main
                  	//@ old_epoch = epoch;
                 	epoch++;
                 	//@ old_round = round;
-                	round = CEpoch;
+                    continue; // replace by continue
+                	round = AUX_ROUND;
                 	//@ close tag_leq(old_epoch,old_round,epoch,round);
                 	//@assert tag_leq(old_epoch,old_round,epoch,round);
                 	//@ open tag_leq(old_epoch,old_round,epoch,round);
-                	break; // replace by continue
+                	
 
             	 }//timeout go back to the loops begining into a new epoch
 
 
 
-            	//@ assert round == Ack_E;
+            	//@ assert round == Ack_E_ROUND;
             	list_dispose_mbox(mbox);
                 mbox = NULL;
 
             	m = (msg *) malloc(sizeof(msg));
             	if(m==0) abort();
             	m->epoch = epoch;
-            	m->round = Ack_E;
+            	m->round = Ack_E_ROUND;
             	m->history = log;
             	m->history_lenght = lastIndex;
 
@@ -395,7 +399,7 @@ int main(int argc, char **argv)//@ : main
          	//@ old_epoch = epoch;
                 epoch++;
                 //@ old_round = round;
-                round = CEpoch;
+                round = AUX_ROUND;
                 //@ close tag_leq(old_epoch,old_round,epoch,round);
                 //@assert tag_leq(old_epoch,old_round,epoch,round);
                 //@ open tag_leq(old_epoch,old_round,epoch,round);
