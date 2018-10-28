@@ -1,3 +1,18 @@
+typedef struct Msg {
+    int round;
+    int pid;
+    int epoch;
+    struct arraylist *history;
+    int history_lenght;
+    int sender;
+} msg;
+
+
+typedef struct List {
+    msg *message;
+    struct List *next;
+    int size;
+} list;
 
 int main(int argc, char **argv)
 {
