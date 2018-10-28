@@ -10,8 +10,8 @@ typedef struct List{
     struct List * next;
     int size;
 } list;
-bool timeout();
-bool reset_timeout();
+int timeout();
+int reset_timeout();
 enum round_typ {FIRST_ROUND, SECOND_ROUND, AUX_ROUND} ;
 msg* recv()
 {
@@ -92,8 +92,8 @@ int main(int argc, char **argv)
                 mbox = mbox_new;
             }
             else free(m);
-            if (timeout()) break;
-                else if(mbox != NULL && mbox->size ==1){
+            int timeout = timeout();
+            if (timeout==0 || (mbox != NULL && mbox->size ==1)){
                 break;
             }
         }
@@ -124,8 +124,8 @@ int main(int argc, char **argv)
                                 mbox = mbox_new;
                     }
                     else free(m);
-                    if (timeout()) break;
-                    else if(mbox != NULL && mbox->size > n/2){
+                   int timeout = timeout();
+                   if (timeout==0 || (mbox != NULL && mbox->size > n/2)){
                                 break;
                     }
             }
