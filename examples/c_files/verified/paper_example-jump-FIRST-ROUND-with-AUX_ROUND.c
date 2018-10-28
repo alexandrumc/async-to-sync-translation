@@ -300,7 +300,7 @@ int main(int argc, char **argv)//@ : main
             }
             else free(m);
             if (timeout()) break;
-                else if(mbox != NULL && mbox->size ==1){
+            if(mbox != NULL && mbox->size ==1){
                 break;
             }
             //@ close min_list_pred(epoch,round,mbox);
@@ -355,7 +355,7 @@ int main(int argc, char **argv)//@ : main
                     }
                     else free(m);
                     if (timeout()) break;
-                    else if(mbox != NULL && mbox->size > n/2){
+                    if(mbox != NULL && mbox->size > n/2){
                                 break;
                     }
 

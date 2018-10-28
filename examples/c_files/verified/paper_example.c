@@ -45,7 +45,9 @@ int main() {
                 if (m != NULL) {
                     mbox = mbox + tuplu_mesaj_pid;
                     }
-                if (timeout() || mbox >= n/2){
+                if (timeout())
+                    break;
+                if (mbox >= n/2){
                     break;
                     }
             }
