@@ -1,3 +1,21 @@
+enum round_typ_A {CEpoch, NewEpoch, Ack_E, New_Leader,Ack_LD, BCAST} ;
+
+typedef struct Msg {
+    int round;
+    int pid;
+    int epoch;
+    struct arraylist *history;
+    int history_lenght;
+    int sender;
+} msg;
+
+
+
+typedef struct List{
+    msg * message;
+    struct List * next;
+    int size;
+} list;
 
 int main(int argc, char **argv)
 {
