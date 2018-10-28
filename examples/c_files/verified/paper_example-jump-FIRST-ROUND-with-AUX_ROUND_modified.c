@@ -72,7 +72,7 @@ int main(int argc, char **argv)
         if (pid == leader(epoch,n))
         {
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {abort();}
             m->epoch = epoch;
             m->round = FIRST_ROUND;
             
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
             if (m != NULL && m->epoch>epoch && m->round == FIRST_ROUND){
                 
                 mbox_new = (list*) malloc(sizeof(list));
-                if(mbox_new==0) abort();
+                if(mbox_new==0) {abort();}
                 mbox_new->message =m;
                 if(mbox!=0)
                     mbox_new->size = mbox->size + 1;
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
            
             old_epoch = epoch; 
             m = (msg *) malloc(sizeof(msg));
-            if (m==0) abort();
+            if (m==0) {abort();}
             m->epoch = epoch;
             m->round = SECOND_ROUND;
             
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
                  if (m != NULL && m->epoch == epoch && m->round == SECOND_ROUND){
             
                                 mbox_new = (list*) malloc(sizeof(list));
-                                if(mbox_new==0) abort();
+                                if(mbox_new==0) {abort();}
                                 mbox_new->message =m;
                                 if(mbox!=0)
                                     mbox_new->size = mbox->size + 1;
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
                 out(epoch, leader);
             }
             
-            if(mbox!=0) list_dispose(mbox);
+            if(mbox!=0){ list_dispose(mbox);}
         }
        
         old_epoch = epoch;

@@ -16,7 +16,7 @@ enum round_typ {FIRST_ROUND, SECOND_ROUND, AUX_ROUND} ;
 msg* recv()
 {
     msg* m = (msg *)malloc(sizeof(msg));
-    if(m == 0) abort();
+    if(m == 0) {abort();}
     return m;
 }
 void dispose(msg* c)
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
             m = recv();
             if (m != NULL && m->epoch == epoch && m->round == FIRST_ROUND){
                 mbox_new = (list*) malloc(sizeof(list));
-                if(mbox_new==0) abort();
+                if(mbox_new==0) {abort();}
                 mbox_new->message =m;
                 if(mbox!=0)
                     mbox_new->size = mbox->size + 1;
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
             old_round = round;
             round = SECOND_ROUND;
             m = (msg *) malloc(sizeof(msg));
-            if (m==0) abort();
+            if (m==0) {abort();}
             m->epoch = epoch;
             m->round = SECOND_ROUND;
             send(m, to_all);
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
                  m = recv();
                  if (m != NULL && m->epoch == epoch && m->round == SECOND_ROUND){
                                 mbox_new = (list*) malloc(sizeof(list));
-                                if(mbox_new==0) abort();
+                                if(mbox_new==0) {abort();}
                                 mbox_new->message =m;
                                 if(mbox!=0)
                                     mbox_new->size = mbox->size + 1;
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
                     printf("\n%d", epoch);
                     int leader = leader(epoch,n);
              }
-            if(mbox!=0) list_dispose(mbox);
+            if(mbox!=0) {list_dispose(mbox);}
         }
         old_epoch = epoch;
         epoch++;
