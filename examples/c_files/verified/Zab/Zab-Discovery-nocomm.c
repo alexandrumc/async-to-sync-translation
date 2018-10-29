@@ -1,7 +1,23 @@
-#include "stdlib.h"
-#include<stdio.h>
-#include<limits.h>
-#include"Zab-Discovery_Synchronization_Broadcast2.h"
+typedef struct Msg {
+    int round;
+    int pid;
+    int epoch;
+    struct arraylist *history;
+    int history_lenght;
+    int sender;
+} msg;
+
+
+
+
+typedef struct List{
+    msg * message;
+    struct List * next;
+    int size;
+} list;
+
+
+
 int main(int argc, char **argv)
 {
     int n = argc;
@@ -13,22 +29,22 @@ int main(int argc, char **argv)
     int epoch;
     int pid;
     epoch = 0;
-    round = CEpoch;
+    round = CEpoch_ROUND;
     list *mbox = NULL;
     list* mbox_new = NULL;
     msg* m = NULL;
    while (true)
       {
         if(pid == leader(epoch,n)){
-            round = CEpoch;
+            round = CEpoch_ROUND;
             reset_timeout();
             mbox = NULL;
             while(true)
             {
                 m = recv();
-                if (m != NULL && m->epoch >= epoch && m->round == CEpoch){
+                if (m != NULL && m->epoch >= epoch && m->round == CEpoch_ROUND){
                     mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) abort();
+                    if(mbox_new==0) { abort() ; }
                     mbox_new->message =m;
                     if(mbox!=0)
                         mbox_new->size = mbox->size + 1;
@@ -47,31 +63,31 @@ int main(int argc, char **argv)
             if(mbox != NULL && mbox->size > n/2){
                 epoch = max_epoch(mbox);
                 epoch++;
-                round = NewEpoch;
+                round = NewEpoch_ROUND;
             }
             else {
                 list_dispose_mbox(mbox);
                 mbox = NULL;
                 epoch++;
-                round = CEpoch;
-                break;
+                round = AUX_ROUND;
+                continue;
             }
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) { abort() ; }
             m->epoch = epoch;
-            m->round = NewEpoch;
+            m->round = NewEpoch_ROUND;
             send(m, to_all);
             free(m);
             m = NULL;
-            round = Ack_E;
+            round = Ack_E_ROUND;
              list_dispose_mbox(mbox);
              mbox = NULL;
              while(true)
             {
                 m = recv();
-                if (m != NULL && m->epoch == epoch && m->round == Ack_E){
+                if (m != NULL && m->epoch == epoch && m->round == Ack_E_ROUND){
                     mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) abort();
+                    if(mbox_new==0) { abort() ; }
                     mbox_new->message =m;
                     if(mbox!=0)
                         mbox_new->size = mbox->size + 1;
@@ -98,32 +114,32 @@ int main(int argc, char **argv)
                  list_dispose_mbox(mbox);
                  mbox = NULL;
                  epoch++;
-                 round = CEpoch;
-                 break;
+                   round = AUX_ROUND;
+                   continue;
                }
                 epoch++;
-                round = CEpoch;
+                round = CEpoch_ROUND;
                 list_dispose_mbox(mbox);
                 mbox = NULL;
         }
         else{
-         round = CEpoch;
+         round = CEpoch_ROUND;
          m = (msg *) malloc(sizeof(msg));
-             if(m==0) abort();
+             if(m==0) { abort() ; }
              m->epoch = epoch;
-             m->round = CEpoch;
+             m->round = CEpoch_ROUND;
              send(m, leader(epoch,n));
              free(m);
              m = NULL;
-             round = NewEpoch;
+             round = NewEpoch_ROUND;
              mbox= NULL;
              reset_timeout();
              while(true)
              {
                 m = recv();
-                if (m != NULL && m->epoch >= epoch && m->round == NewEpoch){
+                if (m != NULL && m->epoch >= epoch && m->round == NewEpoch_ROUND){
                   mbox_new = (list*) malloc(sizeof(list));
-                  if(mbox_new==0) abort();
+                  if(mbox_new==0) { abort() ; }
                   mbox_new->message =m;
                   if(mbox!=0)
                        mbox_new->size = mbox->size + 1;
@@ -138,28 +154,28 @@ int main(int argc, char **argv)
              }
               if(mbox != NULL && mbox->size ==1&& mbox->next==NULL){
                epoch = mbox->message->epoch;
-                 round = Ack_E;
+                 round = Ack_E_ROUND;
               }
               else {
                  list_dispose_mbox(mbox);
                  mbox = NULL;
                  epoch++;
-                 round = CEpoch;
-                 break;
+                  round = AUX_ROUND;
+                  continue;
               }
              list_dispose_mbox(mbox);
                 mbox = NULL;
              m = (msg *) malloc(sizeof(msg));
-             if(m==0) abort();
+             if(m==0) { abort() ; }
              m->epoch = epoch;
-             m->round = Ack_E;
+             m->round = Ack_E_ROUND;
              m->history = log;
              m->history_lenght = lastIndex;
              send(m, leader(epoch,n));
              free(m);
              m = NULL;
                 epoch++;
-                round = CEpoch;
+                round = CEpoch_ROUND;
         }
       }
       list_dispose(log);
