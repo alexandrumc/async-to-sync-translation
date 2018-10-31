@@ -404,8 +404,10 @@ def take_cond_name(cond, lista):
 
 
 
+    if isinstance(cond,FuncCall):
+        pass
 
-    if isinstance(cond, UnaryOp):
+    elif isinstance(cond, UnaryOp):
         take_cond_name(cond.expr, lista)
 
 
@@ -1007,13 +1009,13 @@ def take_code_from_file(ast, filename, labelname):
     else:
         print "No inner algorithm detected\n"
         cop = async_to_async(cop, 'epoch')
-        # print generator.visit(cop)
+        print generator.visit(cop)
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
         # print generator.visit(cop)
         #
         # print_code(trees_dict, trees_paths_dict, labels_sorted)
         #print "Rounds:\n"
-        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
+        # print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
         print labels
 
     # return trees_dict

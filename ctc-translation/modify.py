@@ -8,7 +8,7 @@ generator = c_generator.CGenerator()
 
 
 
-ast = parse_file(filename="../examples/c_files/verified/Zab/Zab-RoundBased-Discovery_modified.c", use_cpp=False)
+ast = parse_file(filename="../examples/c_files/ViewChange.c", use_cpp=False)
 extern_while_body = None
 x = get_extern_while_body_from_func(ast, "main")
 conditii = []
@@ -46,7 +46,7 @@ remove_mbox(x)
 
 
 
-take_code_from_file(ast,"../examples/c_files/verified/Zab/Zab-RoundBased-Discovery_modified.c",'round')
+take_code_from_file(ast,"../examples/c_files/ViewChange.c",'round')
 # print generator.visit(ast)
 # copie = copy.deepcopy(x)
 
