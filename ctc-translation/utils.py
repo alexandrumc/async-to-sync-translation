@@ -1,7 +1,7 @@
 import copy
 from pycparser.c_ast import FileAST, FuncDef, While
 from generators import PathGenerator, LabelVisitor, LocateNode, LocateParentNode, CheckLabelNumber,\
-    EpochVisitor, LocateParentNodeUpdated
+    EpochVisitor, LocateParentNodeUpdated, SendVisitor, RecvWhileVisitor
 
 main_function_name = "main"
 new_code = "\n\n\n\n NEW CODE \n\n\n\n"
@@ -76,6 +76,17 @@ def get_epochs_assigns(ast_tree, epoch_name):
     v = EpochVisitor(epoch_name)
     v.visit(ast_tree)
     return v.epoch_list
+
+def get_send_usage(ast_tree):
+    v = SendVisitor()
+    v.visit(ast_tree)
+    return v.list
+
+def get_recv_whiles(ast_tree):
+    v = RecvWhileVisitor()
+    v.visit(ast_tree)
+    return v.list
+
 
 def print_path(paths_list, index=-1):
     if index < 0:

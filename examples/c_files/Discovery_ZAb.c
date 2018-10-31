@@ -187,24 +187,24 @@ int main(int pid, int num_processes){
     
     
     void Synchronization (){
-        
-        
-        
-        
+
+
+
+
         round = FIFTH_ROUND;
-        
+
         m = (msg *) malloc(sizeof(msg));
         m->epoch = epoch;
         m->round = round;
-        
+
         send (m, leader);
-        
+
         if(leader == pid){
-            
+
             memset(mbox_ack_l,0,sizeof(mbox_ack_l));
             num_mbox_ack_l = 0;
-            
-            
+
+
             while(true){
                 m = recv();
                 if (m != NULL && m.epoch == epoch && m.round == FIFTH_ROUND){
@@ -216,7 +216,7 @@ int main(int pid, int num_processes){
                     break;
                     }
             }
-            
+
             if (num_mbox_ack_e >= num_processes/2) {
                 round = SIXTH_ROUND;
             }else{
@@ -226,17 +226,17 @@ int main(int pid, int num_processes){
         }else {
             round = SIXTH_ROUND;
         }
-        
+
         if(leader == pid && round == SIXTH_ROUND){
             m = (msg *) malloc(sizeof(msg));
             m->epoch = epoch;
             m->round = round;
-            
+
             send (m, all);
         }
         memset(mbox_cmt_0,sizeof(mbox_cmt));
         num_mbox_cmt = 0;
-        
+
         while (true){
             m = recv();
             if (m != NULL && m.epoch == epoch && m.round == round) {
@@ -246,7 +246,7 @@ int main(int pid, int num_processes){
                 break;
             }
         }
-        
+
         if(num_mbox_cmt >=1) {
             Broadcast();
         }else {

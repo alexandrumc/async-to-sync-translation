@@ -1,7 +1,7 @@
 import copy
 import os
 from utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
-    find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca
+    find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles
 from generators import TreeGenerator, RoundGenerator, CheckIfGenerator
 from compute_paths import find_all_paths_between_two_nodes, prune_tree
 from pycparser import c_generator, parse_file
@@ -491,6 +491,23 @@ def create_new_assign(old_cond, new_cond, coord):
     return assign
 
 
+
+
+
+# def create_aux_assign(labelname, coord):
+#     global coord_aux
+#
+#     coord_aux -= 1
+#     # coord = old_cond.coord
+#     new_coord = Coord(coord.file, coord.line, coord.column)
+#     new_coord.line = coord_aux
+#     new_coord.column = coord_aux
+#
+#     assign = Assignment('=', ID(labelname), ID('AUX_ROUND'), new_coord)
+#     return assign
+
+
+
 def add_ghost_assign_in_tree(tree, context, used_old_vars, added_ifs_assignment, aux_dict):
     global added_vars
     """
@@ -975,10 +992,18 @@ def check_inner_algo(ast_tree):
         return False
 
 
+
+
 def take_code_from_file(ast, filename, labelname):
     cop = copy.deepcopy(ast)
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename, labelname)
+
+
+    test = get_recv_whiles(cop)
+    for elem in test:
+        print elem.coord
+
     # print labels
     # labels= ['CEpoch_ROUND', 'NewEpoch_ROUND', 'Ack_E_ROUND', 'AUX_ROUND', 'ERR_ROUND']
     # more_epoch_jumps(cop, 'view')

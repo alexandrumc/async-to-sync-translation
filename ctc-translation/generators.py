@@ -1,6 +1,8 @@
 from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, \
     Break
 from pycparser import c_generator, c_ast
+from modify_whiles import to_modify
+
 
 class LabelVisitor(c_ast.NodeVisitor):
     """
@@ -37,6 +39,45 @@ class EpochVisitor(c_ast.NodeVisitor):
             self.epoch_list.append(node)
 
 
+class SendVisitor(c_ast.NodeVisitor):
+    """
+    Returns a list with all occurences of send function
+    """
+
+    def __init__(self):
+        self.list = []
+
+    def visit_FuncCall(self, node):
+        if node.name.name == 'send':
+            self.list.append(node)
+
+
+class RecvWhileVisitor(c_ast.NodeVisitor):
+    """
+    Identifies the recv whiles, used for asserts
+    """
+
+    def __init__(self):
+        self.list = []
+
+    def visit_While(self, node):
+        if to_modify(node):
+            self.list.append(node)
+        else:
+            print "else"
+            for elem in node.stmt:
+                if isinstance(elem,While):
+                    print elem.coord
+                    self.visit_While(elem)
+
+    def visit_If(self, node):
+        for elem in node.iftrue:
+            if isinstance(elem, While) and to_modify(elem):
+                self.list.append(elem)
+        if node.iffalse:
+            for elem in node.iffalse:
+                if isinstance(elem,While) and to_modify(elem):
+                    self.list.append(elem)
 
 
 class CheckLabelNumber(c_ast.NodeVisitor):
@@ -76,8 +117,6 @@ class LocateParentNode(c_generator.CGenerator):
                     break
                 self._generate_stmt(stmt)
         return s
-
-
 
 
 class LocateParentNodeUpdated(c_generator.CGenerator):
