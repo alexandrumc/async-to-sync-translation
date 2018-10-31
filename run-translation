@@ -17,36 +17,65 @@ elif [ $# == 1 ]; then
 		for entry in $examples_folder*;
 		do
 			if [ -f $entry ]; then
-				echo $entry
-				echo ""
 				if [[ ! -e $results_dir ]]; then
 					mkdir $results_dir
 				fi
+
 				call_verifast="$verifast_run $entry"
 				call_tool="$python_interpretor $main_module $entry"
-				echo $entry
-				entry=${entry//$examples_folder}
-				entry=${entry//".c"/}
-				echo $entry
-				output="$results_dir/$entry$output_extension"
-				echo $output
-				$call_verifast
-			        $call_tool > $output
 
+				entry=${entry//$examples_folder}
+				echo "Running algorithm on file: $entry"
+				entry=${entry//".c"/}
+
+				output="$results_dir/$entry$output_extension"
+
+				$call_verifast
+			    	$call_tool > $output
 				
+			    	echo $'Done.\n'
 			fi
 		done
 	else
 		output_file=$(basename $1)
+		echo "Running algorithm on file: $output_file"
 		output_file=${output_file//".c"/}
 		output_file="$PWD/$output_file$output_extension"
-		#echo $output_file
 		call_tool="$python_interpretor $main_module $1"
-	        $call_tool > $output_file
+	    	$call_tool > $output_file
+	    	echo "Done."
 	fi
 
 elif [ $# == 2 ]; then
-	echo "Cu 2 arg n-avem. Mai baga o fisa"
+	if [[ $1 == "-allExamples" && $2 == "-disableVerifast" ]] || 
+		[[ $1 == "-disableVerifast" && $2 == "-allExamples" ]]; then
+		for entry in $examples_folder*;
+		do
+			if [ -f $entry ]; then
+
+				if [[ ! -e $results_dir ]]; then
+					mkdir $results_dir
+				fi
+
+				call_tool="$python_interpretor $main_module $entry"
+				entry=${entry//$examples_folder}
+				echo "Running algorithm on file: $entry"
+				entry=${entry//".c"/}
+				output="$results_dir/$entry$output_extension"
+			    	$call_tool > $output
+			    	echo $'Done.\n'
+			fi
+		done
+
+	elif [ $1 == "-disableVerifast" ]; then
+		output_file=$(basename $2)
+		echo "Running algorithm on file: $output_file"
+		output_file=${output_file//".c"/}
+		output_file="$PWD/$output_file$output_extension"
+		call_tool="$python_interpretor $main_module $2"
+	    	$call_tool > $output_file
+	   	echo "Done."
+	fi
 
 fi
 
