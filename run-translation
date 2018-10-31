@@ -1,16 +1,48 @@
 #!/bin/bash
-examples_folder="examples"
+examples_folder="$PWD/examples/c_files/"
+python_interpretor="python"
+main_module="$PWD/ctc-translation/translation.py"
+output_extension=".sync"
+results_dir="$PWD/results"
+
+verifast_path="../verifast/bin/verifast"
+verifast_run="./$verifast_path"
+
 export PYTHONPATH="$PYTHONPATH:$PWD"
+
 if [ $# == 0 ]; then
 	echo "./run-translation [option] /path/to/file"
 elif [ $# == 1 ]; then
 	if [ $1 == "-allExamples" ]; then
-		for entry in $examples_folder/*
+		for entry in $examples_folder*;
 		do
-			echo "$entry"
+			if [ -f $entry ]; then
+				echo $entry
+				echo ""
+				if [[ ! -e $results_dir ]]; then
+					mkdir $results_dir
+				fi
+				call_verifast="$verifast_run $entry"
+				call_tool="$python_interpretor $main_module $entry"
+				echo $entry
+				entry=${entry//$examples_folder}
+				entry=${entry//".c"/}
+				echo $entry
+				output="$results_dir/$entry$output_extension"
+				echo $output
+				$call_verifast
+			        $call_tool > $output
+
+				
+			fi
 		done
 	else
-		python ctc-translation/translation.py $1
+		output_file=$(basename $1)
+		output_file=${output_file//".c"/}
+		output_file="$PWD/$output_file$output_extension"
+		#echo $output_file
+		call_tool="$python_interpretor $main_module $1"
+	        $call_tool > $output_file
 	fi
 
 elif [ $# == 2 ]; then
