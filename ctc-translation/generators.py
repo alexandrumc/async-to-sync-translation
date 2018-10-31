@@ -52,32 +52,22 @@ class SendVisitor(c_ast.NodeVisitor):
             self.list.append(node)
 
 
-class RecvWhileVisitor(c_ast.NodeVisitor):
+class RecvWhileVisitor(c_generator.CGenerator):
     """
     Identifies the recv whiles, used for asserts
     """
 
     def __init__(self):
+        super(RecvWhileVisitor, self).__init__()
         self.list = []
 
-    def visit_While(self, node):
-        if to_modify(node):
-            self.list.append(node)
-        else:
-            print "else"
-            for elem in node.stmt:
-                if isinstance(elem,While):
-                    print elem.coord
-                    self.visit_While(elem)
-
-    def visit_If(self, node):
-        for elem in node.iftrue:
-            if isinstance(elem, While) and to_modify(elem):
-                self.list.append(elem)
-        if node.iffalse:
-            for elem in node.iffalse:
-                if isinstance(elem,While) and to_modify(elem):
-                    self.list.append(elem)
+    def visit_While(self, n):
+        self.list.append(n)
+        s = ""
+        if n.cond:
+            self.visit(n.cond)
+        self._generate_stmt(n.stmt, add_indent=True)
+        return s
 
 
 class CheckLabelNumber(c_ast.NodeVisitor):

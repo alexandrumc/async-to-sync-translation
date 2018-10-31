@@ -1001,6 +1001,7 @@ def take_code_from_file(ast, filename, labelname):
 
 
     test = get_recv_whiles(cop)
+    print len(test)
     for elem in test:
         print elem.coord
 
