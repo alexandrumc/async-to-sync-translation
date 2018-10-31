@@ -68,7 +68,9 @@ int main(int pid, int num_processes){
                     num_mbox_curr_e++;
                 }
                 if (timeout() || (num_mbox_curr_e >= num_processes/2))
+                    {
                     break;
+                    }
             }
             
             if (num_mbox_curr_e >= num_processes/2) {
@@ -132,7 +134,9 @@ int main(int pid, int num_processes){
                     num_mbox_curr_e++;
                 }
                 if (timeout() || (num_mbox_ack_e >= num_processes/2))
+                    {
                     break;
+                    }
             }
             
             if (num_mbox_ack_e >= num_processes/2) {
@@ -208,7 +212,9 @@ int main(int pid, int num_processes){
                     num_mbox_ack_l++;
                 }
                 if (timeout() || (num_mbox_ack_l >= num_processes/2))
+                    {
                     break;
+                    }
             }
             
             if (num_mbox_ack_e >= num_processes/2) {
