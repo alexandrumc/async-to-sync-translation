@@ -1000,7 +1000,7 @@ def take_code_from_file(ast, filename, labelname):
     labels = get_labels(filename, labelname)
 
 
-    test = get_recv_whiles(cop)
+    test = get_recv_whiles(ast)
     for elem in test:
         print elem.coord
 
