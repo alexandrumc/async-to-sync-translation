@@ -8,7 +8,7 @@ generator = c_generator.CGenerator()
 
 
 
-ast = parse_file(filename="examples/c_files/verified_copy/broadcast.c", use_cpp=False)
+ast = parse_file(filename="examples/c_files/ct-terminating.c", use_cpp=False)
 extern_while_body = None
 x = get_extern_while_body_from_func(ast, "main")
 conditii = []
@@ -16,6 +16,8 @@ whiles_to_if(x, conditii)
 
 identify_recv_exits(x, conditii)
 remove_mbox(x)
+
+
 #print generator.visit(x)
 #test = get_labels_order("examples/c_files/broadcast.c",'round')
 # print test
@@ -46,8 +48,8 @@ remove_mbox(x)
 
 
 
-take_code_from_file(ast,"examples/c_files/verified_copy/broadcast.c",'round')
-# print generator.visit(ast)
+take_code_from_file(ast,"examples/c_files/ct-terminating.c",'round')
+#print ast
 # copie = copy.deepcopy(x)
 
 

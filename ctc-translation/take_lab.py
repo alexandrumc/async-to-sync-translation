@@ -1001,9 +1001,9 @@ def take_code_from_file(ast, filename, labelname):
 
 
     test = get_recv_whiles(cop)
-    print len(test)
-    for elem in test:
-        print elem.coord
+    #print len(test)
+    #for elem in test:
+        #print elem.coord
 
     # print labels
     # labels= ['CEpoch_ROUND', 'NewEpoch_ROUND', 'Ack_E_ROUND', 'AUX_ROUND', 'ERR_ROUND']
@@ -1035,13 +1035,13 @@ def take_code_from_file(ast, filename, labelname):
     else:
         print "No inner algorithm detected\n"
         cop = async_to_async(cop, 'epoch')
-        print generator.visit(cop)
+        #print generator.visit(cop)
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
         # print generator.visit(cop)
         #
         # print_code(trees_dict, trees_paths_dict, labels_sorted)
         #print "Rounds:\n"
-        # print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
-        print labels
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
+        #print labels
 
     # return trees_dict
