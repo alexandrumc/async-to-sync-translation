@@ -1,12 +1,25 @@
 #!/bin/bash
-examples_folder="$PWD/examples/c_files/"
 python_interpretor="python"
+
+examples_folder="$PWD/examples/c_files/"
+
 main_module="$PWD/ctc-translation/translation.py"
+main_module_folder="$PWD/ctc-translation/"
+precompiled_ext="*.pyc"
+path_to_precomp="$main_module_folder$precompiled_ext"
+
+no_comments_ext="-clean.c"
 output_extension=".sync"
 results_dir="$PWD/results"
 
+config_base_name="config_"
+config_extension=".py"
+default_config="config.py"
+default_config_path=$main_module_folder$default_config
+
 verifast_path="../verifast/bin/verifast"
 verifast_run="./$verifast_path"
+verifast_options="-shared"
 
 export PYTHONPATH="$PYTHONPATH:$PWD"
 
@@ -14,26 +27,58 @@ if [ $# == 0 ]; then
 	echo "./run-translation [option] /path/to/file"
 elif [ $# == 1 ]; then
 	if [ $1 == "-allExamples" ]; then
-		for entry in $examples_folder*;
+		if [[ ! -e $results_dir ]]; then
+			mkdir $results_dir
+		else
+			rm -rf $results_dir
+			mkdir $results_dir
+		fi
+		for entry in $examples_folder*.c;
 		do
 			if [ -f $entry ]; then
-				if [[ ! -e $results_dir ]]; then
-					mkdir $results_dir
-				fi
-
-				call_verifast="$verifast_run $entry"
-				call_tool="$python_interpretor $main_module $entry"
-
-				entry=${entry//$examples_folder}
-				echo "Running algorithm on file: $entry"
-				entry=${entry//".c"/}
-
-				output="$results_dir/$entry$output_extension"
-
-				$call_verifast
-			    	$call_tool > $output
 				
-			    	echo $'Done.\n'
+				file_name=${entry//$examples_folder}
+				echo "Running algorithm on file: $file_name"
+				file_name=${file_name//".c"/}
+
+				entry_no_comments="$examples_folder$file_name$no_comments_ext"
+				call_remove_comments="gcc -fpreprocessed -dD -E -P $entry -o $entry_no_comments"
+				output="$results_dir/$file_name$output_extension"
+				
+				call_verifast="$verifast_run $verifast_options $entry"
+
+				call_tool="$python_interpretor $main_module $entry_no_comments"
+				
+				current_config="$examples_folder$config_base_name$file_name$config_extension"
+				current_config_renamed="$examples_folder$default_config"
+				
+				call_duplicate_config="cp $current_config $current_config_renamed"
+				
+				call_move_config_file="mv $current_config_renamed $main_module_folder"
+
+				call_remove_config="rm $default_config_path"
+
+				call_clean_1="rm -rf $path_to_precomp"
+				call_clean_2="rm -rf $examples_folder"*"$no_comments_ext"
+
+				echo $call_verifast >> out.txt
+				$call_verifast
+				echo $call_remove_comments >> out.txt
+				$call_remove_comments
+				echo $call_duplicate_config >> out.txt
+				$call_duplicate_config
+				echo $call_move_config_file >> out.txt
+				$call_move_config_file
+				echo $call_clean >> out.txt
+				$call_clean_1
+				echo $call_tool >> out.txt
+			    $call_tool > $output
+			    echo $call_remove_config >> out.txt
+			    $call_remove_config
+			    echo $call_clean_2 >> out.txt
+			    $call_clean_2
+			    echo $'Done.\n'
+			    echo $'\n' >> out.txt
 			fi
 		done
 	else
