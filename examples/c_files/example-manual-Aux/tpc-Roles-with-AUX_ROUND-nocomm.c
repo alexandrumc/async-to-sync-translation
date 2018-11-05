@@ -87,7 +87,7 @@ int main(int argc, char **argv)
         leader =  leader(phase,n);
         round = FIRST_ROUND;
         
-        if(pid == leader(phase,n)){
+        if(pid == leader){
             m = (msg *) malloc(sizeof(msg));
             if(m==0) { abort();}
             m->phase = phase;
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
             
             
             commit = all_agree(mbox);
-            if (commit) out(current_command,pid);
+            if (commit){ out(current_command,pid);}
             
             round = THIRD_ROUND;
             
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
                     mbox_new->next = mbox;
                     mbox = mbox_new;
                     
-                }else free(m);
+                }else {free(m);}
                 
                 if (mbox != NULL && mbox->size >= 1) {
                         break;
@@ -254,7 +254,7 @@ int main(int argc, char **argv)
                     mbox_new->next = mbox;
                     mbox = mbox_new;
                  
-                }else free(m);
+                }else {free(m);}
  
                 if (mbox != NULL && mbox->size >= 1)
                     {
