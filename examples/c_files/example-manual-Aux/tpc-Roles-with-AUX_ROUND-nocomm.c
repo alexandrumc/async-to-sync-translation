@@ -125,7 +125,7 @@ int main(int argc, char **argv)
                 }else {free(m);}
                 
                 if (mbox != NULL && mbox->size == n){
-                    {break;}
+                    break;
                 }
             }
             
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
                     mbox = mbox_new;
                 }else {free(m);}
                 if (mbox!= NULL && mbox->size == n){
-                    {break;}
+                    break;
                 }
             }
             

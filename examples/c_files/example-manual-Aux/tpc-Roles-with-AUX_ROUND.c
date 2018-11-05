@@ -493,7 +493,7 @@ int main(int argc, char **argv) //@ : main
                 
             }
             
-                    //@open mbox_tag_EQ(mbox, phase, round);
+            //@open mbox_tag_EQ(mbox, phase, round);
 
             
             //@open lseg(mbox, 0, ?nv);
