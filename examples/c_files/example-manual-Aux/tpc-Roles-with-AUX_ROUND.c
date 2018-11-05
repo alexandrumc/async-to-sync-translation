@@ -453,7 +453,7 @@ int main(int argc, char **argv) //@ : main
                 //@ open mbox_tag_EQ(mbox, phase, round);
                 
                 m = recv();
-                if (m != NULL && m->phase == phase && m->round == FIRST_ROUND){
+                if (m != NULL && m->phase == phase && m->round == FIRST_ROUND && m->sender == leader){
                     
                     //@ open lseg(mbox,0,?v);
                     //@ close eq_list(phase,round)(m);
@@ -477,13 +477,13 @@ int main(int argc, char **argv) //@ : main
             
                 if (mbox != NULL && mbox->size >= 1) {
                     //@open eq_list(phase,round)(head(nv));
-                    if (mbox->message != NULL && mbox->message->sender == leader){
+                    
                         //@close eq_list(phase,round)(head(nv));
                         //@close foreach(nv,eq_list(phase,round));
                         //@close lseg(mbox, 0, nv);
                         //@close mbox_tag_EQ(mbox, phase, round);
                         break;
-                    }
+                    
                     //@close eq_list(phase,round)(head(nv));
                 }
                 
@@ -554,7 +554,7 @@ int main(int argc, char **argv) //@ : main
             {
                 m = recv();
                 //@ open mbox_tag_EQ(mbox, phase, round);
-                if (m != NULL && m->phase == phase && m->round == THIRD_ROUND){
+                if (m != NULL && m->phase == phase && m->round == THIRD_ROUND && m->sender == leader){
                     //@ open lseg(mbox,0,?v);
                     //@ close eq_list(phase,round)(m);
                     mbox_new = (list*) malloc(sizeof(list));
@@ -578,13 +578,13 @@ int main(int argc, char **argv) //@ : main
                 
                 if (mbox != NULL && mbox->size >= 1) {
                     //@ open eq_list(phase,round)(head(v));
-                    if (mbox->message != NULL && mbox->message->sender == leader){
+                    
                         //@close eq_list(phase,round)(head(v));
                         //@close foreach(v,eq_list(phase,round));
                         //@close lseg(mbox, 0, v);
                         //@close mbox_tag_EQ(mbox, phase, round);
                         break;
-                    }
+                  
                     //@close eq_list(phase,round)(head(v));
                 }
                 
