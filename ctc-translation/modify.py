@@ -8,7 +8,7 @@ generator = c_generator.CGenerator()
 
 
 
-ast = parse_file(filename="examples/c_files/ct-terminating.c", use_cpp=False)
+ast = parse_file(filename="../examples/c_files/example-manual-Aux/tpc-Roles-with-AUX_ROUND-nocomm.c", use_cpp=False)
 extern_while_body = None
 x = get_extern_while_body_from_func(ast, "main")
 conditii = []
@@ -48,7 +48,7 @@ remove_mbox(x)
 
 
 
-take_code_from_file(ast,"examples/c_files/ct-terminating.c",'round')
+take_code_from_file(ast,"../examples/c_files/example-manual-Aux/tpc-Roles-with-AUX_ROUND-nocomm.c",'round')
 #print ast
 # copie = copy.deepcopy(x)
 
