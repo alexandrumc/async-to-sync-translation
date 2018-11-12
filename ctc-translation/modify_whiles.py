@@ -14,19 +14,20 @@ def remove_mbox_assign_to_zero(extern_while_body):
     :return:
     """
     to_delete = []
-    for elem in extern_while_body.block_items:
-        # print elem.coord
-        if isinstance(elem, Assignment) and "mbox" in elem.lvalue.name :
-            if (isinstance(elem.rvalue,ID) and elem.rvalue.name == "NULL") or int(elem.rvalue.value) == 0 :
-                to_delete.append(elem)
-        if isinstance(elem, If):
-            remove_mbox_assign_to_zero(elem.iftrue)
-            if elem.iffalse:
-                remove_mbox_assign_to_zero(elem.iffalse)
-        # print "aici e ok", elem.coord
+    if extern_while_body.block_items:
+        for elem in extern_while_body.block_items:
+            # print elem.coord
+            if isinstance(elem, Assignment) and "mbox" in elem.lvalue.name :
+                if (isinstance(elem.rvalue,ID) and elem.rvalue.name == "NULL") or int(elem.rvalue.value) == 0 :
+                    to_delete.append(elem)
+            if isinstance(elem, If):
+                remove_mbox_assign_to_zero(elem.iftrue)
+                if elem.iffalse:
+                    remove_mbox_assign_to_zero(elem.iffalse)
+            # print "aici e ok", elem.coord
 
-    for x in to_delete:
-        extern_while_body.block_items.remove(x)
+        for x in to_delete:
+            extern_while_body.block_items.remove(x)
 
 
 def remove_mbox_free(extern_while_body):
@@ -36,18 +37,19 @@ def remove_mbox_free(extern_while_body):
     :return:
     """
     to_delete = []
-    for elem in extern_while_body.block_items:
-        if isinstance(elem, If):
-            for line in elem.iftrue:
-                if isinstance(line, FuncCall) and line.name.name == "free":
-                    if line.args.exprs[0].name == "mbox":
-                        to_delete.append(elem)
-            remove_mbox_free(elem.iftrue)
-            if elem.iffalse:
-                remove_mbox_free(elem.iffalse)
+    if extern_while_body.block_items:
+        for elem in extern_while_body.block_items:
+            if isinstance(elem, If):
+                for line in elem.iftrue:
+                    if isinstance(line, FuncCall) and line.name.name == "free":
+                        if line.args.exprs[0].name == "mbox":
+                            to_delete.append(elem)
+                remove_mbox_free(elem.iftrue)
+                if elem.iffalse:
+                    remove_mbox_free(elem.iffalse)
 
-    for x in to_delete:
-        extern_while_body.block_items.remove(x)
+        for x in to_delete:
+            extern_while_body.block_items.remove(x)
 
 
 def remove_mbox(extern_while_body):
@@ -99,22 +101,23 @@ def identify_recv_exits(extern_while_body, conditii):
     :param conditii:
     :return:
     """
-    for elem in extern_while_body.block_items:
-        if isinstance(elem, If):
+    if extern_while_body.block_items:
+        for elem in extern_while_body.block_items:
+            if isinstance(elem, If):
 
-            if test(elem.cond):
+                if test(elem.cond):
 
-                aux_cond = identify_exit_cond(elem, conditii)
-                if isinstance(elem.cond, UnaryOp) and elem.cond.op == '!':
-                    elem.cond = aux_cond
-                    # daca e !timeout => fix conditia de iesire
+                    aux_cond = identify_exit_cond(elem, conditii)
+                    if isinstance(elem.cond, UnaryOp) and elem.cond.op == '!':
+                        elem.cond = aux_cond
+                        # daca e !timeout => fix conditia de iesire
+                    else:
+                        elem.cond = UnaryOp('!', aux_cond, elem.cond.coord)
+
                 else:
-                    elem.cond = UnaryOp('!', aux_cond, elem.cond.coord)
-
-            else:
-                identify_recv_exits(elem.iftrue, conditii)
-                if elem.iffalse:
-                    identify_recv_exits(elem.iffalse, conditii)
+                    identify_recv_exits(elem.iftrue, conditii)
+                    if elem.iffalse:
+                        identify_recv_exits(elem.iffalse, conditii)
 
 
 def take_cond_to_break(if_to_check, conds):

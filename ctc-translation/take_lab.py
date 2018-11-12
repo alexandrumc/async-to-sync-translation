@@ -930,15 +930,16 @@ def async_to_async(ast, epoch_name):
 
 
 def identify_nested_algorithms_bodies(extern_body, list):
-    for elem in extern_body.block_items:
-        if isinstance(elem, While) and (not to_modify(elem)):
-            list.append(elem)
-            identify_nested_algorithms_bodies(elem.stmt, list)
-        if isinstance(elem, If):
-            if elem.iftrue:
-                identify_nested_algorithms_bodies(elem.iftrue, list)
-            if elem.iffalse:
-                identify_nested_algorithms_bodies(elem.iffalse, list)
+    if extern_body.block_items:
+        for elem in extern_body.block_items:
+            if isinstance(elem, While) and (not to_modify(elem)):
+                list.append(elem)
+                identify_nested_algorithms_bodies(elem.stmt, list)
+            if isinstance(elem, If):
+                if elem.iftrue:
+                    identify_nested_algorithms_bodies(elem.iftrue, list)
+                if elem.iffalse:
+                    identify_nested_algorithms_bodies(elem.iffalse, list)
 
 
 def identify_nested(ast_tree, epoch_name):
