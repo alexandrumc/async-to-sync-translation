@@ -8,7 +8,7 @@ generator = c_generator.CGenerator()
 
 
 
-ast = parse_file(filename="../examples/c_files/verified/tpc-with-aux_round.c", use_cpp=False)
+ast = parse_file(filename="../examples/c_files/verified_copy/broadcast.c", use_cpp=False)
 extern_while_body = None
 x = get_extern_while_body_from_func(ast, "main")
 conditii = []
@@ -48,7 +48,7 @@ whiles_to_if(x, conditii)
 
 
 
-take_code_from_file(ast,"../examples/c_files/verified/tpc-with-aux_round.c",'round')
+take_code_from_file(ast,"../examples/c_files/verified_copy/broadcast.c",'round')
 #print ast
 # copie = copy.deepcopy(x)
 

@@ -267,6 +267,7 @@ def whiles_to_if(extern_while_body, conditii=None):
     coord_aux -=1
     i = 0
     # print "aaaaaaaaaaa", extern_while_body.coord
+
     size = len(extern_while_body.block_items)
     # print "aici e ok"
     list = []
@@ -311,7 +312,8 @@ def whiles_to_if(extern_while_body, conditii=None):
                 #FuncCall(ID("wait_for_messages", id_coord), None, new_break_coord)
 
                 aux.block_items.insert(i, new_if)
-                whiles_to_if(new_if.iftrue, conditii)
+                if new_if.iftrue:
+                    whiles_to_if(new_if.iftrue, conditii)
 
                 break
             else:
@@ -332,7 +334,8 @@ def whiles_to_if(extern_while_body, conditii=None):
                     if not isinstance(item, While):
                         list.append(item)
                         if isinstance(item, If):
-                            whiles_to_if(item.iftrue, conditii)  # nu stiu inca de ce trb sa pun asta aici
+                            if item.iftrue:
+                                whiles_to_if(item.iftrue, conditii)  # nu stiu inca de ce trb sa pun asta aici
                     elif to_modify(item):
                         coord = item.stmt.coord
 
@@ -367,7 +370,8 @@ def whiles_to_if(extern_while_body, conditii=None):
                                  Assignment('=', ID("round"), ID("ERR_ROUND"), assign_coord)], new_coord)
 
                             element.iftrue.block_items.insert(index, new_if)
-                            whiles_to_if(new_if.iftrue, conditii)
+                            if new_if.iftrue:
+                                whiles_to_if(new_if.iftrue, conditii)
 
                             break
                         else:
@@ -394,7 +398,8 @@ def whiles_to_if(extern_while_body, conditii=None):
                                 new_if.iffalse = Compound(lista, coord)
                                 # new_if.iffalse = Compound([Break()], coord_aux)
                                 element.iffalse.block_items.insert(index, new_if)
-                                whiles_to_if(new_if.iffalse, conditii)
+                                if new_if.iffalse:
+                                    whiles_to_if(new_if.iffalse, conditii)
 
                                 break
                             else:
