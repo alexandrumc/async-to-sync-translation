@@ -8,14 +8,14 @@ generator = c_generator.CGenerator()
 
 
 
-ast = parse_file(filename="/Users/alexandrum/ENS/pycparser/examples/c_files/Discovery_ZAb.c", use_cpp=False)
+ast = parse_file(filename="../examples/c_files/verified/tpc-with-aux_round.c", use_cpp=False)
 extern_while_body = None
 x = get_extern_while_body_from_func(ast, "main")
 conditii = []
 whiles_to_if(x, conditii)
 
-identify_recv_exits(x, conditii)
-remove_mbox(x)
+# identify_recv_exits(x, conditii)
+# remove_mbox(x)
 
 
 #print generator.visit(x)
@@ -48,7 +48,7 @@ remove_mbox(x)
 
 
 
-take_code_from_file(ast,"/Users/alexandrum/ENS/pycparser/examples/c_files/Discovery_ZAb.c",'round')
+take_code_from_file(ast,"../examples/c_files/verified/tpc-with-aux_round.c",'round')
 #print ast
 # copie = copy.deepcopy(x)
 

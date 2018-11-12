@@ -1026,7 +1026,7 @@ def take_code_from_file(ast, filename, labelname):
             print code
             print "End of inner algo code\n\n"
 
-        cop = async_to_async(cop, 'view')
+        # cop = async_to_async(cop, 'view')
         # TODO: - why is the list hardcoded?
         labs = ['FIRST_ROUND','SECOND_ROUND','AUX_ROUND']
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
@@ -1034,7 +1034,7 @@ def take_code_from_file(ast, filename, labelname):
 
     else:
         print "No inner algorithm detected\n"
-        cop = async_to_async(cop, 'epoch')
+        # cop = async_to_async(cop, 'epoch')
         #print generator.visit(cop)
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
         # print generator.visit(cop)

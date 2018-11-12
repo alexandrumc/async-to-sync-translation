@@ -98,7 +98,8 @@ class RecvWhileVisitor(c_generator.CGenerator):
         self.list = []
 
     def visit_While(self, n):
-        self.list.append(n)
+        if to_modify(n):
+            self.list.append(n)
         s = ""
         if n.cond:
             self.visit(n.cond)
