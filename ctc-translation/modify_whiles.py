@@ -193,6 +193,7 @@ def remove_timeout_from_cond(cond, needed_if):
     """
     if isinstance(cond, FuncCall) and cond.name.name == 'timeout':
         needed_if = False
+        return cond, needed_if
     if isinstance(cond.left, BinaryOp):
         if isinstance(cond.left.left, FuncCall) and cond.left.left.name.name == "timeout":
             cond.left = cond.left.right

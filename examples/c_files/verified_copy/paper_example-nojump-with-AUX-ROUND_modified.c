@@ -19,8 +19,6 @@ int reset_timeout();
 
 
 
-enum round_typ {FIRST_ROUND, SECOND_ROUND, AUX_ROUND} ;
-
 msg* recv();
 
 void dispose(msg* c);

@@ -28,7 +28,6 @@ void out(int v1, int v2);
 void send(msg* message, int pid);
 
 
-enum round_typ {FIRST_ROUND, SECOND_ROUND, AUX_ROUND} ;
 
 msg* recv();
 
