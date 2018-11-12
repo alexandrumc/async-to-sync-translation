@@ -48,8 +48,6 @@ void out(int pid, int est);
 int timeout();
 
 
-enum round_typ {FIRST_ROUND, SECOND_ROUND, THIRD_ROUND, FOURTH_ROUND, AUX_ROUND} ;
-
 int main(int argc, char**argv)
 {
     int state = 0;

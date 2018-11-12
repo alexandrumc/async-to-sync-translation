@@ -193,7 +193,7 @@ def remove_timeout_from_cond(cond, needed_if):
     """
     if isinstance(cond, FuncCall) and cond.name.name == 'timeout':
         needed_if = False
-    elif isinstance(cond.left, BinaryOp):
+    if isinstance(cond.left, BinaryOp):
         if isinstance(cond.left.left, FuncCall) and cond.left.left.name.name == "timeout":
             cond.left = cond.left.right
             needed_if = False
@@ -201,7 +201,7 @@ def remove_timeout_from_cond(cond, needed_if):
             cond.left = cond.left.left
             needed_if = False
 
-    elif isinstance(cond.right, BinaryOp):
+    if isinstance(cond.right, BinaryOp):
         if isinstance(cond.right.left, FuncCall) and cond.right.left.name.name == "timeout":
             cond.right = cond.right.right
             needed_if = False
@@ -209,17 +209,17 @@ def remove_timeout_from_cond(cond, needed_if):
             cond.right = cond.right.left
             needed_if = False
 
-    elif isinstance(cond.left, FuncCall) and cond.left.name.name == "timeout":
+    if isinstance(cond.left, FuncCall) and cond.left.name.name == "timeout":
         cond = cond.right
         needed_if = False
 
-    elif isinstance(cond.right, FuncCall) and cond.right.name.name == "timeout":
+    if isinstance(cond.right, FuncCall) and cond.right.name.name == "timeout":
         cond = cond.left
         needed_if = False
 
-    elif isinstance(cond.left, BinaryOp):
+    if isinstance(cond.left, BinaryOp):
         remove_timeout_from_cond(cond.left, needed_if)
-    elif isinstance(cond.right, BinaryOp):
+    if isinstance(cond.right, BinaryOp):
         remove_timeout_from_cond(cond.right, needed_if)
 
     return cond, needed_if

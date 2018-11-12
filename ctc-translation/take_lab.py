@@ -404,7 +404,7 @@ def take_cond_name(cond, lista):
 
 
 
-    print generator.visit(cond)
+    # print generator.visit(cond)
     if isinstance(cond,FuncCall):
         pass
 

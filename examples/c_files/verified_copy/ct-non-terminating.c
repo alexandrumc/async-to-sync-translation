@@ -11,11 +11,9 @@ typedef struct List {
     struct List *next;
     int size;
 } list;
-
 void dispose(msg *c) {
     free(c);
 }
-
 void list_dispose(struct List *l) {
     struct List *current = l;
     while (current != 0) {
@@ -26,14 +24,11 @@ void list_dispose(struct List *l) {
         free(oldcurrent);
     }
 }
-
 int in();
-
 int leader(int phase, int net_size) {
     int res = phase % net_size;
     return res;
 }
-
 msg *max_timestamp(struct List *mbox) {
     struct List *current = mbox;
     msg *max = (msg *) malloc(sizeof(msg));
@@ -62,7 +57,6 @@ msg *max_timestamp(struct List *mbox) {
     }
     return max;
 }
-
 msg *recv() {
     msg *m = (msg *) malloc(sizeof(msg));
     if (m == 0) {
@@ -70,17 +64,12 @@ msg *recv() {
     }
     return m;
 }
-
 void send(msg *message, int pid);
-
 void out(int pid, int est);
-
 int timeout();
-
 enum round_typ {
     FIRST_ROUND, SECOND_ROUND, THIRD_ROUND, FOURTH_ROUND, AUX_ROUND
 };
-
 int main(int argc, char **argv) {
     int state = 0;
     int round = 0;
@@ -136,7 +125,6 @@ int main(int argc, char **argv) {
                         mbox_new->size = mbox->size + 1;
                     } else {
                         mbox_new->size = 1;
-
                         mbox_new->next = mbox;
                         mbox = mbox_new;
                     }
