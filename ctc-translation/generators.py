@@ -762,9 +762,44 @@ class RoundGenerator(c_generator.CGenerator):
                 self.extend_visit = True
                 s = 'if ('
                 self.visit_cond = True
+                s += '('
                 cond_visitor = CondVisitor(self.current_round)
                 s += cond_visitor.visit(n.cond)
                 # s += self.visit(n.cond)
+                s += ')'
+
+                node = n
+                if not node.iffalse or not node.iftrue:
+                    while True:
+                        new_node = None
+
+                        if node.iftrue:
+                            if len(node.iftrue.block_items) == 1:
+                                if isinstance(node.iftrue.block_items[0], If):
+                                    if_node = node.iftrue.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+
+                        if node.iffalse:
+                            if len(node.iffalse.block_items) == 1:
+                                if isinstance(node.iffalse.block_items[0], If):
+                                    if_node = node.iffalse.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+
+                        if new_node is None:
+                            break
+
+                        node = new_node
+
+                        s += ' &&&& '
+                        s += '('
+                        s += cond_visitor.visit(node.cond)
+                        s += ')'
+
+                # s += self.visit(n.cond)
+
+                n = node
 
                 self.visit_cond = False
                 s += ')\n'
@@ -792,6 +827,8 @@ class RoundGenerator(c_generator.CGenerator):
                 if n.cond:
                     if n.iffalse is not None and n.iffalse in self.path:
                         s += '!('
+                    else:
+                        s += '('
                     self.visit_cond = True
                     cond_visitor = CondVisitor(self.current_round)
                     s += cond_visitor.visit(n.cond)
@@ -799,7 +836,47 @@ class RoundGenerator(c_generator.CGenerator):
                     self.visit_cond = False
                     if n.iffalse is not None and n.iffalse in self.path:
                         s += ')'
+                    else:
+                        s += ')'
+
+                node = n
+                if not node.iffalse or not node.iftrue:
+                    while True:
+                        new_node = None
+
+                        if node.iftrue and node.iftrue in self.path:
+                            if len(node.iftrue.block_items) == 1:
+                                if isinstance(node.iftrue.block_items[0], If):
+                                    if_node = node.iftrue.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+                        elif node.iffalse:
+                            if len(node.iffalse.block_items) == 1:
+                                if isinstance(node.iffalse.block_items[0], If):
+                                    if_node = node.iffalse.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+
+                        if new_node is None:
+                            break
+
+                        node = new_node
+
+                        s += ' &&&& '
+                        if node.iffalse is not None and node.iffalse in self.path:
+                            s += '!('
+                        else:
+                            s += '('
+                        cond_visitor = CondVisitor(self.current_round)
+                        s += cond_visitor.visit(node.cond)
+                        s += ')'
+
+                # s += self.visit(n.cond)
+
+                n = node
                 s += ')\n'
+
+
                 if n.iftrue in self.path:
                     s += self._generate_stmt(n.iftrue, add_indent=True)
                 else:
@@ -822,22 +899,64 @@ class RoundGenerator(c_generator.CGenerator):
                 if self.path and self.extend_visit:
                     s = 'if ('
                     self.visit_cond = True
+                    s += '('
                     cond_visitor = CondVisitor(self.current_round)
                     s += cond_visitor.visit(n.cond)
                     # s += self.visit(n.cond)
                     self.visit_cond = False
-                    s += ')\n'
+                    s += ')'
                 else:
                     s = 'if ('
                     if n.cond:
                         if n.iffalse is not None and n.iftrue is None:
                             s += '!('
+                        else:
+                            s += '('
                         cond_visitor = CondVisitor(self.current_round)
                         s += cond_visitor.visit(n.cond)
                         # s += self.visit(n.cond)
                         if n.iffalse is not None and n.iftrue is None:
                             s += ')'
-                    s += ')\n'
+                        else:
+                            s += ')'
+
+                node = n
+                if not node.iffalse or not node.iftrue:
+                    while True:
+                        new_node = None
+
+                        if node.iftrue:
+                            if len(node.iftrue.block_items) == 1:
+                                if isinstance(node.iftrue.block_items[0], If):
+                                    if_node = node.iftrue.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+                        if node.iffalse:
+                            if len(node.iffalse.block_items) == 1:
+                                if isinstance(node.iffalse.block_items[0], If):
+                                    if_node = node.iffalse.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+
+                        if new_node is None:
+                            break
+
+                        node = new_node
+
+                        s += ' &&&& '
+                        if node.iffalse is not None and node.iftrue is None:
+                            s += '!('
+                        else:
+                            s += '('
+                        cond_visitor = CondVisitor(self.current_round)
+                        s += cond_visitor.visit(node.cond)
+                        s += ')'
+
+                # s += self.visit(n.cond)
+
+                n = node
+
+                s += ')\n'
                 if n.iftrue:
                     s += self._generate_stmt(n.iftrue, add_indent=True)
                 if n.iffalse:
@@ -873,9 +992,46 @@ class RoundGenerator(c_generator.CGenerator):
                 self.extend_visit = True
                 s = 'if ('
                 self.visit_cond = True
+                #### incepe
+                s += '('
                 cond_visitor = CondVisitor(self.current_round)
                 s += cond_visitor.visit(n.cond)
+                s += ')'
+
+
+                node = n
+                if not node.iffalse or not node.iftrue:
+                    while True:
+                        new_node = None
+
+                        if node.iftrue:
+                            if len(node.iftrue.block_items) == 1:
+                                if isinstance(node.iftrue.block_items[0], If):
+                                    if_node = node.iftrue.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+
+                        if node.iffalse:
+                            if len(node.iffalse.block_items) == 1:
+                                if isinstance(node.iffalse.block_items[0], If):
+                                    if_node = node.iffalse.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+
+                        if new_node is None:
+                            break
+
+                        node = new_node
+
+                        s += ' &&&& '
+                        s += '('
+                        s += cond_visitor.visit(node.cond)
+                        s += ')'
+
                 # s += self.visit(n.cond)
+
+                n = node
+
                 self.visit_cond = False
                 s += ')\n'
                 s += self._generate_stmt(n.iftrue, add_indent=True)
@@ -908,6 +1064,8 @@ class RoundGenerator(c_generator.CGenerator):
                 if n.cond:
                     if n.iffalse is not None and n.iffalse in self.path:
                         s += '!('
+                    else:
+                        s += '('
                     self.visit_cond = True
                     cond_visitor = CondVisitor(self.current_round)
                     s += cond_visitor.visit(n.cond)
@@ -915,6 +1073,46 @@ class RoundGenerator(c_generator.CGenerator):
                     self.visit_cond = False
                     if n.iffalse is not None and n.iffalse in self.path:
                         s += ')'
+                    else:
+                        s += ')'
+
+
+                node = n
+                if not node.iffalse or not node.iftrue:
+                    while True:
+                        new_node = None
+
+                        if node.iftrue and node.iftrue in self.path:
+                            if len(node.iftrue.block_items) == 1:
+                                if isinstance(node.iftrue.block_items[0], If):
+                                    if_node = node.iftrue.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+                        elif node.iffalse:
+                            if len(node.iffalse.block_items) == 1:
+                                if isinstance(node.iffalse.block_items[0], If):
+                                    if_node = node.iffalse.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+
+                        if new_node is None:
+                            break
+
+                        node = new_node
+
+                        s += ' &&&& '
+                        if node.iffalse is not None and node.iffalse in self.path:
+                            s += '!('
+                        else:
+                            s += '('
+                        cond_visitor = CondVisitor(self.current_round)
+                        s += cond_visitor.visit(node.cond)
+                        s += ')'
+
+                # s += self.visit(n.cond)
+
+                n = node
+
                 s += ')\n'
                 if n.iftrue in self.path:
                     s += self._generate_stmt(n.iftrue, add_indent=True)
@@ -943,17 +1141,20 @@ class RoundGenerator(c_generator.CGenerator):
                                 return ""
                 if self.path and self.extend_visit:
                     s = 'if ('
+                    s += '('
                     self.visit_cond = True
                     cond_visitor = CondVisitor(self.current_round)
                     s += cond_visitor.visit(n.cond)
                     # s += self.visit(n.cond)
                     self.visit_cond = False
-                    s += ')\n'
+                    s += ')'
                 else:
                     s = 'if ('
                     if n.cond:
                         if n.iffalse is not None and n.iftrue is None:
                             s += '!('
+                        else:
+                            s += '('
                         self.visit_cond = True
                         cond_visitor = CondVisitor(self.current_round)
                         s += cond_visitor.visit(n.cond)
@@ -961,7 +1162,48 @@ class RoundGenerator(c_generator.CGenerator):
                         self.visit_cond = False
                         if n.iffalse is not None and n.iftrue is None:
                             s += ')'
-                    s += ')\n'
+                        else:
+                            s += ')'
+
+                node = n
+                if not node.iffalse or not node.iftrue:
+                    while True:
+                        new_node = None
+
+                        if node.iftrue:
+                            if len(node.iftrue.block_items) == 1:
+                                if isinstance(node.iftrue.block_items[0], If):
+                                    if_node = node.iftrue.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+                        if node.iffalse:
+                            if len(node.iffalse.block_items) == 1:
+                                if isinstance(node.iffalse.block_items[0], If):
+                                    if_node = node.iffalse.block_items[0]
+                                    if not if_node.iftrue or not if_node.iffalse:
+                                        new_node = if_node
+
+                        if new_node is None:
+                            break
+
+                        node = new_node
+
+                        s += ' &&&& '
+                        if node.iffalse is not None and node.iftrue is None:
+                            s += '!('
+                        else:
+                            s += '('
+                        cond_visitor = CondVisitor(self.current_round)
+                        s += cond_visitor.visit(node.cond)
+                        s += ')'
+
+                # s += self.visit(n.cond)
+
+                n = node
+
+                s += ')\n'
+
+
                 if n.iftrue:
                     s += self._generate_stmt(n.iftrue, add_indent=True)
                     if self.send_last_instr:
