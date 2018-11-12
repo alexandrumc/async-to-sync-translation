@@ -404,10 +404,13 @@ def take_cond_name(cond, lista):
 
 
 
+    print generator.visit(cond)
     if isinstance(cond,FuncCall):
         pass
 
+
     elif isinstance(cond, UnaryOp):
+        print cond.coord
         take_cond_name(cond.expr, lista)
 
 
