@@ -793,7 +793,7 @@ class RoundGenerator(c_generator.CGenerator):
 
                         node = new_node
 
-                        s += ' &&&& '
+                        s += ' && '
                         s += '('
                         s += cond_visitor.visit(node.cond)
                         s += ')'
@@ -863,7 +863,7 @@ class RoundGenerator(c_generator.CGenerator):
 
                         node = new_node
 
-                        s += ' &&&& '
+                        s += ' && '
                         if node.iffalse is not None and node.iffalse in self.path:
                             s += '!('
                         else:
@@ -944,7 +944,7 @@ class RoundGenerator(c_generator.CGenerator):
 
                         node = new_node
 
-                        s += ' &&&& '
+                        s += ' && '
                         if node.iffalse is not None and node.iftrue is None:
                             s += '!('
                         else:
@@ -1024,7 +1024,7 @@ class RoundGenerator(c_generator.CGenerator):
 
                         node = new_node
 
-                        s += ' &&&& '
+                        s += ' && '
                         s += '('
                         s += cond_visitor.visit(node.cond)
                         s += ')'
@@ -1101,7 +1101,7 @@ class RoundGenerator(c_generator.CGenerator):
 
                         node = new_node
 
-                        s += ' &&&& '
+                        s += ' && '
                         if node.iffalse is not None and node.iffalse in self.path:
                             s += '!('
                         else:
@@ -1189,7 +1189,7 @@ class RoundGenerator(c_generator.CGenerator):
 
                         node = new_node
 
-                        s += ' &&&& '
+                        s += ' && '
                         if node.iffalse is not None and node.iftrue is None:
                             s += '!('
                         else:
