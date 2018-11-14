@@ -95,8 +95,6 @@ void send(msg* message, int pid);
 //@ requires true;
 //@ ensures true;
 
-enum round_typ {NEW_BALLOT_ROUND, ACK_BALLOT_ROUND, AUX_ROUND} ;
-
 msg* recv()
 //@ requires emp;
 //@ ensures result->round |-> ?v1 &*& result->ballot |-> ?v &*& result->sender |-> ?sender &*& malloc_block_Msg(result) &*& INT_MIN <v &*& v < INT_MAX;
@@ -253,7 +251,9 @@ int main(int argc, char **argv)//@ : main
            
             //@ old_ballot = ballot;
             m = (msg *) malloc(sizeof(msg));
-            if (m==0) abort();
+            if (m==0) {
+            abort();
+            }
             m->ballot = ballot;
             m->round = ACK_BALLOT_ROUND;
             
@@ -274,13 +274,20 @@ int main(int argc, char **argv)//@ : main
                  if (m != NULL && m->ballot == ballot && m->round == round){
             
                                 mbox_new = (list*) malloc(sizeof(list));
-                                if(mbox_new==0) abort();
+                                if(mbox_new==0) {
+                                abort();
+                                }
                                 mbox_new->message =m;
                                 if(mbox!=0)
+                                    {
                                     mbox_new->size = mbox->size + 1;
-                                else  mbox_new->size =1 ;
+                                    }
+                                else
+                                {
+                                mbox_new->size =1 ;
                                 mbox_new->next = mbox;
                                 mbox = mbox_new;
+                                }
             
                     }
                     else free(m);
@@ -303,7 +310,9 @@ int main(int argc, char **argv)//@ : main
             //@ close eq_val_list_pred(ballot,round,mbox);
             //@ eq_val_list_pred_to_list_pred_lemma(mbox);
             
-            if(mbox!=0) list_dispose(mbox);
+            if(mbox!=0) {
+            list_dispose(mbox);
+            }
         }
        
         //@ old_ballot = ballot;
