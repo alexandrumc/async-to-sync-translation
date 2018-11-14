@@ -61,7 +61,7 @@ def round NewBallot_ROUND:
 def round AckBallot_ROUND:
   SEND():
 
-  if ((pid == leader(epoch, n)) &&&& (((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
+  if ((pid == leader(epoch, n)) && (((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
@@ -74,7 +74,7 @@ def round AckBallot_ROUND:
     m->history_lenght = lastIndex;
     send(m, leader(epoch, n));
   }
-  if (!(pid == leader(epoch, n)) &&&& (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
+  if (!(pid == leader(epoch, n)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
@@ -89,7 +89,7 @@ def round AckBallot_ROUND:
   }
   UPDATE():
 
-  if ((pid == leader(epoch, n)) &&&& (((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
+  if ((pid == leader(epoch, n)) && (((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     free(m);
     if (((mbox != NULL) && (mbox->size > (n / 2))))
@@ -101,7 +101,7 @@ def round AckBallot_ROUND:
       round = FIRST_ROUND;
     }
   }
-  if ((pid == leader(epoch, n)) &&&& (((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
+  if ((pid == leader(epoch, n)) && (((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     free(m);
     if (!((mbox != NULL) && (mbox->size > (n / 2))))
@@ -110,7 +110,7 @@ def round AckBallot_ROUND:
       round = FIRST_ROUND;
     }
   }
-  if (!(pid == leader(epoch, n)) &&&& (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
+  if (!(pid == leader(epoch, n)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
   {
     free(m);
     if (((mbox != NULL) && (mbox->size > (n / 2))))
@@ -122,7 +122,7 @@ def round AckBallot_ROUND:
       round = FIRST_ROUND;
     }
   }
-  if (!(pid == leader(epoch, n)) &&&& (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
+  if (!(pid == leader(epoch, n)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
   {
     free(m);
     if (!((mbox != NULL) && (mbox->size > (n / 2))))
@@ -132,6 +132,3 @@ def round AckBallot_ROUND:
     }
   }
 
-
-
-Process finished with exit code 0

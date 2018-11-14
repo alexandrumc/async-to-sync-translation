@@ -143,5 +143,3 @@ def round FOURTH_ROUND:
   round = FIRST_ROUND;
 
 
-
-Process finished with exit code 0

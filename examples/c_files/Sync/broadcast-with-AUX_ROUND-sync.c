@@ -164,6 +164,3 @@ def round THIRD_ROUND:
     }
   }
 
-
-
-Process finished with exit code 0

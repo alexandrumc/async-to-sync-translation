@@ -142,6 +142,3 @@ def round FOURTH_ROUND:
   phase = phase + 1;
   round = FIRST_ROUND;
 
-
-
-Process finished with exit code 0

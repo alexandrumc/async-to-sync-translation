@@ -85,6 +85,3 @@ if(round == ACK_BALLOT_ROUND)
   round = FIRST_ROUND;
 }
 
-
-
-Process finished with exit code 0

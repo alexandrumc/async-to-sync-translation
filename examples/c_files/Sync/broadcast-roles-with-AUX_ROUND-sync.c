@@ -76,7 +76,7 @@ def round SECOND_ROUND:
 
 if(round == SECOND_ROUND)
 {
-  if (!(pid == old_0_leader) &&&& ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  if (!(pid == old_0_leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
@@ -110,7 +110,7 @@ if(round == SECOND_ROUND)
 
 if(round == SECOND_ROUND)
 {
-  if (!(pid == old_0_leader) &&&& ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  if (!(pid == old_0_leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
     dispose(m);
     round = THIRD_ROUND;
@@ -177,7 +177,7 @@ if(round == THIRD_ROUND)
     list_add(log, newEntry);
     round = FIRST_ROUND;
   }
-  if (!(pid == old_0_leader) &&&& ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  if (!(pid == old_0_leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
     if ((mbox != NULL))
     {
@@ -193,7 +193,7 @@ if(round == THIRD_ROUND)
       out(logi);
     }
   }
-  if (!(pid == old_0_leader) &&&& ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  if (!(pid == old_0_leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
     if ((mbox != NULL))
     {
@@ -205,6 +205,3 @@ if(round == THIRD_ROUND)
   }
 }
 
-
-
-Process finished with exit code 0
