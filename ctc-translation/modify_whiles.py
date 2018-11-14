@@ -343,7 +343,10 @@ def whiles_to_if(extern_while_body, conditii=None):
                         if isinstance(item, If):
                             if item.iftrue:
                                 whiles_to_if(item.iftrue, conditii)  # nu stiu inca de ce trb sa pun asta aici
+                            if item.iffalse:
+                                whiles_to_if(item.iffalse, conditii)
                     elif to_modify(item):
+                        # print item.coord, 'aaaa'
                         coord = item.stmt.coord
 
                         new_if = modify_while(item)
@@ -392,10 +395,16 @@ def whiles_to_if(extern_while_body, conditii=None):
                     to_delete = []
                     for index, item in enumerate(element.iffalse.block_items):
 
+                        # print item.coord
                         if not isinstance(item, While):
                             list.append(item)
                             # print item
+                            if isinstance(item,If):
+                                whiles_to_if(item.iftrue,conditii)
+                                if item.iffalse:
+                                    whiles_to_if(item.iffalse,conditii)
                         elif to_modify(item):
+                            # print item.coord,"bbb"
                             coord = item.stmt.coord
                             new_if = modify_while(item)
                             if isinstance(new_if, If):
