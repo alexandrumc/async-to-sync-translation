@@ -23,7 +23,6 @@ if(round == NEW_BALLOT_ROUND)
   if ((pid == leader(ballot, n)))
   {
     dispose(m);
-    m = NULL;
   }
   reset_timeout();
   old_0_mbox = mbox;
@@ -35,7 +34,6 @@ if(round == NEW_BALLOT_ROUND)
   if ((pid == leader(ballot, n)))
   {
     dispose(m);
-    m = NULL;
   }
   reset_timeout();
   old_0_mbox = mbox;
@@ -72,8 +70,6 @@ if(round == ACK_BALLOT_ROUND)
   if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     dispose(m);
-    m = NULL;
-    list_dispose1(mbox);
     reset_timeout();
     if (((mbox != NULL) && (mbox->size > (n / 2))))
     {
@@ -83,7 +79,6 @@ if(round == ACK_BALLOT_ROUND)
     }
     if ((mbox != 0))
     {
-      list_dispose(mbox);
     }
   }
   ballot++;

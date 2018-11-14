@@ -17,7 +17,6 @@ def round NewBallot_ROUND:
   if ((pid == leader(epoch, n)))
   {
     free(m);
-    m = NULL;
     reset_timeout();
     old_0_mbox = mbox;
     if ((((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
@@ -39,12 +38,10 @@ def round NewBallot_ROUND:
   if ((pid == leader(epoch, n)))
   {
     free(m);
-    m = NULL;
     reset_timeout();
     old_0_mbox = mbox;
     if (!(((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
     {
-      list_dispose1(mbox);
       epoch++;
       round = FIRST_ROUND;
     }
@@ -55,7 +52,6 @@ def round NewBallot_ROUND:
     old_1_mbox = mbox;
     if (!(((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
     {
-      list_dispose1(mbox);
       epoch++;
       round = FIRST_ROUND;
     }
@@ -96,14 +92,11 @@ def round AckBallot_ROUND:
   if ((pid == leader(epoch, n)) &&&& (((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     free(m);
-    m = NULL;
-    list_dispose1(mbox);
     if (((mbox != NULL) && (mbox->size > (n / 2))))
     {
       lastIndex = max_log_size(mbox);
       struct arraylist *old_log = log;
       log = longest_log(mbox, lastIndex);
-      list_dispose(old_log);
       epoch++;
       round = FIRST_ROUND;
     }
@@ -111,11 +104,8 @@ def round AckBallot_ROUND:
   if ((pid == leader(epoch, n)) &&&& (((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     free(m);
-    m = NULL;
-    list_dispose1(mbox);
     if (!((mbox != NULL) && (mbox->size > (n / 2))))
     {
-      list_dispose_mbox(mbox);
       epoch++;
       round = FIRST_ROUND;
     }
@@ -123,14 +113,11 @@ def round AckBallot_ROUND:
   if (!(pid == leader(epoch, n)) &&&& (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
   {
     free(m);
-    m = NULL;
-    list_dispose1(mbox);
     if (((mbox != NULL) && (mbox->size > (n / 2))))
     {
       lastIndex = max_log_size(mbox);
       struct arraylist *old_log = log;
       log = longest_log(mbox, lastIndex);
-      list_dispose(old_log);
       epoch++;
       round = FIRST_ROUND;
     }
@@ -138,11 +125,8 @@ def round AckBallot_ROUND:
   if (!(pid == leader(epoch, n)) &&&& (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
   {
     free(m);
-    m = NULL;
-    list_dispose1(mbox);
     if (!((mbox != NULL) && (mbox->size > (n / 2))))
     {
-      list_dispose_mbox(mbox);
       epoch++;
       round = NewBallot_ROUND;
     }
