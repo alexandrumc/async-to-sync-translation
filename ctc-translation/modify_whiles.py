@@ -18,8 +18,14 @@ def remove_mbox_assign_to_zero(extern_while_body):
         for elem in extern_while_body.block_items:
             # print elem.coord
             if isinstance(elem, Assignment) and "mbox" in elem.lvalue.name :
-                if (isinstance(elem.rvalue,ID) and elem.rvalue.name == "NULL") or int(elem.rvalue.value) == 0 :
+                if (isinstance(elem.rvalue,ID) and elem.rvalue.name == "NULL") or int(elem.rvalue.value) == 0:
                     to_delete.append(elem)
+
+            if isinstance(elem, Assignment) and elem.lvalue.name  == 'm':
+                if not isinstance(elem.rvalue, Cast):
+                    if (isinstance(elem.rvalue,ID) and elem.rvalue.name == "NULL") or (isinstance(elem.rvalue,ID) and int(elem.rvalue.value) == 0):
+                        to_delete.append(elem)
+
             if isinstance(elem, If):
                 remove_mbox_assign_to_zero(elem.iftrue)
                 if elem.iffalse:
@@ -51,6 +57,31 @@ def remove_mbox_free(extern_while_body):
         for x in to_delete:
             extern_while_body.block_items.remove(x)
 
+def remove_list_dispose(extern_while_body):
+
+    to_delete = []
+    if extern_while_body.block_items:
+        for elem in extern_while_body.block_items:
+            if isinstance(elem, FuncCall) and "list_dispose" in elem.name.name:
+                to_delete.append(elem)
+            if isinstance(elem, If):
+                remove_list_dispose(elem.iftrue)
+                if elem.iffalse:
+                    remove_list_dispose(elem.iffalse)
+        for x in to_delete:
+            extern_while_body.block_items.remove(x)
+
+def remove_null_if(extern_while_body):
+
+    to_delete = []
+    if extern_while_body.block_items:
+        for elem in extern_while_body.block_items:
+            if isinstance(elem,If) and isinstance(elem.iftrue, Compound):
+                if len(elem.iftrue.block_items) == 0:
+                    to_delete.append(elem)
+        for x in to_delete:
+            extern_while_body.block_items.remove(x)
+
 
 def remove_mbox(extern_while_body):
     """
@@ -60,6 +91,8 @@ def remove_mbox(extern_while_body):
     """
     remove_mbox_assign_to_zero(extern_while_body)
     remove_mbox_free(extern_while_body)
+    remove_list_dispose(extern_while_body)
+    remove_null_if(extern_while_body)
 
 
 def test(op):
@@ -343,7 +376,10 @@ def whiles_to_if(extern_while_body, conditii=None):
                         if isinstance(item, If):
                             if item.iftrue:
                                 whiles_to_if(item.iftrue, conditii)  # nu stiu inca de ce trb sa pun asta aici
+                            if item.iffalse:
+                                whiles_to_if(item.iffalse, conditii)
                     elif to_modify(item):
+                        # print item.coord, 'aaaa'
                         coord = item.stmt.coord
 
                         new_if = modify_while(item)
@@ -392,10 +428,16 @@ def whiles_to_if(extern_while_body, conditii=None):
                     to_delete = []
                     for index, item in enumerate(element.iffalse.block_items):
 
+                        # print item.coord
                         if not isinstance(item, While):
                             list.append(item)
                             # print item
+                            if isinstance(item,If):
+                                whiles_to_if(item.iftrue,conditii)
+                                if item.iffalse:
+                                    whiles_to_if(item.iffalse,conditii)
                         elif to_modify(item):
+                            # print item.coord,"bbb"
                             coord = item.stmt.coord
                             new_if = modify_while(item)
                             if isinstance(new_if, If):

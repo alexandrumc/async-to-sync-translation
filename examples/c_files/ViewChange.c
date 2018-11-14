@@ -90,7 +90,7 @@ int main(int pid, int num_processes) {
 
             while (true) {
                 m = recv();
-                if (m != NULL && m.view >= view && m.round == round) {
+                if (m != NULL && m.view == view && m.round == round) {
                     mbox[num_mbox] = m;
                     num_mbox++;
                 }
@@ -100,7 +100,7 @@ int main(int pid, int num_processes) {
             }
 
             if (num_mbox >= num_processes / 2) {
-                view = get_view(mbox);
+                //view = get_view(mbox);
                 history = get_longest_history(mbox);
                 commit_nb = get_biggest_commit(mbox);
                 round = START_VIEW_ROUND;
@@ -127,7 +127,7 @@ int main(int pid, int num_processes) {
 
         while (true) {
             m = recv();
-            if (m != NULL && m.view >= view && m.round == round) {
+            if (m != NULL && m.view == view && m.round == round) {
                 mbox[num_mbox] = m;
                 num_mbox++;
             }
@@ -137,7 +137,7 @@ int main(int pid, int num_processes) {
         }
 
         if (num_mbox >= 1) {
-            view = mbox[num_mbox].view;
+            //view = mbox[num_mbox].view;
             round = mbox[num_mbox].round;
             history = mbox[num_mbox].history;
             history_lenght = mbox[num_mbox].history_lenght;
