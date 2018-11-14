@@ -125,41 +125,6 @@ def round AckBallot_ROUND:
     free(m);
     m = NULL;
     list_dispose1(mbox);
-    while (true)
-    {
-      m = recv();
-      if ((((m != NULL) && (m->epoch == epoch)) && (m->round == AckBallot_ROUND)))
-      {
-        mbox_new = (list *) malloc(sizeof(list));
-        if ((mbox_new == 0))
-        {
-          abort();
-        }
-        mbox_new->message = m;
-        if ((mbox != 0))
-        {
-          mbox_new->size = mbox->size + 1;
-        }
-        else
-        {
-          mbox_new->size = 1;
-          mbox_new->next = mbox;
-          mbox = mbox_new;
-        }
-      }
-      else
-      {
-        free(m);
-      }
-      if ((timeout()))
-      {
-        out();
-      }
-      if (((mbox != NULL) && (mbox->size > (n / 2))))
-      {
-        out();
-      }
-    }
     if (((mbox != NULL) && (mbox->size > (n / 2))))
     {
       lastIndex = max_log_size(mbox);
@@ -175,41 +140,6 @@ def round AckBallot_ROUND:
     free(m);
     m = NULL;
     list_dispose1(mbox);
-    while (true)
-    {
-      m = recv();
-      if ((((m != NULL) && (m->epoch == epoch)) && (m->round == AckBallot_ROUND)))
-      {
-        mbox_new = (list *) malloc(sizeof(list));
-        if ((mbox_new == 0))
-        {
-          abort();
-        }
-        mbox_new->message = m;
-        if ((mbox != 0))
-        {
-          mbox_new->size = mbox->size + 1;
-        }
-        else
-        {
-          mbox_new->size = 1;
-          mbox_new->next = mbox;
-          mbox = mbox_new;
-        }
-      }
-      else
-      {
-        free(m);
-      }
-      if ((timeout()))
-      {
-        out();
-      }
-      if (((mbox != NULL) && (mbox->size > (n / 2))))
-      {
-        out();
-      }
-    }
     if (!((mbox != NULL) && (mbox->size > (n / 2))))
     {
       list_dispose_mbox(mbox);
