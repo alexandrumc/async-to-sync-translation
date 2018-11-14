@@ -8,7 +8,7 @@ generator = c_generator.CGenerator()
 
 
 
-ast = parse_file(filename="../examples/c_files/verified_copy/broadcast-with-AUX_ROUND.c", use_cpp=False)
+ast = parse_file(filename="../examples/c_files/verified_copy/broadcast-roles-with-AUX_ROUND.c", use_cpp=False)
 extern_while_body = None
 x = get_extern_while_body_from_func(ast, "main")
 conditii = []
@@ -48,7 +48,7 @@ remove_mbox(x)
 
 
 
-take_code_from_file(ast,"../examples/c_files/verified_copy/broadcast-with-AUX_ROUND.c",'round')
+take_code_from_file(ast,"../examples/c_files/verified_copy/broadcast-roles-with-AUX_ROUND.c",'round')
 #print ast
 # copie = copy.deepcopy(x)
 
