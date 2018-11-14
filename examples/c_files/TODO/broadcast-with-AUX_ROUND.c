@@ -7,6 +7,64 @@
 
 
 
+typedef struct Msg {
+    int op;
+    int epoch;
+    int  lab;
+    int i;
+    int round;
+    int sender;
+} msg;
+
+typedef struct Ltype {
+    int op;
+    int commit;
+} ltype;
+
+
+typedef struct List{
+    msg * message;
+    struct List * next;
+    int size;
+} list;
+
+void out(ltype *v);
+
+
+int in();
+
+
+
+
+int timeout();
+
+int reset_timeout();
+
+int rand_bool();
+
+
+
+msg* recv();
+
+void dispose(msg* c);
+
+
+ltype * create_ltype(int op, int b);
+
+void list_dispose_double(struct List *l);
+
+void list_dispose_no_data(struct List *l);
+
+void dispose_list(list* c);
+
+void send(msg* message, int pid);
+
+int leader(int phase, int net_size);
+
+int all_agree(struct List* l);
+
+
+
 enum round_typ_A {PROPOSE, ACK, LEADER, BCAST} ;
 
 enum round_typ_B {FIRST_ROUND, SECOND_ROUND, THIRD_ROUND, AUX_ROUND} ;
@@ -14,7 +72,7 @@ enum round_typ_B {FIRST_ROUND, SECOND_ROUND, THIRD_ROUND, AUX_ROUND} ;
 // lastIndex and cmt_number are "global" variables, all processes executing broadcast have the same value.
 
 
-int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_number, int leader, int epoch)
+int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_number, int leader, int epoch)
 //@ requires  arraylist(log, ?log_data) &*& 0<= lastIndex &*& lastIndex == length(log_data)-1 &*& foreach(log_data, alloc_ctor());
 //@ ensures arraylist(log, ?nnewlog_data) &*& 0<= lastIndex &*& foreach(nnewlog_data, alloc_ctor());
 {
@@ -58,11 +116,15 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
         ltype * newEntry;
         if (pid == leader)
             
+            {
             newEntry = create_ltype(in(),false);
+            }
         
         else
             
+            {
             newEntry = create_ltype(-1,false);
+            }
         
         list_add(log,newEntry);
         //@ close alloc_ctor()(newEntry);
@@ -72,6 +134,7 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
     }else {
         //@ close alloc_ctor()(lastEntry);
         //@ foreach_unremove(lastEntry, log_data);
+        break;
     }
     
     
@@ -100,7 +163,9 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
         if (pid == leader) {
             
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {
+            abort();
+            }
             m->i = i;
             m->round = round;
             m->epoch = epoch;
@@ -110,7 +175,9 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
             ltype * entry = list_get(log,lastIndex);
             //@ foreach_remove(entry, newlog_data);
             //@ open alloc_ctor()(entry);
-            if(entry != NULL) m->op = entry->op;
+            if(entry != NULL) {
+            m->op = entry->op;
+            }
             //@ close alloc_ctor()(entry);
             //@ foreach_unremove(entry, newlog_data);
             
@@ -139,16 +206,23 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
                 //@ open lseg(mbox,0,?v);
                 //@ close eq_list(epoch,lab, i, round)(m);
                 mbox_new = (list*) malloc(sizeof(list));
-                if(mbox_new==0) abort();
+                if(mbox_new==0) {
+                abort();
+                }
                 mbox_new->message =m;
                 if(mbox!=0)
+                    {
                     mbox_new->size = mbox->size + 1;
-                else  mbox_new->size =1 ;
+                    }
+                else
+                {
+                mbox_new->size =1 ;
                 mbox_new->next = mbox;
                 //@ close lseg(mbox,0, v);
                 mbox = mbox_new;
                 //@ close lseg(mbox,0, cons(m,v));
                 //@ close foreach(cons(m,v), eq_list(epoch,lab, i, round));
+                }
             }else free(m);
             
             //@open lseg(mbox, 0, ?nv);
@@ -216,6 +290,7 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
                 //@close foreach(nv,eq_list(epoch,lab, i, round));
                 //@close lseg(mbox, 0, nv);
                 //@ lemma_EQ_list_to_alloc_list(mbox, epoch,lab, i, round);
+                break;
             }
             
             
@@ -225,7 +300,9 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
             
             
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {
+            abort();
+            }
             m->i = i;
             m->round = round;
             m->epoch = epoch;
@@ -260,15 +337,22 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
                         //@ close eq_list(epoch,lab, i, round)(m);
                         
                         mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) abort();
+                        if(mbox_new==0) {
+                        abort();
+                        }
                         mbox_new->message =m;
                         if(mbox!=0)
+                            {
                             mbox_new->size = mbox->size + 1;
-                        else  mbox_new->size =1 ;
+                            }
+                        else
+                        {
+                        mbox_new->size =1 ;
                         mbox_new->next = mbox;
                         //@ close lseg(mbox,0, v);
                         
                         mbox = mbox_new;
+                        }
                         //@ close lseg(mbox,0, cons(m,v));
                         //@ close foreach(cons(m,v), eq_list(epoch,lab, i, round));
                     }else free(m);
@@ -299,7 +383,9 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
                     
                     //@ foreach_remove(logi, newlog_data);
                     //@ open alloc_ctor()(logi);
-                    if(logi != 0)  logi->commit = true;
+                    if(logi != 0)  {
+                    logi->commit = true;
+                    }
                     
                     //@ close alloc_ctor()(logi);
                     //@ foreach_unremove(logi,newlog_data);
@@ -344,7 +430,9 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
             
             if (pid == leader) {
                 m = (msg *) malloc(sizeof(msg));
-                if(m==0) abort();
+                if(m==0) {
+                abort();
+                }
                 m->i = i;
                 m->round = round;
                 m->epoch = epoch;
@@ -359,7 +447,9 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
             }
             
             
-            if(mbox!=NULL) list_dispose_no_data(mbox);
+            if(mbox!=NULL) {
+            list_dispose_no_data(mbox);
+            }
             mbox = NULL;
             
             //@ close lseg(mbox,0,nil);
@@ -379,15 +469,22 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
                     //@ close eq_list(epoch,lab, i, round)(m);
                     
                     mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) abort();
+                    if(mbox_new==0) {
+                    abort();
+                    }
                     mbox_new->message =m;
                     if(mbox!=0)
+                        {
                         mbox_new->size = mbox->size + 1;
-                    else  mbox_new->size =1 ;
+                        }
+                    else
+                    {
+                    mbox_new->size =1 ;
                     mbox_new->next = mbox;
                     //@ close lseg(mbox,0, vb);
                     
                     mbox = mbox_new;
+                    }
                     //@ close lseg(mbox,0, cons(m,vb));
                     //@ close foreach(cons(m,vb), eq_list(epoch,lab, i, round));
                 }else free(m);
@@ -436,7 +533,9 @@ int broadcast(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt
                     //@ foreach_remove(logi, data);
                     //@ open alloc_ctor()(logi);
                     if(logi != 0)
+                        {
                         logi->commit = true;
+                        }
                     cmt_number++;
                     out(logi);
                     //@ close alloc_ctor()(logi);

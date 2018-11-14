@@ -12,7 +12,7 @@ typedef struct Msg {
 
 typedef struct Ltype {
     int op;
-    bool commit;
+    int commit;
 } ltype;
 
 
@@ -30,9 +30,9 @@ int in();
 
 
 
-bool timeout();
+int timeout();
 
-bool reset_timeout();
+int reset_timeout();
 
 int rand_bool();
 
@@ -43,7 +43,7 @@ msg* recv();
 void dispose(msg* c);
 
 
-ltype * create_ltype(int op, bool b);
+ltype * create_ltype(int op, int b);
 
 void list_dispose_double(struct List *l);
 
