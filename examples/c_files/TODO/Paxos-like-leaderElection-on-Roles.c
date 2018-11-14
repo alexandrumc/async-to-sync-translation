@@ -137,7 +137,9 @@ int main(int argc, char **argv)//@ : main
             //@ assert round == NewBallot_ROUND;
             
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {
+            abort();
+            }
             m->epoch = epoch;
             m->round = NewBallot_ROUND;
             
@@ -160,15 +162,22 @@ int main(int argc, char **argv)//@ : main
                 if (m != NULL && m->epoch >= epoch && m->round == NewBallot_ROUND){
                     
                     mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) abort();
+                    if(mbox_new==0) {
+                    abort();
+                    }
                     mbox_new->message =m;
                     if(mbox!=0)
+                        {
                         mbox_new->size = mbox->size + 1;
-                    else  mbox_new->size =1 ;
+                        }
+                    else
+                    {
+                    mbox_new->size =1 ;
                     mbox_new->next = mbox;
                     //@ len =1;
                     mbox = mbox_new;
                     //@ close mbox_geq_1(epoch,mbox,1);
+                    }
                     
                     
                 } else { //@ close mbox_geq_1(epoch,NULL,0);
@@ -220,7 +229,9 @@ int main(int argc, char **argv)//@ : main
                 
                 
                 m = (msg *) malloc(sizeof(msg));
-                if(m==0) abort();
+                if(m==0) {
+                abort();
+                }
                 m->epoch = epoch;
                 m->round = AckBallot_ROUND;
                 m->history = log;
@@ -244,15 +255,22 @@ int main(int argc, char **argv)//@ : main
                     if (m != NULL && m->epoch == epoch && m->round == AckBallot_ROUND){
                         //@ open mbox_tag_eq(epoch, round,mbox);
                         mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) abort();
+                        if(mbox_new==0) {
+                        abort();
+                        }
                         mbox_new->message =m;
                         if(mbox!=0)
+                            {
                             mbox_new->size = mbox->size + 1;
-                        else  mbox_new->size =1 ;
+                            }
+                        else
+                        {
+                        mbox_new->size =1 ;
                         mbox_new->next = mbox;
                         //@ close mbox_tag_eq(epoch, round,mbox);
                         mbox = mbox_new;
                         //@ close mbox_tag_eq(epoch, round,mbox);
+                        }
                     }
                     else {free(m);}
                     if (timeout()){
@@ -361,15 +379,22 @@ int main(int argc, char **argv)//@ : main
                 if (m != NULL && m->epoch >= epoch && m->round == NewBallot_ROUND){
                     
                     mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) abort();
+                    if(mbox_new==0) {
+                    abort();
+                    }
                     mbox_new->message =m;
                     if(mbox!=0)
+                        {
                         mbox_new->size = mbox->size + 1;
-                    else  mbox_new->size =1 ;
+                        }
+                    else
+                    {
+                    mbox_new->size =1 ;
                     mbox_new->next = mbox;
                     //@ len =1;
                     mbox = mbox_new;
                     //@ close mbox_geq_1(epoch,mbox,1);
+                    }
                     
                     
                 } else { //@ close mbox_geq_1(epoch,NULL,0);
@@ -425,7 +450,9 @@ int main(int argc, char **argv)//@ : main
              
                 
                 m = (msg *) malloc(sizeof(msg));
-                if(m==0) abort();
+                if(m==0) {
+                abort();
+                }
                 m->epoch = epoch;
                 m->round = AckBallot_ROUND;
                 m->history = log;
@@ -448,15 +475,22 @@ int main(int argc, char **argv)//@ : main
                     if (m != NULL && m->epoch == epoch && m->round == AckBallot_ROUND){
                         //@ open mbox_tag_eq(epoch, round,mbox);
                         mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) abort();
+                        if(mbox_new==0) {
+                        abort();
+                        }
                         mbox_new->message =m;
                         if(mbox!=0)
+                            {
                             mbox_new->size = mbox->size + 1;
-                        else  mbox_new->size =1 ;
+                            }
+                        else  {
+                        mbox_new->size =1 ;
+
                         mbox_new->next = mbox;
                         //@ close mbox_tag_eq(epoch, round,mbox);
                         mbox = mbox_new;
                         //@ close mbox_tag_eq(epoch, round,mbox);
+                        }
                     }
                     else {free(m);}
                     if (timeout()){
