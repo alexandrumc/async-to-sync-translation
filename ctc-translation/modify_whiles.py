@@ -23,7 +23,7 @@ def remove_mbox_assign_to_zero(extern_while_body):
 
             if isinstance(elem, Assignment) and elem.lvalue.name  == 'm':
                 if not isinstance(elem.rvalue, Cast):
-                    if (isinstance(elem.rvalue,ID) and elem.rvalue.name == "NULL") or int(elem.rvalue.value) == 0:
+                    if (isinstance(elem.rvalue,ID) and elem.rvalue.name == "NULL") or (isinstance(elem.rvalue,ID) and int(elem.rvalue.value) == 0):
                         to_delete.append(elem)
 
             if isinstance(elem, If):
@@ -71,6 +71,17 @@ def remove_list_dispose(extern_while_body):
         for x in to_delete:
             extern_while_body.block_items.remove(x)
 
+def remove_null_if(extern_while_body):
+
+    to_delete = []
+    if extern_while_body.block_items:
+        for elem in extern_while_body.block_items:
+            if isinstance(elem,If) and isinstance(elem.iftrue, Compound):
+                if len(elem.iftrue.block_items) == 0:
+                    to_delete.append(elem)
+        for x in to_delete:
+            extern_while_body.block_items.remove(x)
+
 
 def remove_mbox(extern_while_body):
     """
@@ -81,6 +92,7 @@ def remove_mbox(extern_while_body):
     remove_mbox_assign_to_zero(extern_while_body)
     remove_mbox_free(extern_while_body)
     remove_list_dispose(extern_while_body)
+    remove_null_if(extern_while_body)
 
 
 def test(op):
