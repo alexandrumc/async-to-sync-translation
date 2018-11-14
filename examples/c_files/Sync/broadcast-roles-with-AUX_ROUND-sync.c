@@ -32,7 +32,6 @@ if(round == FIRST_ROUND)
   if ((pid == leader))
   {
     dispose(m);
-    m = NULL;
     round = SECOND_ROUND;
   }
   old_0_leader = leader;
@@ -66,7 +65,6 @@ if(round == FIRST_ROUND)
     old_0_mbox = mbox;
     if (!((mbox != NULL) && (mbox->size >= 1)))
     {
-      list_dispose_no_data(mbox);
       out();
     }
   }
@@ -115,14 +113,11 @@ if(round == SECOND_ROUND)
   if (!(pid == old_0_leader) &&&& ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
     dispose(m);
-    m = NULL;
-    list_dispose_no_data(mbox);
     round = THIRD_ROUND;
   }
   if ((pid == old_0_leader))
   {
     dispose(m);
-    m = NULL;
     if (!((mbox != NULL) && (mbox->size > (n / 2))))
     {
       round = FIRST_ROUND;
@@ -131,7 +126,6 @@ if(round == SECOND_ROUND)
   if ((pid == old_0_leader))
   {
     dispose(m);
-    m = NULL;
     if (((mbox != NULL) && (mbox->size > (n / 2))))
     {
       ltype *logi = list_get(log, i);
@@ -175,10 +169,8 @@ if(round == THIRD_ROUND)
   if ((pid == old_0_leader))
   {
     dispose(m);
-    m = NULL;
     if ((mbox != NULL))
     {
-      list_dispose_no_data(mbox);
     }
     lastIndex++;
     ltype *newEntry = create_ltype(in(), false);
@@ -189,7 +181,6 @@ if(round == THIRD_ROUND)
   {
     if ((mbox != NULL))
     {
-      list_dispose_no_data(mbox);
     }
     if (((mbox != NULL) && (mbox->size >= 1)))
     {
@@ -206,11 +197,9 @@ if(round == THIRD_ROUND)
   {
     if ((mbox != NULL))
     {
-      list_dispose_no_data(mbox);
     }
     if (!((mbox != NULL) && (mbox->size >= 1)))
     {
-      list_dispose_no_data(mbox);
       out();
     }
   }
