@@ -335,15 +335,19 @@ def modify_cond(cond, new_vals):
                 if cond.name in val:
                     cond.name = val
 
-    elif isinstance(cond.right, ID) and "leader" in cond.right.name:
-        for val in new_vals:
-            if cond.right.name in val:
-                cond.right.name = val
+    # elif isinstance(cond.right, ID) and "leader" in cond.right.name:
+    #     for val in new_vals:
+    #         if cond.right.name in val:
+    #             cond.right.name = val
 
 
                     # new_vals.remove(val)
 
     elif isinstance(cond, StructRef):
+        modify_cond(cond.name, new_vals)
+        # if isinstance(cond.name, StructRef):
+        #     if isinstance(cond.name.name, ID):
+        #         print cond.name.name.name
         if isinstance(cond.name, ID):
             if not any(x in cond.name.name for x in strings):
                 for val in new_vals:
@@ -351,6 +355,7 @@ def modify_cond(cond, new_vals):
                         cond.name.name = val
 
     elif isinstance(cond.left, StructRef):
+        modify_cond(cond.left, new_vals)
         if isinstance(cond.left.name, ID):
             if not any(x in cond.left.name.name for x in strings):
                 for val in new_vals:
@@ -371,7 +376,7 @@ def modify_cond(cond, new_vals):
                             if array.name.name.name in val:
                                 cond.left.name.name.name.name = val
             else:
-                print type(array)
+                # print type(array)
                 if not any(x in array.name.name.name for x in strings):
                     aux = array.name.name.name
                     for val in new_vals:
@@ -403,7 +408,7 @@ def take_cond_name(cond, lista):
     strings = ['pid', 'old', 'timeout']
 
 
-
+    # print generator.visit(cond), generator.visit(cond.right), type(cond.right)
     # print generator.visit(cond)
     if isinstance(cond,FuncCall):
         pass
@@ -420,14 +425,15 @@ def take_cond_name(cond, lista):
             if aux not in lista:
                 lista.append(aux)
 
-    elif isinstance(cond.right, ID) and cond.right.name == 'leader':
-        aux = cond.right.name
-        if aux not in lista:
-            lista.append(aux)
+    # elif isinstance(cond.right, ID) and cond.right.name == 'leader':
+    #     aux = cond.right.name
+    #     if aux not in lista:
+    #         lista.append(aux)
 
 
 
     elif isinstance(cond, StructRef):
+        # print generator.visit(cond)
         if isinstance(cond.name, ID):
             if not any(x in cond.name.name for x in strings):
                 aux = cond.name.name
@@ -435,6 +441,8 @@ def take_cond_name(cond, lista):
                     lista.append(aux)
 
     elif isinstance(cond.left, StructRef):
+        # print generator.visit(cond), type(cond.left)
+        take_cond_name(cond.left,lista)
         if isinstance(cond.left.name, ID):
             if not any(x in cond.left.name.name for x in strings):
                 aux = cond.left.name.name
@@ -456,7 +464,7 @@ def take_cond_name(cond, lista):
                         if aux not in lista:
                             lista.append(aux)
             else:
-                print type(array)
+                # print type(array)
                 if not any(x in array.name.name.name for x in strings):
                     aux = array.name.name.name
                     if aux not in lista:

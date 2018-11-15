@@ -30,7 +30,6 @@ if(round == FIRST_ROUND)
   }
   reset_timeout();
   old_0_mbox = mbox;
-  old_0_leader = leader;
   if (!((mbox->message != NULL) && (mbox->message->sender == leader)))
   {
     round = ERR_ROUND;
@@ -41,7 +40,6 @@ if(round == FIRST_ROUND)
   }
   reset_timeout();
   old_0_mbox = mbox;
-  old_0_leader = leader;
   if (((mbox->message != NULL) && (mbox->message->sender == leader)))
   {
     leader = leader(phase, n);
@@ -60,7 +58,7 @@ def round SECOND_ROUND:
 
 if(round == SECOND_ROUND)
 {
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
@@ -81,7 +79,7 @@ if(round == SECOND_ROUND)
 
 if(round == SECOND_ROUND)
 {
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)))
   {
     dispose(m);
     if ((pid == leader(phase, n)))
@@ -93,7 +91,7 @@ if(round == SECOND_ROUND)
       }
     }
   }
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)))
   {
     dispose(m);
     if ((pid == leader(phase, n)))
@@ -106,7 +104,7 @@ if(round == SECOND_ROUND)
       }
     }
   }
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)))
   {
     dispose(m);
     if (!(pid == leader(phase, n)))
@@ -122,7 +120,7 @@ def round THIRD_ROUND:
 
 if(round == THIRD_ROUND)
 {
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)))
   {
     if ((pid == leader(phase, n)))
     {
@@ -146,7 +144,7 @@ if(round == THIRD_ROUND)
 
 if(round == THIRD_ROUND)
 {
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)))
   {
     if ((pid == leader(phase, n)))
     {
@@ -154,13 +152,12 @@ if(round == THIRD_ROUND)
     }
     reset_timeout();
     old_1_mbox = mbox;
-    old_1_leader = leader;
     if (!((mbox->message != NULL) && (mbox->message->sender == leader)))
     {
       round = ERR_ROUND;
     }
   }
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)))
   {
     if ((pid == leader(phase, n)))
     {
@@ -168,7 +165,6 @@ if(round == THIRD_ROUND)
     }
     reset_timeout();
     old_1_mbox = mbox;
-    old_1_leader = leader;
     if (((mbox->message != NULL) && (mbox->message->sender == leader)))
     {
       if (((mbox->message != NULL) && (mbox->message->commit == 1)))
@@ -186,7 +182,7 @@ def round FOURTH_ROUND:
 
 if(round == FOURTH_ROUND)
 {
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)) && ((old_1_mbox->message != NULL) && (mbox->message->sender == old_1_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)) && ((old_1_mbox->message != NULL) && (old_1_mbox->message->sender == leader)))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
@@ -207,7 +203,7 @@ if(round == FOURTH_ROUND)
 
 if(round == FOURTH_ROUND)
 {
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)) && ((old_1_mbox->message != NULL) && (mbox->message->sender == old_1_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)) && ((old_1_mbox->message != NULL) && (old_1_mbox->message->sender == leader)))
   {
     dispose(m);
     if ((pid == leader(phase, n)))
@@ -219,7 +215,7 @@ if(round == FOURTH_ROUND)
       }
     }
   }
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)) && ((old_1_mbox->message != NULL) && (mbox->message->sender == old_1_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)) && ((old_1_mbox->message != NULL) && (old_1_mbox->message->sender == leader)))
   {
     dispose(m);
     if ((pid == leader(phase, n)))
@@ -232,7 +228,7 @@ if(round == FOURTH_ROUND)
       }
     }
   }
-  if (((old_0_mbox->message != NULL) && (mbox->message->sender == old_0_leader)) && ((old_1_mbox->message != NULL) && (mbox->message->sender == old_1_leader)))
+  if (((old_0_mbox->message != NULL) && (old_0_mbox->message->sender == leader)) && ((old_1_mbox->message != NULL) && (old_1_mbox->message->sender == leader)))
   {
     dispose(m);
     if (!(pid == leader(phase, n)))
