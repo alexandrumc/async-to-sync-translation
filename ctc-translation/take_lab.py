@@ -324,7 +324,9 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
 
 def modify_cond(cond, new_vals):
     # print "AAAAAAAAAAAAA"
-    strings = ['pid', 'old', 'timeout']
+    strings = ['pid', 'old', 'timeout', 'id', 'myid']
+
+    # print generator.visit(cond), type(cond)
 
     if isinstance(cond, UnaryOp):
         modify_cond(cond.expr, new_vals)
@@ -342,7 +344,12 @@ def modify_cond(cond, new_vals):
 
 
                     # new_vals.remove(val)
-
+    elif isinstance(cond, ArrayRef):
+        if isinstance(cond.name, ID):
+            if not any(x in cond.name.name for x in strings):
+                for val in new_vals:
+                    if cond.name.name in val:
+                        cond.name.name = val
     elif isinstance(cond, StructRef):
         modify_cond(cond.name, new_vals)
         # if isinstance(cond.name, StructRef):
@@ -405,7 +412,7 @@ def take_cond_name(cond, lista):
     :param lista:
     :return:
     """
-    strings = ['pid', 'old', 'timeout']
+    strings = ['pid', 'old', 'timeout', 'id', 'myid']
 
 
     # print generator.visit(cond), generator.visit(cond.right), type(cond.right)
@@ -1006,10 +1013,11 @@ def check_inner_algo(ast_tree):
 
 
 
-def take_code_from_file(ast, filename, labelname):
+def take_code_from_file(ast, filename, labelname, rounds_list):
     cop = copy.deepcopy(ast)
     labels_sorted = get_labels_order(filename, labelname)
     labels = get_labels(filename, labelname)
+    # labels = rounds_list
 
 
     test = get_recv_whiles(cop)

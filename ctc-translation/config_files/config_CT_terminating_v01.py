@@ -97,9 +97,10 @@ mailbox_1 = "mbox"
 # Modify with clean mailbox function name
 clean_mailbox_1 = "list_dispose"
 
-rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND']
+rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND', 'AUX_ROUND']
 
 # Add as many fields as you need
 
 ######################################################################################################################
+
 

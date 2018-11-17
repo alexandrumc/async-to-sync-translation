@@ -40,13 +40,21 @@ int main(int pid, int num, int estimate) {
 		m->sender = myid;
 		m->timestamp = timestamp;
 
+		if(x){
+		a++;
+		b++;
+		}
+		else{
+		mbox = NULL;
+		}
+
 		send(m, to_leader);
 
 		if (pid == leader) {
 			num_mbox = 0;
 			num_mbox_commit = 0;
 			if (mbox) {
-				free(mbox);
+				mbox = NULL;
 			}
 			msg *mbox = (msg *) malloc(num * sizeof(msg));
 

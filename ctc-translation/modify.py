@@ -2,6 +2,7 @@ from take_lab import take_code_from_file, get_extern_while_body_from_func, get_c
 from pycparser import parse_file
 
 from modify_whiles import *
+import config
 import os
 from compute_paths import get_label, prune_tree, get_extern_while_body, duplicate_element
 generator = c_generator.CGenerator()
@@ -15,7 +16,7 @@ conditii = []
 whiles_to_if(x, conditii)
 
 identify_recv_exits(x, conditii)
-remove_mbox(x)
+remove_mbox(x, 'mbox', 'list_dispose')
 
 
 #print generator.visit(x)
@@ -47,11 +48,11 @@ remove_mbox(x)
 #                 print generator.visit(elem.cond)
 
 
+rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND']
 
-take_code_from_file(ast,"../examples/c_files/verified_copy/CT_terminating_v01.c",'round')
+take_code_from_file(ast,"../examples/c_files/verified_copy/CT_terminating_v01.c",'round', rounds_list)
 #print ast
 # copie = copy.deepcopy(x)
-
 
 
 
