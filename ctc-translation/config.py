@@ -92,12 +92,13 @@ msg_structure_fields_1 = dict(
 )
 
 # Modify with mailbox name
-mailbox_1 = "Insert mailbox name here"
+mailbox_1 = "mbox"
 
 # Modify with clean mailbox function name
-clean_mailbox_1 = "Insert clean mailbox function name here"
+clean_mailbox_1 = "list_dispose"
+
+rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
 
 # Add as many fields as you need
 
 ######################################################################################################################
-

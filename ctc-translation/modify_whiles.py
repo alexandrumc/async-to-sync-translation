@@ -17,16 +17,15 @@ def remove_mbox_assign_to_zero(extern_while_body, mbox_name):
     if extern_while_body.block_items:
         for elem in extern_while_body.block_items:
             # print elem.coord
-            if isinstance(elem, Assignment) and mbox_name == elem.lvalue.name :
+            if isinstance(elem, Assignment) and mbox_name == elem.lvalue.name:
                 # print type(elem)
-                if isinstance(elem.rvalue,ID) and (elem.rvalue.name == "NULL" or  int(elem.rvalue.value) == 0):
+                if isinstance(elem.rvalue, ID) and (elem.rvalue.name == "NULL" or int(elem.rvalue.value) == 0):
                     to_delete.append(elem)
 
-
             if isinstance(elem, If):
-                remove_mbox_assign_to_zero(elem.iftrue,mbox_name)
+                remove_mbox_assign_to_zero(elem.iftrue, mbox_name)
                 if elem.iffalse:
-                    remove_mbox_assign_to_zero(elem.iffalse,mbox_name)
+                    remove_mbox_assign_to_zero(elem.iffalse, mbox_name)
             # print "aici e ok", elem.coord
 
         for x in to_delete:
@@ -48,15 +47,15 @@ def remove_mbox_free(extern_while_body, mbox_name):
                     if isinstance(line, FuncCall) and line.name.name == "free":
                         if line.args.exprs[0].name == mbox_name:
                             to_delete.append(elem)
-                remove_mbox_free(elem.iftrue,mbox_name)
+                remove_mbox_free(elem.iftrue, mbox_name)
                 if elem.iffalse:
-                    remove_mbox_free(elem.iffalse,mbox_name)
+                    remove_mbox_free(elem.iffalse, mbox_name)
 
         for x in to_delete:
             extern_while_body.block_items.remove(x)
 
-def remove_list_dispose(extern_while_body, clean_mailbox_function):
 
+def remove_list_dispose(extern_while_body, clean_mailbox_function):
     to_delete = []
     if extern_while_body.block_items:
         for elem in extern_while_body.block_items:
@@ -69,18 +68,22 @@ def remove_list_dispose(extern_while_body, clean_mailbox_function):
         for x in to_delete:
             extern_while_body.block_items.remove(x)
 
-def remove_null_if(extern_while_body):
 
+def remove_null_if(extern_while_body):
     to_delete = []
     if extern_while_body.block_items:
         for elem in extern_while_body.block_items:
-            if isinstance(elem,If):
+            if isinstance(elem, If):
                 if isinstance(elem.iftrue, Compound):
                     if len(elem.iftrue.block_items) == 0:
                         to_delete.append(elem)
+                    else:
+                        remove_null_if(elem.iftrue)
                 if isinstance(elem.iffalse, Compound):
                     if len(elem.iffalse.block_items) == 0:
                         elem.iffalse = None
+                    else:
+                        remove_null_if(elem.iffalse)
         for x in to_delete:
             extern_while_body.block_items.remove(x)
 
@@ -91,8 +94,8 @@ def remove_mbox(extern_while_body, mbox_name, clean_mailbox_function):
     :param extern_while_body:
     :return:
     """
-    remove_mbox_assign_to_zero(extern_while_body,mbox_name)
-    remove_mbox_free(extern_while_body,mbox_name)
+    remove_mbox_assign_to_zero(extern_while_body, mbox_name)
+    remove_mbox_free(extern_while_body, mbox_name)
     remove_list_dispose(extern_while_body, clean_mailbox_function)
     remove_null_if(extern_while_body)
 
@@ -200,11 +203,12 @@ def modify_while(while_to_check):
     coord_aux -= 1
     conds = take_all_if_to_break(while_to_check)
     needed_if = True
+    # print len(conds)
+    # if len(conds > )
     aux = conds[0]
     if len(conds) > 1:
         for cond in conds[1:]:
             aux = BinaryOp('||', aux, cond)
-
 
     aux, needed_if = remove_timeout_from_cond(aux, needed_if)
 
@@ -305,7 +309,7 @@ def whiles_to_if(extern_while_body, conditii=None):
     :return: modified main while
     """
     global coord_aux
-    coord_aux -=1
+    coord_aux -= 1
     i = 0
     # print "aaaaaaaaaaa", extern_while_body.coord
 
@@ -351,7 +355,7 @@ def whiles_to_if(extern_while_body, conditii=None):
 
                 new_if.iffalse = Compound([Assignment('=', ID("round"), ID("ERR_ROUND"), assign_coord)], new_coord)
 
-                #FuncCall(ID("wait_for_messages", id_coord), None, new_break_coord)
+                # FuncCall(ID("wait_for_messages", id_coord), None, new_break_coord)
 
                 aux.block_items.insert(i, new_if)
                 if new_if.iftrue:
@@ -395,7 +399,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                             new_coord.line = coord_aux
                             new_coord.column = coord_aux
 
-                            coord_aux -=1
+                            coord_aux -= 1
                             new_break_coord = Coord(coord.file, coord.line, coord.column)
                             new_break_coord.line = coord_aux
                             new_break_coord.column = coord_aux
@@ -412,7 +416,7 @@ def whiles_to_if(extern_while_body, conditii=None):
 
                             new_if.iffalse = Compound(
                                 [
-                                 Assignment('=', ID("round"), ID("ERR_ROUND"), assign_coord)], new_coord)
+                                    Assignment('=', ID("round"), ID("ERR_ROUND"), assign_coord)], new_coord)
 
                             element.iftrue.block_items.insert(index, new_if)
                             if new_if.iftrue:
@@ -434,10 +438,10 @@ def whiles_to_if(extern_while_body, conditii=None):
                         if not isinstance(item, While):
                             list.append(item)
                             # print item
-                            if isinstance(item,If):
-                                whiles_to_if(item.iftrue,conditii)
+                            if isinstance(item, If):
+                                whiles_to_if(item.iftrue, conditii)
                                 if item.iffalse:
-                                    whiles_to_if(item.iffalse,conditii)
+                                    whiles_to_if(item.iffalse, conditii)
                         elif to_modify(item):
                             # print item.coord,"bbb"
                             coord = item.stmt.coord

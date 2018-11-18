@@ -62,7 +62,7 @@ typedef struct MsgB {
 
 typedef struct Ltype {
     int op;
-    bool commit;
+    int commit;
 } ltype;
 
 
@@ -104,7 +104,7 @@ void list_add(struct arraylist *a, void *v);
 //@ ensures true;
 
 
-bool reset_timeout();
+int reset_timeout();
 //@ requires emp;
 //@ ensures emp;
 
@@ -112,7 +112,7 @@ int leader(int phase, int net_size);
 //@ requires emp;
 //@ ensures 0<=result &*& result < net_size;
 
-bool timeout();
+int timeout();
 //@ requires emp;
 //@ ensures emp;
 
@@ -183,7 +183,9 @@ int main(int argc, char **argv)//@ : main
         
         if(pid == leader(epoch,n)){
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {
+            abort();
+            }
             m->epoch = epoch;
             m->round = NewEpoch;
             
@@ -206,15 +208,22 @@ int main(int argc, char **argv)//@ : main
             if (m != NULL && m->epoch >= epoch && m->round == NewEpoch){
                 //@open mbox_tag_geq(epoch, round,mbox);
                 mbox_new = (list*) malloc(sizeof(list));
-                if(mbox_new==0) abort();
+                if(mbox_new==0) {
+                abort();
+                }
                 mbox_new->message =m;
                 if(mbox!=0)
+                    {
                     mbox_new->size = mbox->size + 1;
-                else  mbox_new->size =1 ;
+                    }
+                else
+                {
+                mbox_new->size =1 ;
                 mbox_new->next = mbox;
                 //@ close mbox_tag_geq(epoch, round,mbox);
                 mbox = mbox_new;
                 //@ close mbox_tag_geq(epoch, round,mbox);
+                }
                 
             } else free(m);
             if (timeout()) break;
@@ -278,7 +287,9 @@ int main(int argc, char **argv)//@ : main
             
             
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {
+            abort();
+            }
             m->epoch = epoch;
             m->round = Ack_E;
             m->history = log;
@@ -301,15 +312,22 @@ int main(int argc, char **argv)//@ : main
                     if (m != NULL && m->epoch == epoch && m->round == Ack_E){
                         //@ open mbox_tag_eq(epoch, round,mbox);
                         mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) abort();
+                        if(mbox_new==0) {
+                        abort();
+                        }
                         mbox_new->message =m;
                         if(mbox!=0)
+                            {
                             mbox_new->size = mbox->size + 1;
-                        else  mbox_new->size =1 ;
+                            }
+                        else
+                        {
+                        mbox_new->size =1 ;
                         mbox_new->next = mbox;
                         //@ close mbox_tag_eq(epoch, round,mbox);
                         mbox = mbox_new;
                         //@ close mbox_tag_eq(epoch, round,mbox);
+                        }
                     }
                     else free(m);
                     if (timeout()){
@@ -375,7 +393,9 @@ int main(int argc, char **argv)//@ : main
                 
                 if(pid == leader(epoch,n)){
                     m = (msg *) malloc(sizeof(msg));
-                    if(m==0) abort();
+                    if(m==0) {
+                    abort();
+                    }
                     m->epoch = epoch;
                     m->round = New_Leader;
                     m->history = log;
@@ -400,15 +420,22 @@ int main(int argc, char **argv)//@ : main
                     if (m != NULL && m->epoch == epoch && m->round == New_Leader){
                         //@open mbox_tag_eq(epoch, round,mbox);
                         mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) abort();
+                        if(mbox_new==0) {
+                        abort();
+                        }
                         mbox_new->message =m;
                         if(mbox!=0)
+                            {
                             mbox_new->size = mbox->size + 1;
-                        else  mbox_new->size =1 ;
+                            }
+                        else
+                        {
+                        mbox_new->size =1 ;
                         mbox_new->next = mbox;
                         //@ close mbox_tag_eq(epoch, round,mbox);
                         mbox = mbox_new;
                         //@ close mbox_tag_eq(epoch, round,mbox);
+                        }
                         
                     } else free(m);
                     if (timeout()) break;
@@ -506,7 +533,9 @@ int main(int argc, char **argv)//@ : main
                         if(pid == leader(epoch,n)) {
                             
                             mB = (msgb *) malloc(sizeof(msgb));
-                            if(mB==0) abort();
+                            if(mB==0) {
+                            abort();
+                            }
                             mB->i = i;
                             mB->round = bround;
                             mB->epoch = epoch;
@@ -517,7 +546,9 @@ int main(int argc, char **argv)//@ : main
                             ltype * entry = list_get(log,lastIndex);
                             
                             //@ open ltype_pred(entry);
-                            if(entry != NULL) mB->op = entry->op;
+                            if(entry != NULL) {
+                            mB->op = entry->op;
+                            }
                             
                             //@ close ltype_pred(entry);
                             //@leak ltype_pred(entry);
@@ -538,13 +569,20 @@ int main(int argc, char **argv)//@ : main
                             if ( mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == Ack_LD) {
                                 
                                 mboxB_new = (listb*) malloc(sizeof(listb));
-                                if(mboxB_new==0) abort();
+                                if(mboxB_new==0) {
+                                abort();
+                                }
                                 mboxB_new->message =mB;
                                 if(mboxB!=0)
+                                    {
                                     mboxB_new->size = mboxB->size + 1;
-                                else  mboxB_new->size =1 ;
+                                    }
+                                else
+                                {
+                                mboxB_new->size =1 ;
                                 mboxB_new->next = mboxB;
                                 mboxB = mboxB_new;
+                                }
                             }else free(mB);
                             
                             if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
@@ -577,7 +615,9 @@ int main(int argc, char **argv)//@ : main
                             //@ open tag_strict_leqB(old_epoch2, old_round2,old_phase,old_bround, epoch,round, i,bround);
                             
                             mB = (msgb *) malloc(sizeof(msgb));
-                            if(mB==0) abort();
+                            if(mB==0) {
+                            abort();
+                            }
                             mB->i = i;
                             mB->round = bround;
                             mB->epoch = epoch;
@@ -602,13 +642,20 @@ int main(int argc, char **argv)//@ : main
                                     
                                     if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == Ack_LD) {
                                         mboxB_new = (listb*) malloc(sizeof(listb));
-                                        if(mboxB_new==0) abort();
+                                        if(mboxB_new==0) {
+                                        abort();
+                                        }
                                         mboxB_new->message = mB;
                                         if(mboxB!=0)
+                                            {
                                             mboxB_new->size = mboxB->size + 1;
-                                        else  mboxB_new->size = 1 ;
+                                            }
+                                        else
+                                        {
+                                        mboxB_new->size = 1 ;
                                         mboxB_new->next = mboxB;
                                         mboxB = mboxB_new;
+                                        }
                                     }else free(mB);
                                     
                                     if (timeout())
@@ -624,7 +671,9 @@ int main(int argc, char **argv)//@ : main
                                     logi = list_get(log,i);
                                     //@ open ltype_pred(logi);
                                     if(logi != 0)  {
+                                        {
                                         logi->commit = true;
+                                        }
                                     }
                                     //@ close ltype_pred(logi);
                                     //@ leak ltype_pred(logi);
@@ -658,7 +707,9 @@ int main(int argc, char **argv)//@ : main
                             
                             
                             mB = (msgb *) malloc(sizeof(msgb));
-                            if(mB==0) abort();
+                            if(mB==0) {
+                            abort();
+                            }
                             mB->i = i;
                             mB->round = bround;
                             mB->epoch = epoch;
@@ -678,13 +729,20 @@ int main(int argc, char **argv)//@ : main
                                 if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == Ack_LD) {
                                     
                                     mboxB_new = (listb*) malloc(sizeof(listb));
-                                    if(mboxB_new==0) abort();
+                                    if(mboxB_new==0) {
+                                    abort();
+                                    }
                                     mboxB_new->message =mB;
                                     if(mboxB!=0)
+                                        {
                                         mboxB_new->size = mboxB->size + 1;
-                                    else  mboxB_new->size =1 ;
+                                        }
+                                    else
+                                    {
+                                    mboxB_new->size =1 ;
                                     mboxB_new->next = mboxB;
                                     mboxB = mboxB_new;
+                                    }
                                 }else free(mB);
                                 
                                 if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
@@ -967,6 +1025,6 @@ int in();
 //@ requires true;
 //@ ensures true;
 
-ltype * create_ltype(int op, bool b);
+ltype * create_ltype(int op, int b);
 //@ requires true;
 //@ ensures malloc_block_Ltype(result) &*& result!= 0 &*& result->commit |->_ &*& result->op|-> _;
