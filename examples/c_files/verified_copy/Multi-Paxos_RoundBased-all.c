@@ -152,14 +152,10 @@ int main(int argc, char **argv)
                     free(m);
                     }
                     if (timeout()){
-
                         break;
-
                     }
                     if(mbox != NULL && mbox->size > n/2){
-
                         break;
-
                     }
                 }
                 if(mbox != NULL && mbox->size > n/2){

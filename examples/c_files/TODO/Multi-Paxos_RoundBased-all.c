@@ -225,8 +225,12 @@ int main(int argc, char **argv)//@ : main
                 //@ close mbox_tag_geq(epoch, round,mbox);
                 }
                 
-            } else free(m);
-            if (timeout()) break;
+            } else {
+            free(m);
+            }
+            if (timeout()) {
+            break;
+            }
             //@ open mbox_tag_geq(epoch, round,mbox);
             if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
                 //@ close mbox_tag_geq(epoch, round,mbox);
@@ -329,7 +333,9 @@ int main(int argc, char **argv)//@ : main
                         //@ close mbox_tag_eq(epoch, round,mbox);
                         }
                     }
-                    else free(m);
+                    else {
+                    free(m);
+                    }
                     if (timeout()){
                         break;
                     }
@@ -437,8 +443,12 @@ int main(int argc, char **argv)//@ : main
                         //@ close mbox_tag_eq(epoch, round,mbox);
                         }
                         
-                    } else free(m);
-                    if (timeout()) break;
+                    } else {
+                    free(m);
+                    }
+                    if (timeout()) {
+                    break;
+                    }
                     //@ open mbox_tag_eq(epoch, round,mbox);
                     if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
                         //@ close mbox_tag_eq(epoch, round,mbox);
@@ -583,13 +593,19 @@ int main(int argc, char **argv)//@ : main
                                 mboxB_new->next = mboxB;
                                 mboxB = mboxB_new;
                                 }
-                            }else free(mB);
+                            }else {
+                            free(mB);
+                            }
                             
                             if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
+                                {
                                 break;
+                                }
                             
                             if (timeout())
+                                {
                                 break;
+                                }
                         }
                         
                         //@ assert eq_val_list_predB(epoch, round,i,bround,mboxB);
@@ -656,13 +672,19 @@ int main(int argc, char **argv)//@ : main
                                         mboxB_new->next = mboxB;
                                         mboxB = mboxB_new;
                                         }
-                                    }else free(mB);
+                                    }else {
+                                    free(mB);
+                                    }
                                     
                                     if (timeout())
+                                        {
                                         break;
+                                        }
                                     
                                     if (mboxB != NULL && mboxB->size > n/2)
+                                        {
                                         break;
+                                        }
                                 }
                                 //@ assert eq_val_list_predB(epoch, round,i,bround,mboxB);
                                 if (mboxB != NULL && mboxB->size > n/2) {
@@ -743,13 +765,19 @@ int main(int argc, char **argv)//@ : main
                                     mboxB_new->next = mboxB;
                                     mboxB = mboxB_new;
                                     }
-                                }else free(mB);
+                                }else {
+                                free(mB);
+                                }
                                 
                                 if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
+                                    {
                                     break;
+                                    }
                                 
                                 if (timeout())
+                                    {
                                     break;
+                                    }
                                 
                             }
                             //@ close eq_val_list_predB(epoch, round,i,bround,mboxB);
