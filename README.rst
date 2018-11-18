@@ -1,8 +1,8 @@
 ===============
-pycparser v2.18
+NUME PROIECT
 ===============
 
-:Author: `Eli Bendersky <http://eli.thegreenplace.net>`_
+:Authors:
 
 
 .. contents::
@@ -14,134 +14,53 @@ pycparser v2.18
 Introduction
 ============
 
-What is pycparser?
+What is NUME PROIECT?
 ------------------
 
-**pycparser** is a parser for the C language, written in pure Python. It is a
-module designed to be easily integrated into applications that need to parse
-C source code.
+**NUME PROIECT** is a tool that, given a communication-closed asynchronous protocol, soundly computes its round-based synchronous counterpart. 
+
+Communication-closed protocol: the reception of a message is effectful only if its timestamp is equal to or greater than the local time of the receiver. In other words, stale messages are discarded.
+
 
 What is it good for?
 --------------------
 
-Anything that needs C code to be parsed. The following are some uses for
-**pycparser**, taken from real user reports:
+Fault-tolerant distributed systems are implemented over asynchronous networks, so that they use algorithms for asynchronous models with faults. Due to asynchronous communication and the occurrence of faults (e.g., process crashes or the network dropping messages) the implementations are hard to understand and analyze. In contrast, synchronous computation models simplify design and reasoning. A synchronous version of your asynchronous protocol can be computed using **NUME PROIECT**.
 
-* C code obfuscator
-* Front-end for various specialized C compilers
-* Static code checker
-* Automatic unit-test discovery
-* Adding specialized extensions to the C language
-
-One of the most popular uses of **pycparser** is in the `cffi
-<https://cffi.readthedocs.io/en/latest/>`_ library, which uses it to parse the
-declarations of C functions and types in order to auto-generate FFIs.
-
-**pycparser** is unique in the sense that it's written in pure Python - a very
-high level language that's easy to experiment with and tweak. To people familiar
-with Lex and Yacc, **pycparser**'s code will be simple to understand. It also
-has no external dependencies (except for a Python interpreter), making it very
-simple to install and deploy.
-
-Which version of C does pycparser support?
+What class of algorithms can this tool translate?
 ------------------------------------------
 
-**pycparser** aims to support the full C99 language (according to the standard
-ISO/IEC 9899). Some features from C11 are also supported, and patches to support
-more are welcome.
+**NUME PROIECT** can compute the synchronous counterpart of known consensus and leader election protocols, such as, Paxos, and Chandra and Toueg’s consensus.
 
-**pycparser** supports very few GCC extensions, but it's fairly easy to set
-things up so that it parses code with a lot of GCC-isms successfully. See the
-`FAQ <https://github.com/eliben/pycparser/wiki/FAQ>`_ for more details.
+Some other examples of protocols that we translated can be found here: `examples <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/TODO>`_.
 
-What grammar does pycparser follow?
+Our output for the aforementioned list of examples can be found here: `outputs <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/Sync>`_.
+
 -----------------------------------
 
-**pycparser** very closely follows the C grammar provided in Annex A of the C99
-standard (ISO/IEC 9899).
-
-How is pycparser licensed?
---------------------------
-
-`BSD license <https://github.com/eliben/pycparser/blob/master/LICENSE>`_.
-
-Contact details
----------------
-
-For reporting problems with **pycparser** or submitting feature requests, please
-open an `issue <https://github.com/eliben/pycparser/issues>`_, or submit a
-pull request.
-
-
-Installing
+Using
 ==========
 
 Prerequisites
 -------------
 
-* **pycparser** was tested on Python 2.7, 3.3-3.6, on both Linux and
-  Windows. It should work on any later version (in both the 2.x and 3.x lines)
-  as well.
+* Python 2.7::
 
-* **pycparser** has no external dependencies. The only non-stdlib library it
-  uses is PLY, which is bundled in ``pycparser/ply``. The current PLY version is
-  3.10, retrieved from `<http://www.dabeaz.com/ply/>`_
+    sudo apt-get install python2.7
 
-Note that **pycparser** (and PLY) uses docstrings for grammar specifications.
-Python installations that strip docstrings (such as when using the Python
-``-OO`` option) will fail to instantiate and use **pycparser**. You can try to
-work around this problem by making sure the PLY parsing tables are pre-generated
-in normal mode; this isn't an officially supported/tested mode of operation,
-though.
-
-Installation process
---------------------
-
-Installing **pycparser** is very simple. Once you download and unzip the
-package, you just have to execute the standard ``python setup.py install``. The
-setup script will then place the ``pycparser`` module into ``site-packages`` in
-your Python's installation library.
-
-Alternatively, since **pycparser** is listed in the `Python Package Index
-<https://pypi.org/project/pycparser/>`_ (PyPI), you can install it using your
-favorite Python packaging/distribution tool, for example with::
-
-    > pip install pycparser
-
-Known problems
---------------
-
-* Some users who've installed a new version of **pycparser** over an existing
-  version ran into a problem using the newly installed library. This has to do
-  with parse tables staying around as ``.pyc`` files from the older version. If
-  you see unexplained errors from **pycparser** after an upgrade, remove it (by
-  deleting the ``pycparser`` directory in your Python's ``site-packages``, or
-  wherever you installed it) and install again.
+* Linux platform
+* `Verifast Linux/x64 <http://82076e0e62875f063ae8-929808a701855dfb71539d0a4342d4be.r54.cf5.rackcdn.com/verifast-nightly.tar.gz>`_.
 
 
-Using
-=====
-
-Interaction with the C preprocessor
+Steps
 -----------------------------------
 
-In order to be compilable, C code must be preprocessed by the C preprocessor -
-``cpp``. ``cpp`` handles preprocessing directives like ``#include`` and
-``#define``, removes comments, and performs other minor tasks that prepare the C
-code for compilation.
+1. Clone project
+2. Install Python
+3. Download Verifast
 
-For all but the most trivial snippets of C code **pycparser**, like a C
-compiler, must receive preprocessed C code in order to function correctly. If
-you import the top-level ``parse_file`` function from the **pycparser** package,
-it will interact with ``cpp`` for you, as long as it's in your PATH, or you
-provide a path to it.
 
-Note also that you can use ``gcc -E`` or ``clang -E`` instead of ``cpp``. See
-the ``using_gcc_E_libc.py`` example for more details. Windows users can download
-and install a binary build of Clang for Windows `from this website
-<http://llvm.org/releases/download.html>`_.
 
-What about the standard C library headers?
 ------------------------------------------
 
 C code almost always ``#include``\s various header files from the standard C
@@ -185,24 +104,11 @@ There's also a `FAQ available here <https://github.com/eliben/pycparser/wiki/FAQ
 In any case, you can always drop me an `email <eliben@gmail.com>`_ for help.
 
 
-Modifying
-=========
-
-There are a few points to keep in mind when modifying **pycparser**:
-
-* The code for **pycparser**'s AST nodes is automatically generated from a
-  configuration file - ``_c_ast.cfg``, by ``_ast_gen.py``. If you modify the AST
-  configuration, make sure to re-generate the code.
-* Make sure you understand the optimized mode of **pycparser** - for that you
-  must read the docstring in the constructor of the ``CParser`` class. For
-  development you should create the parser without optimizations, so that it
-  will regenerate the Yacc and Lex tables when you change the grammar.
-
-
 Package contents
 ================
 
-Once you unzip the ``pycparser`` package, you'll see the following files and
+Once you unzip the ``pycparser`` package, you'll 
+the following files and
 directories:
 
 README.rst:
