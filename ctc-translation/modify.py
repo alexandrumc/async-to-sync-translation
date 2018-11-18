@@ -14,8 +14,11 @@ whiles_to_if(x, conditii)
 
 identify_recv_exits(x, conditii)
 remove_mbox(x, config.mailbox_1, config.clean_mailbox_1)
+# remove_mbox(x, 'mboxB','list_dispose')
 
-rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND']
+# print generator.visit(x)
+
+# rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND']
 
 take_code_from_file(ast, "../examples/c_files/verified_copy/Multi-Paxos_RoundBased-all.c", config.variables_1['round'],
-                    config.rounds_list)
+                    config.rounds_list1)

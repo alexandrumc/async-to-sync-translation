@@ -1,6 +1,7 @@
 from pycparser import c_generator
 from pycparser.c_ast import *
 from pycparser.plyparser import Coord
+import config
 
 generator = c_generator.CGenerator()
 
@@ -19,8 +20,9 @@ def remove_mbox_assign_to_zero(extern_while_body, mbox_name):
             # print elem.coord
             if isinstance(elem, Assignment) and mbox_name == elem.lvalue.name:
                 # print type(elem)
-                if isinstance(elem.rvalue, ID) and (elem.rvalue.name == "NULL" or int(elem.rvalue.value) == 0):
-                    to_delete.append(elem)
+                if isinstance(elem.rvalue, ID):
+                    if elem.rvalue.name == "NULL":
+                        to_delete.append(elem)
 
             if isinstance(elem, If):
                 remove_mbox_assign_to_zero(elem.iftrue, mbox_name)
@@ -277,7 +279,7 @@ def to_modify(while_to_check):
     mbox = False
     for line in while_to_check.stmt:
         if isinstance(line, Assignment):
-            if isinstance(line.rvalue, FuncCall) and str.lower(line.rvalue.name.name) == "recv":
+            if isinstance(line.rvalue, FuncCall) and "recv" in str.lower(line.rvalue.name.name) :
                 recv = True
             left = line.lvalue
             if isinstance(left, ID) and "mbox" in left.name:

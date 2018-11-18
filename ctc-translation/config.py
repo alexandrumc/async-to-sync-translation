@@ -77,12 +77,19 @@
 
 
 # Number of nested algorithms
-number_of_nested_algorithms = 1
+number_of_nested_algorithms = 2
 
 # Modify with phase and round variables names
 variables_1 = dict(
     phase="Insert PHASE variable name here",
-    round="round"
+    round="round",
+    recv="recv"
+)
+
+variables_2 = dict(
+    phase="Insert PHASE variable name here",
+    round="bround",
+    recv="recv"
 )
 
 # Modify with phase and round fields names in the message structure
@@ -93,11 +100,14 @@ msg_structure_fields_1 = dict(
 
 # Modify with mailbox name
 mailbox_1 = "mbox"
+mailbox_2 = "mboxB"
 
 # Modify with clean mailbox function name
 clean_mailbox_1 = "list_dispose"
+clean_mailbox_2 = "list_dispose2"
 
-rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
+rounds_list1 = ['CEpoch', 'NewEpoch', 'Ack_E', 'New_Leader', 'Ack_LD']
+rounds_list2 = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
 
 # Add as many fields as you need
 

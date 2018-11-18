@@ -11,6 +11,7 @@ from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp
 from modify_whiles import coord_aux, to_modify, whiles_to_if, identify_recv_exits, remove_mbox
 from cStringIO import StringIO
 import sys
+import config
 
 generator = c_generator.CGenerator()
 
@@ -940,7 +941,7 @@ def identify_nested_algorithms_bodies(extern_body, list):
                     identify_nested_algorithms_bodies(elem.iffalse, list)
 
 
-def identify_nested(ast_tree, epoch_name):
+def identify_nested(ast_tree):
     ast = ast_tree
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
@@ -950,30 +951,44 @@ def identify_nested(ast_tree, epoch_name):
     identify_nested_algorithms_bodies(extern_while, list)
     if list:
         list.reverse()
-        # TODO: why is the list hardcoded? will there be any problems if we also have FOURTH_ROUND in the algorithm?
-        labels = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
+        # labels = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
+        labels = config.rounds_list2
         code = None
+        print len(list)
         for elem in list:
+            # print generator.visit(elem), "AAAAAAAAAAA"
             conditii = []
             whiles_to_if(elem.stmt, conditii)
 
             identify_recv_exits(elem.stmt, conditii)
-            remove_mbox(elem.stmt, 'mbox', 'list_dispose')
-            trees_dict, trees_paths_dict, is_job = get_paths_trees(elem.stmt, labels, labels, 'round')
-            print_code(trees_dict, trees_paths_dict, labels)
+            remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
+            # print generator.visit(elem)
+            trees_dict, trees_paths_dict, is_job = get_paths_trees(elem.stmt, labels, labels,
+                                                                   config.variables_2['round'])
+            # print_code(trees_dict, trees_paths_dict, labels)
 
-            print_rounds(labels, trees_dict, trees_paths_dict, 'round', is_job)
+            print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job)
             parent = find_parent(ast, elem)
             index = parent.block_items.index(elem)
             parent.block_items.remove(elem)
-            func = FuncCall(ID("inner_algorithm"), None, None)
+
+            coord = elem.coord
+
+            new_id = ID("inner_algorithm",coord)
+            func = FuncCall(new_id, None,coord)
+            assign_unique_coord(func,coord)
             parent.block_items.insert(index, func)
+            print generator.visit(parent.block_items[index])
+            # print generator.visit(ast)
+            # print generator.visit(func)
 
             funcdecl = FuncDecl(None, TypeDecl('inner_algorithm', None, IdentifierType(['int'])))
             decl = Decl('inner_algorithm', None, None, None, funcdecl, None, None)
             funcdef = FuncDef(decl, None, None)
             code = mystdout.getvalue()
             funcdef.body = Compound([code])
+
+            # print generator.visit(ast)
 
         sys.stdout = old_stdout
         return ast, code
@@ -1011,37 +1026,27 @@ def take_code_from_file(ast, filename, labelname, rounds_list):
     # print identify_epoch_jumps(ast, 'epoch')
     # print labels, labels_sorted
     # print generator.visit(ast)
-    if check_inner_algo(cop):
-        # TODO: - use labels from config.py and do not ask for them to be entered from the keyboard
-        # TODO: - in config.py will also be a variable that will indicate how many nested algorithms are there
-        # you should have a loop, because now you only handle a <- b
-        # what if a <- b <- c? where a is the biggest algorithm, b is nested in a, c is nested in b
+    if config.number_of_nested_algorithms > 1:
+
         print "\n\nLaunched procedure for nested algorithms\n\n"
-        input = raw_input("\n Please insert the labels of the outer algorighm here(separated by a space) : ")
-        labs = input.split()
-        labs.append('AUX_ROUND')
-        cop, code = identify_nested(cop, 'view')
+
+        labs = config.rounds_list1
+        cop, code = identify_nested(cop)
         if code:
             print "Inner algo code:\n"
             print code
             print "End of inner algo code\n\n"
 
-        # cop = async_to_async(cop, 'view')
-        # TODO: - why is the list hardcoded?
-        labs = ['FIRST_ROUND', 'SECOND_ROUND', 'AUX_ROUND']
+        # labs = ['FIRST_ROUND', 'SECOND_ROUND', 'AUX_ROUND']
+        print generator.visit(cop)
+        print "pringing outer algo code"
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
-        # print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job)
-        print_code(trees_dict, trees_paths_dict, labels_sorted)
+        print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job)
+        # print_code(trees_dict, trees_paths_dict, labels_sorted)
+        # print generator.visit(ast)
     else:
         print "No inner algorithm detected\n"
-        # cop = async_to_async(cop, 'epoch')
-        # print generator.visit(cop)
-        trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
-        # print generator.visit(cop)
-        #
-        # print_code(trees_dict, trees_paths_dict, labels_sorted)
-        # print "Rounds:\n"
-        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
-        # print labels
 
-    # return trees_dict
+        trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
+
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job)
