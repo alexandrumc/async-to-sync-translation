@@ -554,7 +554,7 @@ class RoundGenerator(c_generator.CGenerator):
                         changed_value = True
                     fref = self._parenthesize_unless_simple(n.name)
                     s = fref + '(' + self.visit(n.args) + ')'
-                    if n.name.name == "send":
+                    if "send" in n.name.name:
                         self.send_reached = True
                     if changed_value:
                         self.extend_visit = False
@@ -569,7 +569,7 @@ class RoundGenerator(c_generator.CGenerator):
                     ok = False
                     if self.send_reached:
                         ok = True
-                    if n.name.name == "send":
+                    if "send" in n.name.name:
                         self.send_reached = True
                     if changed_value:
                         self.extend_visit = False
@@ -580,7 +580,7 @@ class RoundGenerator(c_generator.CGenerator):
                     or self.visit_cond:
                 fref = self._parenthesize_unless_simple(n.name)
                 s = fref + '(' + self.visit(n.args) + ')'
-                if n.name.name == "send":
+                if "send" in n.name.name :
                     self.send_reached = True
                 return s
             elif self.mode == "update" or self.visit_cond:
@@ -589,7 +589,7 @@ class RoundGenerator(c_generator.CGenerator):
                 ok = False
                 if self.send_reached:
                     ok = True
-                if n.name.name == "send":
+                if "send" in n.name.name:
                     self.send_reached = True
                 if ok:
                     return s
