@@ -106,7 +106,7 @@ mailbox_2 = "mboxB"
 clean_mailbox_1 = "list_dispose"
 clean_mailbox_2 = "list_dispose2"
 
-rounds_list1 = ['CEpoch', 'NewEpoch', 'Ack_E', 'New_Leader', 'Ack_LD']
+rounds_list1 = ['CEpoch', 'NewEpoch', 'Ack_E',  'New_Leader', 'Ack_LD']
 rounds_list2 = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
 
 # Add as many fields as you need

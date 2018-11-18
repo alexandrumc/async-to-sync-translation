@@ -624,6 +624,7 @@ def print_code(trees_dict, trees_paths_dict, labels):
 
 def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job):
     labels.reverse()
+    # print labels[:len(labels) - 1]
     for label in labels[:len(labels) - 1]:
         if label == "AUX_ROUND":
             continue
@@ -953,8 +954,9 @@ def identify_nested(ast_tree):
         list.reverse()
         # labels = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
         labels = config.rounds_list2
+        labels.append('ERR_ROUND')
         code = None
-        print len(list)
+        # print len(list)
         for elem in list:
             # print generator.visit(elem), "AAAAAAAAAAA"
             conditii = []
@@ -978,7 +980,7 @@ def identify_nested(ast_tree):
             func = FuncCall(new_id, None,coord)
             assign_unique_coord(func,coord)
             parent.block_items.insert(index, func)
-            print generator.visit(parent.block_items[index])
+            # print generator.visit(parent.block_items[index])
             # print generator.visit(ast)
             # print generator.visit(func)
 
@@ -1012,7 +1014,7 @@ def take_code_from_file(ast, filename, labelname, rounds_list):
     cop = copy.deepcopy(ast)
     # labels_sorted = get_labels_order(filename, labelname)
     # labels = get_labels(filename, labelname)
-    labels = rounds_list
+    # labels.append('ERR_ROUND')
     labels_sorted = rounds_list
 
     test = get_recv_whiles(cop)
@@ -1029,8 +1031,9 @@ def take_code_from_file(ast, filename, labelname, rounds_list):
     if config.number_of_nested_algorithms > 1:
 
         print "\n\nLaunched procedure for nested algorithms\n\n"
-
+        #outer algo rounds
         labs = config.rounds_list1
+        labs.append('ERR_ROUND')
         cop, code = identify_nested(cop)
         if code:
             print "Inner algo code:\n"
@@ -1038,14 +1041,17 @@ def take_code_from_file(ast, filename, labelname, rounds_list):
             print "End of inner algo code\n\n"
 
         # labs = ['FIRST_ROUND', 'SECOND_ROUND', 'AUX_ROUND']
-        print generator.visit(cop)
-        print "pringing outer algo code"
+        # print generator.visit(cop)
+        print "Outer Algo code \n"
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
         print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job)
         # print_code(trees_dict, trees_paths_dict, labels_sorted)
         # print generator.visit(ast)
     else:
         print "No inner algorithm detected\n"
+
+        labels = rounds_list
+        labels.append('ERR_ROUND')
 
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
 
