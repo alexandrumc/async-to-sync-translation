@@ -1,5 +1,5 @@
 enum round_typ_A {
-    CEpoch, NewEpoch, Ack_E, New_Leader, Ack_LD, BCAST
+    CEpoch, NewEpoch, Ack_E, New_Leader, BCAST
 };
 typedef struct Msg {
     int round;
@@ -83,12 +83,15 @@ int main(int argc, char **argv)
             free(m);
             m = NULL;
             
-            mbox= NULL;
-            reset_timeout();
+            
+            
+            round = Ack_E;
+            list_dispose_mbox(mbox);
+            mbox = NULL;
             while(true)
             {
                 m = recv();
-                if (m != NULL && m->epoch >= epoch && m->round == NewEpoch){
+                if (m != NULL && m->epoch == epoch && m->round == Ack_E){
                     mbox_new = (list*) malloc(sizeof(list));
                     if(mbox_new==0) {
                         abort();
@@ -101,223 +104,168 @@ int main(int argc, char **argv)
                     else
                     {
                         mbox_new->size =1 ;
-                        
                     }
                     mbox_new->next = mbox;
                     mbox = mbox_new;
                     
-                } else {
+                }
+                else {
                     free(m);
                 }
-                if (timeout()) break;
-                if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
+                if (timeout()){
+                    break;
+                }
+                if(mbox != NULL && mbox->size > n/2){
                     break;
                 }
             }
-            if(mbox != NULL && mbox->size ==1&& mbox->next==NULL){
-                epoch = mbox->message->epoch;
-                leader = mbox->message->sender;
+            if(mbox != NULL && mbox->size > n/2){
+                lastIndex = max_log_size(mbox);
+                log = longest_log(mbox, lastIndex);
+                round = New_Leader;
+                
                 
                 m = (msg *) malloc(sizeof(msg));
                 if(m==0) {
                     abort();
                 }
                 m->epoch = epoch;
-                m->round = Ack_E;
+                m->round = New_Leader;
                 m->history = log;
                 m->history_lenght = lastIndex;
-                send(m, leader(epoch,n));
+                send(m, to_all);
                 free(m);
                 m = NULL;
-                
-                
-                round = Ack_E;
-                list_dispose_mbox(mbox);
-                mbox = NULL;
-                while(true)
-                {
-                    m = recv();
-                    if (m != NULL && m->epoch == epoch && m->round == Ack_E){
-                        mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) {
-                            abort();
-                        }
-                        mbox_new->message =m;
-                        if(mbox!=0)
-                        {
-                            mbox_new->size = mbox->size + 1;
-                        }
-                        else
-                        {
-                            mbox_new->size =1 ;
-                        }
-                        mbox_new->next = mbox;
-                        mbox = mbox_new;
-                        
-                    }
-                    else {
-                        free(m);
-                    }
-                    if (timeout()){
-                        break;
-                    }
-                    if(mbox != NULL && mbox->size > n/2){
-                        break;
-                    }
+                //                round = BCAST;
+                //                m = (msg *) malloc(sizeof(msg));
+                //                if(m==0) {
+                //                    abort();
+                //                }
+                //                m->epoch = epoch;
+                //                m->round = BCAST;
+                //                send(m, to_all);
+                //                free(m);
+                //                m = NULL;
+                int len = list_length(log);
+                ltype * lastEntry = list_get(log,lastIndex);
+                i = lastIndex;
+                if (lastEntry!= NULL && lastEntry->commit == 1) {
+                    i++;
+                    lastIndex++;
+                    ltype * newEntry;
+                    newEntry = create_ltype(in(),0);
+                    list_add(log,newEntry);
                 }
-                if(mbox != NULL && mbox->size > n/2){
-                    lastIndex = max_log_size(mbox);
-                    log = longest_log(mbox, lastIndex);
-                    round = New_Leader;
-                    
-                    
-                    m = (msg *) malloc(sizeof(msg));
-                    if(m==0) {
-                        abort();
-                    }
-                    m->epoch = epoch;
-                    m->round = New_Leader;
-                    m->history = log;
-                    m->history_lenght = lastIndex;
-                    send(m, to_all);
-                    free(m);
-                    m = NULL;
-                    round = BCAST;
-                    m = (msg *) malloc(sizeof(msg));
-                    if(m==0) {
-                        abort();
-                    }
-                    m->epoch = epoch;
-                    m->round = BCAST;
-                    send(m, to_all);
-                    free(m);
-                    m = NULL;
-                    int len = list_length(log);
-                    ltype * lastEntry = list_get(log,lastIndex);
-                    i = lastIndex;
-                    if (lastEntry!= NULL && lastEntry->commit == 1) {
-                        i++;
-                        lastIndex++;
-                        ltype * newEntry;
-                        newEntry = create_ltype(in(),0);
-                        list_add(log,newEntry);
-                    }
+                bround = FIRST_ROUND;
+                while (true)
+                {
                     bround = FIRST_ROUND;
+                    mboxB = NULL;
+                    int leader = leader(epoch,n);
+                    mB = (msgb *) malloc(sizeof(msgb));
+                    if(mB==0) {
+                        abort();
+                    }
+                    mB->i = i;
+                    mB->round = bround;
+                    mB->epoch = epoch;
+                    mB->lab = BCAST;
+                    mB->sender = leader;
+                    ltype * entry = list_get(log,lastIndex);
+                    if(entry != NULL) {
+                        mB->op = entry->op;
+                    }
+                    send_msgb(mB, to_all);
+                    free(mB);
+                    mB = NULL;
+                    mboxB = NULL;
+                    bround = SECOND_ROUND;
+                    mB = (msgb *) malloc(sizeof(msgb));
+                    if(mB==0) {
+                        abort();
+                    }
+                    mB->i = i;
+                    mB->round = bround;
+                    mB->epoch = epoch;
+                    mB->lab = BCAST;
+                    mB->sender = pid;
+                    send_msgb(mB, leader);
+                    free(mB);
+                    mB=NULL;
                     while (true)
                     {
-                        bround = FIRST_ROUND;
-                        mboxB = NULL;
-                        int leader = leader(epoch,n);
-                        mB = (msgb *) malloc(sizeof(msgb));
-                        if(mB==0) {
-                            abort();
-                        }
-                        mB->i = i;
-                        mB->round = bround;
-                        mB->epoch = epoch;
-                        mB->lab = BCAST;
-                        mB->sender = leader;
-                        ltype * entry = list_get(log,lastIndex);
-                        if(entry != NULL) {
-                            mB->op = entry->op;
-                        }
-                        send_msgb(mB, to_all);
-                        free(mB);
-                        mB = NULL;
-                        mboxB = NULL;
-                        bround = SECOND_ROUND;
-                        mB = (msgb *) malloc(sizeof(msgb));
-                        if(mB==0) {
-                            abort();
-                        }
-                        mB->i = i;
-                        mB->round = bround;
-                        mB->epoch = epoch;
-                        mB->lab = BCAST;
-                        mB->sender = pid;
-                        send_msgb(mB, leader);
-                        free(mB);
-                        mB=NULL;
-                        while (true)
-                        {
-                            mB = recv_msgb();
-                            if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == BCAST) {
-                                mboxB_new = (listb*) malloc(sizeof(listb));
-                                if(mboxB_new==0) {
-                                    abort();
-                                }
-                                mboxB_new->message = mB;
-                                if(mboxB!=0)
-                                {
-                                    mboxB_new->size = mboxB->size + 1;
-                                }
-                                else
-                                {
-                                    mboxB_new->size = 1 ;
-                                }
-                                mboxB_new->next = mboxB;
-                                mboxB = mboxB_new;
-                                
-                            }else {
-                                free(mB);
+                        mB = recv_msgb();
+                        if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == BCAST) {
+                            mboxB_new = (listb*) malloc(sizeof(listb));
+                            if(mboxB_new==0) {
+                                abort();
                             }
-                            if (timeout())
-                                break;
-                            if (mboxB != NULL && mboxB->size > n/2)
-                                break;
-                        }
-                        if (mboxB != NULL && mboxB->size > n/2) {
-                            ltype *logi = list_get(log,i);
-                            if(logi != 0) {
-                                logi->commit = true;
+                            mboxB_new->message = mB;
+                            if(mboxB!=0)
+                            {
+                                mboxB_new->size = mboxB->size + 1;
                             }
-                            out_external(logi);
+                            else
+                            {
+                                mboxB_new->size = 1 ;
+                            }
+                            mboxB_new->next = mboxB;
+                            mboxB = mboxB_new;
+                            
+                        }else {
+                            free(mB);
                         }
-                        else {
-                            listB_dispose_no_data(mboxB);
-                            mboxB = NULL;
+                        if (timeout())
                             break;
+                        if (mboxB != NULL && mboxB->size > n/2)
+                            break;
+                    }
+                    if (mboxB != NULL && mboxB->size > n/2) {
+                        ltype *logi = list_get(log,i);
+                        if(logi != 0) {
+                            logi->commit = true;
                         }
-                        bround = THIRD_ROUND;
-                        mB = (msgb *) malloc(sizeof(msgb));
-                        if(mB==0) {
-                            abort();
-                        }
-                        mB->i = i;
-                        mB->round = bround;
-                        mB->epoch = epoch;
-                        mB->lab = BCAST;
-                        mB->sender = pid;
-                        send_msgb(mB, to_all);
-                        free(mB);
-                        mB=NULL;
-                        lastIndex++;
-                        ltype * newEntry = create_ltype(in(),0);
-                        list_add(log,newEntry);
-                        bround = FIRST_ROUND;
-                        i++;
+                        out_external(logi);
+                    }
+                    else {
                         listB_dispose_no_data(mboxB);
                         mboxB = NULL;
+                        break;
                     }
-                    epoch++;
-                    round = NewEpoch;
-                    list_dispose_mbox(mbox);
-                    mbox = NULL;
+                    bround = THIRD_ROUND;
+                    mB = (msgb *) malloc(sizeof(msgb));
+                    if(mB==0) {
+                        abort();
+                    }
+                    mB->i = i;
+                    mB->round = bround;
+                    mB->epoch = epoch;
+                    mB->lab = BCAST;
+                    mB->sender = pid;
+                    send_msgb(mB, to_all);
+                    free(mB);
+                    mB=NULL;
+                    lastIndex++;
+                    ltype * newEntry = create_ltype(in(),0);
+                    list_add(log,newEntry);
+                    bround = FIRST_ROUND;
+                    i++;
+                    listB_dispose_no_data(mboxB);
+                    mboxB = NULL;
                 }
-                else {
-                    list_dispose_mbox(mbox);
-                    mbox = NULL;
-                    epoch++;
-                    round = NewEpoch;
-                    
-                }
-                
-            }else {
+                epoch++;
+                round = NewEpoch;
+                list_dispose_mbox(mbox);
+                mbox = NULL;
+            }
+            else {
                 list_dispose_mbox(mbox);
                 mbox = NULL;
                 epoch++;
                 round = NewEpoch;
+                
             }
+            
         }
         else{
             round = NewEpoch;
@@ -402,178 +350,131 @@ int main(int argc, char **argv)
                 if(mbox != NULL && mbox->size ==1&& mbox->next==NULL){
                     lastIndex = mbox->message->history_lenght;
                     log = longest_log(mbox,lastIndex);
-                    round = Ack_LD;
+                    round = BCAST;
                     
                     list_dispose_mbox(mbox);
                     mbox = NULL;
-                    m = (msg *) malloc(sizeof(msg));
-                    if(m==0) {
-                        abort();
+                    
+                    i = lastIndex;
+                    ltype * lastEntry = list_get(log,lastIndex);
+                    if (lastEntry!= NULL && lastEntry->commit == true) {
+                        i++;
+                        lastIndex++;
+                        ltype * newEntry;
+                        newEntry = create_ltype(-1,false);
+                        list_add(log,newEntry);
                     }
-                    m->epoch = epoch;
-                    m->round = Ack_LD;
-                    send(m, leader(epoch,n));
-                    free(m);
-                    m = NULL;
-                    round = BCAST;
-                    list_dispose_mbox(mbox);
-                    mbox = NULL;
-                    reset_timeout();
+                    bround = FIRST_ROUND;
                     while(true)
                     {
-                        m = recv();
-                        if (m != NULL && m->epoch == epoch && m->round == BCAST){
-                            mbox_new = (list*) malloc(sizeof(list));
-                            if(mbox_new==0) {
-                                abort();
+                        bround = FIRST_ROUND;
+                        mboxB = NULL;
+                        int leader = leader(epoch,n);
+                        while (true)
+                        {
+                            mB = recv_msgb();
+                            if ( mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == BCAST) {
+                                mboxB_new = (listb*) malloc(sizeof(listb));
+                                if(mboxB_new==0) {
+                                    abort();
+                                }
+                                mboxB_new->message =mB;
+                                if(mboxB!=0)
+                                {
+                                    mboxB_new->size = mboxB->size + 1;
+                                }
+                                else
+                                {
+                                    mboxB_new->size =1 ;
+                                    mboxB_new->next = mboxB;
+                                    mboxB = mboxB_new;
+                                }
+                            }else {
+                                free(mB);
                             }
-                            mbox_new->message =m;
-                            if(mbox!=0)
+                            if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
                             {
-                                mbox_new->size = mbox->size + 1;
+                                break;
                             }
-                            else
-                            {
-                                mbox_new->size =1 ;
-                                mbox_new->next = mbox;
-                                mbox = mbox_new;
+                            if (timeout())
+                                break;
+                        }
+                        if (mboxB!= NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader){
+                            ltype *logi = list_get(log,i);
+                            if(logi != 0){
+                                logi->op = mboxB->message->op;
+                                logi->commit = false;
                             }
                         } else {
-                            free(m);
-                        }
-                        if (timeout()) break;
-                        if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
+                            listB_dispose_no_data(mboxB);
+                            mboxB = NULL;
                             break;
                         }
-                    }
-                    if(mbox != NULL && mbox->size ==1&& mbox->next==NULL){
-                        i = lastIndex;
-                        ltype * lastEntry = list_get(log,lastIndex);
-                        if (lastEntry!= NULL && lastEntry->commit == true) {
-                            i++;
-                            lastIndex++;
-                            ltype * newEntry;
-                            newEntry = create_ltype(-1,false);
-                            list_add(log,newEntry);
+                        bround = SECOND_ROUND;
+                        mB = (msgb *) malloc(sizeof(msgb));
+                        if(mB==0) {
+                            abort();
+                        }
+                        mB->i = i;
+                        mB->round = bround;
+                        mB->epoch = epoch;
+                        mB->lab = BCAST;
+                        mB->sender = pid;
+                        send_msgb(mB, leader);
+                        free(mB);
+                        mB=NULL;
+                        bround = THIRD_ROUND;
+                        listB_dispose_no_data(mboxB);
+                        mboxB = NULL;
+                        while (true)
+                        {
+                            mB = recv_msgb();
+                            if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == BCAST) {
+                                mboxB_new = (listb*) malloc(sizeof(listb));
+                                if(mboxB_new==0) {
+                                    abort();
+                                }
+                                mboxB_new->message =mB;
+                                if(mboxB!=0)
+                                {
+                                    mboxB_new->size = mboxB->size + 1;
+                                }
+                                else
+                                {
+                                    mboxB_new->size =1 ;
+                                    mboxB_new->next = mboxB;
+                                    mboxB = mboxB_new;
+                                }
+                            }else {
+                                free(mB);
+                            }
+                            if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
+                            {
+                                break;
+                            }
+                            if (timeout())
+                                break;
+                        }
+                        if (mboxB != NULL && mboxB->size >= 1) {
+                            ltype *logi = list_get(log,i);
+                            if(logi != 0){
+                                logi->commit = true;
+                                out(logi);
+                                lastIndex++;
+                                ltype * newEntry = create_ltype(-1,false);
+                                list_add(log,newEntry);
+                            }
+                        }else{
+                            listB_dispose_no_data(mboxB);
+                            mboxB = NULL;
+                            break;
                         }
                         bround = FIRST_ROUND;
-                        while(true)
-                        {
-                            bround = FIRST_ROUND;
-                            mboxB = NULL;
-                            int leader = leader(epoch,n);
-                            while (true)
-                            {
-                                mB = recv_msgb();
-                                if ( mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == BCAST) {
-                                    mboxB_new = (listb*) malloc(sizeof(listb));
-                                    if(mboxB_new==0) {
-                                        abort();
-                                    }
-                                    mboxB_new->message =mB;
-                                    if(mboxB!=0)
-                                    {
-                                        mboxB_new->size = mboxB->size + 1;
-                                    }
-                                    else
-                                    {
-                                        mboxB_new->size =1 ;
-                                        mboxB_new->next = mboxB;
-                                        mboxB = mboxB_new;
-                                    }
-                                }else {
-                                    free(mB);
-                                }
-                                if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
-                                {
-                                    break;
-                                }
-                                if (timeout())
-                                    break;
-                            }
-                            if (mboxB!= NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader){
-                                ltype *logi = list_get(log,i);
-                                if(logi != 0){
-                                    logi->op = mboxB->message->op;
-                                    logi->commit = false;
-                                }
-                            } else {
-                                listB_dispose_no_data(mboxB);
-                                mboxB = NULL;
-                                break;
-                            }
-                            bround = SECOND_ROUND;
-                            mB = (msgb *) malloc(sizeof(msgb));
-                            if(mB==0) {
-                                abort();
-                            }
-                            mB->i = i;
-                            mB->round = bround;
-                            mB->epoch = epoch;
-                            mB->lab = BCAST;
-                            mB->sender = pid;
-                            send_msgb(mB, leader);
-                            free(mB);
-                            mB=NULL;
-                            bround = THIRD_ROUND;
-                            listB_dispose_no_data(mboxB);
-                            mboxB = NULL;
-                            while (true)
-                            {
-                                mB = recv_msgb();
-                                if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == BCAST) {
-                                    mboxB_new = (listb*) malloc(sizeof(listb));
-                                    if(mboxB_new==0) {
-                                        abort();
-                                    }
-                                    mboxB_new->message =mB;
-                                    if(mboxB!=0)
-                                    {
-                                        mboxB_new->size = mboxB->size + 1;
-                                    }
-                                    else
-                                    {
-                                        mboxB_new->size =1 ;
-                                        mboxB_new->next = mboxB;
-                                        mboxB = mboxB_new;
-                                    }
-                                }else {
-                                    free(mB);
-                                }
-                                if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
-                                {
-                                    break;
-                                }
-                                if (timeout())
-                                    break;
-                            }
-                            if (mboxB != NULL && mboxB->size >= 1) {
-                                ltype *logi = list_get(log,i);
-                                if(logi != 0){
-                                    logi->commit = true;
-                                    out(logi);
-                                    lastIndex++;
-                                    ltype * newEntry = create_ltype(-1,false);
-                                    list_add(log,newEntry);
-                                }
-                            }else{
-                                listB_dispose_no_data(mboxB);
-                                mboxB = NULL;
-                                break;
-                            }
-                            bround = FIRST_ROUND;
-                            i++;
-                            listB_dispose_no_data(mboxB);
-                            mboxB = NULL;
-                        }
-                    }else{
-                        list_dispose_mbox(mbox);
-                        mbox = NULL;
-                        epoch++;
-                        round = NewEpoch;
+                        i++;
+                        listB_dispose_no_data(mboxB);
+                        mboxB = NULL;
                     }
-                }
-                else {
+                }else{
                     list_dispose_mbox(mbox);
                     mbox = NULL;
                     epoch++;
@@ -587,7 +488,7 @@ int main(int argc, char **argv)
             }
         }
         
+    }
+    return 1;
 }
-return 1;
-  }
 
