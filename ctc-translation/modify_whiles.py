@@ -78,12 +78,15 @@ def remove_null_if(extern_while_body):
             if isinstance(elem, If):
                 if isinstance(elem.iftrue, Compound):
                     if len(elem.iftrue.block_items) == 0:
+                        print generator.visit(elem), "aaaaaaa"
                         to_delete.append(elem)
                     else:
+                        # print generator.visit(elem), "AAAAAAA"
                         remove_null_if(elem.iftrue)
                 if isinstance(elem.iffalse, Compound):
                     if len(elem.iffalse.block_items) == 0:
                         elem.iffalse = None
+                        # print 5
                     else:
                         remove_null_if(elem.iffalse)
         for x in to_delete:
