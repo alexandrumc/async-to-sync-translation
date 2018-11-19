@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
                     list_dispose_mbox(mbox);
                     mbox = NULL;
                     epoch++;
-                    round = AUX_ROUND;
+                    round = NewEpoch;
                 }
             } else {
                 round = New_Leader;
@@ -412,10 +412,7 @@ int main(int argc, char **argv) {
                                     lastIndex++;
                                     ltype *newEntry = create_ltype(-1, false);
                                     list_add(log, newEntry);
-                                    bround = FIRST_ROUND;
-                                    i++;
-                                    listB_dispose_no_data(mboxB);
-                                    mboxB = NULL;
+                                    
                                 }
                                 if (pid == leader) {
                                     lastIndex++;

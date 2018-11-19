@@ -1,8 +1,7 @@
 #include "stdlib.h"
 #include<stdio.h>
 #include<limits.h>
-#include "broadcast-functions-EQ.h"
-#include "arraylist.h"
+
 
 
 
@@ -28,42 +27,117 @@ typedef struct List{
     int size;
 } list;
 
-void out(ltype *v);
 
+
+
+void out(ltype *v);
+//@ requires true;
+//@ ensures true;
 
 int in();
+//@ requires true;
+//@ ensures true;
+
+struct arraylist;
+
+/*@
+predicate arraylist(struct arraylist *a; list<void*> vs);
+@*/
+
+struct arraylist *create_arraylist() ;
+  //@ requires true;
+  //@ ensures arraylist(result, nil);
 
 
+struct arraylist *create_arraylist2() ;
+  //@ requires true;
+  //@ ensures arraylist(result, ?v);
+  
+  
+void *list_get(struct arraylist *a, int i);
+  //@ requires arraylist(a, ?vs) &*& 0 <= i &*& i < length(vs);
+  //@ ensures arraylist(a, vs) &*& result == nth(i, vs);
+  
+int list_length(struct arraylist *a);
+  //@ requires arraylist(a, ?vs);
+  //@ ensures arraylist(a, vs) &*& result == length(vs);
+
+void list_add(struct arraylist *a, void *v);
+  //@ requires arraylist(a, ?vs);
+  //@ ensures arraylist(a, append(vs, cons(v, nil)));
+  
+void list_remove_nth(struct arraylist *a, int n);
+  //@ requires arraylist(a, ?vs) &*& 0 <= n &*& n < length(vs);
+  //@ ensures arraylist(a, append(take(n, vs), tail(drop(n, vs))));
+
+void list_dispose(struct arraylist* a);
+  //@ requires arraylist(a, ?vs);
+  //@ ensures true;
 
 
 int timeout();
-
+//@ requires emp;
+//@ ensures emp;
 int reset_timeout();
+//@ requires emp;
+//@ ensures emp;
 
 int rand_bool();
+//@ requires emp;
+//@ ensures 1<= result && 0<= result ;
 
 
 
 msg* recv();
+//@ requires emp;
+/*@ ensures result->round |-> ?r &*& result->epoch |-> ?p &*& result->sender |-> ?s &*& result->i |-> ?e &*&
+ result->op |-> ?t &*& result->lab |-> ?a &*&
+    malloc_block_Msg(result) &*& INT_MIN < p &*& p < INT_MAX;
+@*/
 
 void dispose(msg* c);
+/*@
+ requires c->epoch |-> _ &*& c->round |-> _ &*&
+ c->i |-> _ &*& c->lab |-> _ &*&
+ c->op |-> _ &*& c->sender |-> _ &*& malloc_block_Msg(c);
+ @*/
+ //@ensures emp;
+
 
 
 ltype * create_ltype(int op, int b);
+//@ requires true;
+//@ ensures malloc_block_Ltype(result) &*& result!= 0 &*& result->commit |->_ &*& result->op|-> _;
 
 void list_dispose_double(struct List *l);
+//@ requires lseg(l,0, ?v) &*& foreach(v,alloc_list());
+//@ ensures emp;
 
 void list_dispose_no_data(struct List *l);
+//@ requires lseg(l,0, ?v) &*& foreach(v,alloc_list());
+//@ ensures emp;
 
-void dispose_list(list* c);
+
 
 void send(msg* message, int pid);
+//@ requires true;
+//@ ensures true;
 
 int leader(int phase, int net_size);
+//@ requires emp;
+//@ ensures 0<=result &*& result < net_size;
 
 int all_agree(struct List* l);
+//@ requires lseg(l,0, ?v)&*& foreach(v,alloc_list());
+//@ ensures lseg(l,0, v) &*& foreach(v,alloc_list()) &*& 0 <= result &*& result<=1;
 
-
+/*@
+ predicate tag_leq(int pa1, int ra1, int pa2, int ra2, int pb1, int rb1, int pb2, int rb2) =
+ (pa1 == pb1) && (ra1 = rb1) &&  ((pa2 < pb2) || (pa2==pb2 && ra2<=rb2));
+ 
+ predicate tag_strict_leq(int pa1, int ra1, int pa2, int ra2, int pb1, int rb1, int pb2, int rb2) =
+ (pa1 == pb1) && (ra1 == rb1) &&  ((pa2 + 1 == pb2) || (pa2==pb2 && ra2<=rb2)) ;
+ @*/
 
 enum round_typ_A {PROPOSE, ACK, LEADER, BCAST} ;
 
@@ -106,7 +180,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
     
     //@ foreach_remove(lastEntry, log_data);
     //@ open alloc_ctor()(lastEntry);
-    if (lastEntry!= NULL && lastEntry->commit == true) {
+    if (lastEntry!= NULL && lastEntry->commit == 1) {
         //@ close alloc_ctor()(lastEntry);
         //@ foreach_unremove(lastEntry, log_data);
         
@@ -117,13 +191,13 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
         if (pid == leader)
             
             {
-            newEntry = create_ltype(in(),false);
+            newEntry = create_ltype(in(),0);
             }
         
         else
             
             {
-            newEntry = create_ltype(-1,false);
+            newEntry = create_ltype(-1,0);
             }
         
         list_add(log,newEntry);
@@ -132,9 +206,10 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
         //@ close foreach(cons(newEntry, nil), alloc_ctor());
         //@ foreach_append(log_data, cons(newEntry, nil));
     }else {
+    	m =NULL;
         //@ close alloc_ctor()(lastEntry);
         //@ foreach_unremove(lastEntry, log_data);
-        break;
+        
     }
     
     
@@ -216,13 +291,13 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     }
                 else
                 {
-                mbox_new->size =1 ;
+                    mbox_new->size =1 ;}
                 mbox_new->next = mbox;
                 //@ close lseg(mbox,0, v);
                 mbox = mbox_new;
                 //@ close lseg(mbox,0, cons(m,v));
                 //@ close foreach(cons(m,v), eq_list(epoch,lab, i, round));
-                }
+                
             }else free(m);
             
             //@open lseg(mbox, 0, ?nv);
@@ -273,7 +348,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     //@ open alloc_ctor()(logi);
                     if(logi != 0){
                         logi->op = mbox->message->op;
-                        logi->commit = false;
+                        logi->commit = 0;
                         
                     }
                     //@ close alloc_ctor()(logi);
@@ -285,11 +360,17 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 //@close foreach(nv,eq_list(epoch,lab, i, round));
                 //@close lseg(mbox, 0, nv);
                 //@ lemma_EQ_list_to_alloc_list(mbox, epoch,lab, i, round);
+                list_dispose_no_data(mbox);
+                mbox = NULL;
+            
             }else{
                 //@close eq_list(epoch,lab, i, round)(head(nv));
                 //@close foreach(nv,eq_list(epoch,lab, i, round));
                 //@close lseg(mbox, 0, nv);
                 //@ lemma_EQ_list_to_alloc_list(mbox, epoch,lab, i, round);
+                list_dispose_no_data(mbox);
+            	mbox = NULL;
+            
                 break;
             }
             
@@ -317,9 +398,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
             m=NULL;
             
             
-            list_dispose_no_data(mbox);
-            mbox = NULL;
-            
+       
             
             
             if (pid == leader) {
@@ -347,12 +426,12 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                             }
                         else
                         {
-                        mbox_new->size =1 ;
+                        mbox_new->size =1 ;}
                         mbox_new->next = mbox;
                         //@ close lseg(mbox,0, v);
                         
                         mbox = mbox_new;
-                        }
+                        
                         //@ close lseg(mbox,0, cons(m,v));
                         //@ close foreach(cons(m,v), eq_list(epoch,lab, i, round));
                     }else free(m);
@@ -384,7 +463,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     //@ foreach_remove(logi, newlog_data);
                     //@ open alloc_ctor()(logi);
                     if(logi != 0)  {
-                    logi->commit = true;
+                    logi->commit = 1;
                     }
                     
                     //@ close alloc_ctor()(logi);
@@ -479,12 +558,12 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                         }
                     else
                     {
-                    mbox_new->size =1 ;
+                    mbox_new->size =1 ;}
                     mbox_new->next = mbox;
                     //@ close lseg(mbox,0, vb);
                     
                     mbox = mbox_new;
-                    }
+                    
                     //@ close lseg(mbox,0, cons(m,vb));
                     //@ close foreach(cons(m,vb), eq_list(epoch,lab, i, round));
                 }else free(m);
@@ -534,7 +613,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     //@ open alloc_ctor()(logi);
                     if(logi != 0)
                         {
-                        logi->commit = true;
+                        logi->commit = 1;
                         }
                     cmt_number++;
                     out(logi);
@@ -545,7 +624,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 if(pid == leader){
                     
                     lastIndex++;
-                    ltype * newEntry = create_ltype(in(),false);
+                    ltype * newEntry = create_ltype(in(),0);
                     //@close alloc_ctor()(newEntry);
                     //@ close foreach(nil, alloc_ctor());
                     
@@ -558,7 +637,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     
                 }else {
                     lastIndex++;
-                    ltype * newEntry = create_ltype(-1,false);
+                    ltype * newEntry = create_ltype(-1,0);
                     list_add(log,newEntry);
                     //@ close alloc_ctor()(newEntry);
                     //@ close foreach(nil, alloc_ctor());
@@ -604,3 +683,60 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
     }
     return 1;
 }
+/*@ predicate_ctor alloc_ctor()(struct Ltype* lentry) =
+ lentry!=0 &*& lentry->commit |-> _ &*& lentry->op |-> _ &*& malloc_block_Ltype(lentry);
+ 
+ predicate_ctor eq_list(int phase, int round, int curr_phase, int curr_round)(struct Msg *msg) =
+ msg == 0 ? true :
+ msg->round |-> ?r &*& msg->epoch |-> ?e &*& msg->sender |-> ?s &*& msg->i |-> ?i &*&
+ msg->lab |-> ?l &*& msg->op |-> ?op &*& malloc_block_Msg(msg)&*&
+ (curr_phase == i) &*& (curr_round == r) &*& round == l &*& i == curr_phase ;
+ 
+ 
+ predicate mbox_tag_EQ(struct List *mbox, int phase, int round,int phase2, int round2) =
+ lseg(mbox,0,?v) &*& foreach(v,eq_list(phase,round,phase2,round2));
+ 
+ 
+ predicate lseg(struct List* from, struct List* to, list<struct Msg *> v)
+requires from == to ? v == nil :
+                      from->next |-> ?next &*& from->message |-> ?msg &*& from->size |-> ?size &*&
+                      malloc_block_List(from) &*& lseg(next, to, ?nextv) &*& v == cons(msg,nextv);
+ 
+ 
+@*/
+
+/*@ predicate_ctor alloc_list()(struct Msg *msg) = msg == 0 ? true : msg->round |-> ?r &*& msg->epoch |-> ?p 
+ 								&*& msg->sender |-> ?s &*& msg->i |-> ?e &*&
+ 								msg->op |-> ?t &*& msg->lab |-> ?a &*& 
+ 								  malloc_block_Msg(msg);
+ 								  
+ 								  lemma void lemma_EQ_list_to_alloc_list(struct List* mbox, int phase, int round,int phase2, int round2)
+ requires lseg(mbox,0, ?v) &*& foreach(v,eq_list(phase,round,phase2,round2));
+ ensures lseg(mbox,0, v) &*&  foreach(v,alloc_list());
+ {
+ 
+ open lseg(mbox,0,v);
+ open foreach(v,eq_list(phase,round,phase2,round2));
+ if (v == nil) {
+ close lseg(0,0,nil);
+ close foreach(nil,alloc_list());
+ }else{
+ 
+ open eq_list(phase,round,phase2,round2)(head(v));
+ close alloc_list()(head(v));
+ lemma_EQ_list_to_alloc_list(mbox->next,phase,round,phase2,round2);
+ 
+ open lseg(mbox->next,0,tail(v));
+ close lseg(mbox->next,0,tail(v));
+ open foreach(tail(v),alloc_list());
+ close foreach(tail(v),alloc_list());
+ 
+ close lseg(mbox,0,cons(head(v),tail(v)));
+ close foreach(cons(head(v),tail(v)),alloc_list());
+ }
+ }
+  
+  
+  @*/
+
+

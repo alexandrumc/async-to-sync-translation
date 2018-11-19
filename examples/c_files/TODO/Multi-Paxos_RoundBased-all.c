@@ -86,7 +86,7 @@ struct arraylist *create_arraylist() ;
 /*@
  
  predicate ltype_pred(struct Ltype *lentry)=
- lentry==0 ? true :
+ lentry ==0 ? true :
  lentry->commit |-> _ &*& lentry->op |-> _ &*& malloc_block_Ltype(lentry);
  
  @*/
@@ -110,7 +110,7 @@ int reset_timeout();
 
 int coord();
 //@ requires emp;
-//@ ensures 0<=result &*& result < net_size;
+//@ ensures 0<=result;
 
 int timeout();
 //@ requires emp;
@@ -169,7 +169,7 @@ int main(int argc, char **argv)//@ : main
     
     
     while (true)
-        //@ invariant ((old_epoch<epoch && round == AUX_ROUND));
+        //@ invariant ((old_epoch<epoch && round == NewEpoch));
     {
         //@close  tag_leq(old_epoch,old_round,epoch,round);
         //@assert tag_leq(old_epoch,old_round,epoch,round);
@@ -180,7 +180,7 @@ int main(int argc, char **argv)//@ : main
         //@ old_round = round;
         
         
-        if(pid == coord(){
+        if(pid == coord()){
             m = (msg *) malloc(sizeof(msg));
             if(m==0) {
                 abort();
@@ -247,6 +247,7 @@ int main(int argc, char **argv)//@ : main
            if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
                //@ old_epoch = epoch;
                epoch = mbox->message->epoch;
+               leader = mbox->message->sender;
                
                //@ mbox_tag_geq_to_list_pred_lemma(mbox->next);
                //@ close max_tag_mbox(epoch,round,mbox->next);
@@ -258,7 +259,7 @@ int main(int argc, char **argv)//@ : main
                //@assert tag_leq(old_epoch,old_round,epoch,round);
                //@ open tag_leq(old_epoch,old_round,epoch,round);
                
-               leader = mbox->message->sender;
+              
                
                //@ max_tag_mbox_to_list_pred_lemma(mbox);
                
@@ -499,15 +500,15 @@ int main(int argc, char **argv)//@ : main
                        //@ int old_phase = i -1;
                        
                        //@ open ltype_pred(lastEntry);
-                       if (lastEntry!= NULL && lastEntry->commit == true) {
+                       if (lastEntry!= NULL && lastEntry->commit == 1) {
                            //@ old_phase = i;
                            i++;
                            lastIndex++;
                            ltype * newEntry;
                            if (pid == leader) {
-                               newEntry = create_ltype(in(), false);
+                               newEntry = create_ltype(in(), 0);
                            }else{
-                               newEntry = create_ltype(-1, false);}
+                               newEntry = create_ltype(-1, 0);}
                            
                            list_add(log,newEntry);
                            //@ close ltype_pred(newEntry);
@@ -559,6 +560,7 @@ int main(int argc, char **argv)//@ : main
                                
                            }
                            
+                           mboxB = NULL;
                            
                            //@ close  eq_val_list_predB(epoch, round,i,bround,mboxB);
                            while (true)
@@ -578,10 +580,12 @@ int main(int argc, char **argv)//@ : main
                                    }
                                    else
                                    {
-                                       mboxB_new->size =1 ;
-                                       mboxB_new->next = mboxB;
-                                       mboxB = mboxB_new;
-                                   }
+                                       mboxB_new->size =1 ;}
+                                   
+                                   mboxB_new->next = mboxB;
+                                   mboxB = mboxB_new;
+                                       
+                                   
                                }else {
                                    free(mB);
                                }
@@ -606,7 +610,7 @@ int main(int argc, char **argv)//@ : main
                                //@ open ltype_pred(logi);
                                if(logi != 0){
                                    logi->op = mboxB->message->op;
-                                   logi->commit = false;
+                                   logi->commit = 0;
                                    //@ close ltype_pred(logi);
                                    //@leak ltype_pred(logi);
                                }
@@ -658,9 +662,10 @@ int main(int argc, char **argv)//@ : main
                                            else
                                            {
                                                mboxB_new->size = 1 ;
-                                               mboxB_new->next = mboxB;
-                                               mboxB = mboxB_new;
                                            }
+                                            mboxB_new->next = mboxB;
+                                            mboxB = mboxB_new;
+                                           
                                        }else {
                                            free(mB);
                                        }
@@ -683,7 +688,7 @@ int main(int argc, char **argv)//@ : main
                                        //@ open ltype_pred(logi);
                                        if(logi != 0)  {
                                            {
-                                               logi->commit = true;
+                                               logi->commit = 1;
                                            }
                                        }
                                        //@ close ltype_pred(logi);
@@ -754,9 +759,10 @@ int main(int argc, char **argv)//@ : main
                                        else
                                        {
                                            mboxB_new->size =1 ;
-                                           mboxB_new->next = mboxB;
-                                           mboxB = mboxB_new;
                                        }
+                                        mboxB_new->next = mboxB;
+                                        mboxB = mboxB_new;
+                                       
                                    }else {
                                        free(mB);
                                    }
@@ -781,34 +787,30 @@ int main(int argc, char **argv)//@ : main
                                    logi = list_get(log,i);
                                    //@ open ltype_pred(logi);
                                    if(logi != 0 && pid!= leader){
-                                       logi->commit = true;
+                                       logi->commit = 1;
                                        //@ close ltype_pred(logi);
                                        //@leak ltype_pred(logi);
                                        //cmt_number++;
                                        out(logi);
                                        lastIndex++;
-                                       ltype * newEntry = create_ltype(-1,false);
+                                       ltype * newEntry = create_ltype(-1,0);
                                        list_add(log,newEntry);
                                        //@ close ltype_pred(newEntry);
                                        //@leak ltype_pred(newEntry);
                                        
-                                       //@ old_bround = bround;
-                                       bround = FIRST_ROUND;
-                                       //@ old_phase = i;
-                                       i++;
-                                       listB_dispose_no_data(mboxB);
-                                       mboxB = NULL;
+                                   }else{ //@ close ltype_pred(logi);
+                                   //@ leak ltype_pred(logi);
                                    }
+                                   
                                    if(pid == leader){
                                        lastIndex++;
-                                       ltype * newEntry = create_ltype(in(),false);
+                                       ltype * newEntry = create_ltype(in(),0);
                                        list_add(log,newEntry);
                                        //@ close ltype_pred(newEntry);
                                        //@ leak ltype_pred(newEntry);
                                    }
                                    
-                                   //@ close ltype_pred(logi);
-                                   //@ leak ltype_pred(logi);
+                                  
                                    //@ close eq_val_list_predB(epoch, round,i,bround,mboxB);
                                    //@ eq_val_list_pred_to_list_pred_lemmaB(mboxB);
                                    
