@@ -1,5 +1,5 @@
 enum round_typ_A {
-    CEpoch, NewEpoch, Ack_E, New_Leader, Ack_LD, BCAST
+    NewEpoch, Ack_E, New_Leader, Ack_LD, BCAST
 };
 typedef struct Msg {
     int round;
@@ -46,7 +46,7 @@ void list_add(struct arraylist *a, void *v);
 
 int reset_timeout();
 
-int leader(int phase, int net_size);
+int coord();
 
 int timeout();
 
@@ -68,25 +68,28 @@ int main(int argc, char **argv) {
     int lastIndex = list_length(log);
     enum round_typ_A round;
     int epoch;
-    int pid;
+    int pid,coord;
     epoch = 0;
     round = NewEpoch;
     list *mbox = NULL;
     list *mbox_new = NULL;
     msg *m = NULL;
+    
     while (true) {
         round = NewEpoch;
-        if (pid == leader(epoch, n)) {
+        if (pid == coord()) {
             m = (msg *) malloc(sizeof(msg));
             if (m == 0) {
                 abort();
             }
             m->epoch = epoch;
             m->round = NewEpoch;
+            m->sender = pid;
             send(m, to_all);
             free(m);
             m = NULL;
-        }
+            coord = pid;
+        } else {coord = -1;}
         mbox = NULL;
         reset_timeout();
         while (true) {
@@ -116,16 +119,12 @@ int main(int argc, char **argv) {
         }
         if (mbox != NULL && mbox->size == 1 && mbox->next == NULL) {
             epoch = mbox->message->epoch;
+            leader = mbox->message->sender;
             list_dispose_mbox(mbox);
             mbox = NULL;
             round = Ack_E;
-        } else {
-            list_dispose_mbox(mbox);
-            mbox = NULL;
-            epoch++;
-            round = CEpoch;
-        }
-        if (round == Ack_E) {
+        
+   
             m = (msg *) malloc(sizeof(msg));
             if (m == 0) {
                 abort();
@@ -134,10 +133,10 @@ int main(int argc, char **argv) {
             m->round = Ack_E;
             m->history = log;
             m->history_lenght = lastIndex;
-            send(m, leader(epoch, n));
+            send(m, leader);
             free(m);
             m = NULL;
-            if (pid == leader(epoch, n)) {
+            if (pid == coord) {
                 while (true) {
                     m = recv();
                     if (m != NULL && m->epoch == epoch && m->round == Ack_E) {
@@ -173,13 +172,13 @@ int main(int argc, char **argv) {
                     list_dispose_mbox(mbox);
                     mbox = NULL;
                     epoch++;
-                    round = CEpoch;
+                    round = AUX_ROUND;
                 }
             } else {
                 round = New_Leader;
             }
             if (round == New_Leader) {
-                if (pid == leader(epoch, n)) {
+                if (pid == coord) {
                     m = (msg *) malloc(sizeof(msg));
                     if (m == 0) {
                         abort();
@@ -188,6 +187,7 @@ int main(int argc, char **argv) {
                     m->round = New_Leader;
                     m->history = log;
                     m->history_lenght = lastIndex;
+                    m->sender = pid;
                     send(m, to_all);
                     free(m);
                     m = NULL;
@@ -238,18 +238,20 @@ int main(int argc, char **argv) {
                     int len = list_length(log);
                     ltype *lastEntry = list_get(log, lastIndex);
                     int i = lastIndex;
-                    if (lastEntry != NULL && lastEntry->commit == true) {
+                    if (lastEntry != NULL && lastEntry->commit == 1) {
                         i++;
                         lastIndex++;
                         ltype *newEntry;
-                        newEntry = create_ltype(-1, false);
+                        if (pid == leader) {
+                           newEntry = create_ltype(in(), 0);
+                        }else{
+                            newEntry = create_ltype(-1, 0);}
                         list_add(log, newEntry);
                     }
                     enum round_typ_B bround = FIRST_ROUND;
                     while (true) {
                         bround = FIRST_ROUND;
-                        int leader = leader(epoch, n);
-                        if (pid == leader(epoch, n)) {
+                        if (pid == leader) {
                             mB = (msgb *) malloc(sizeof(msgb));
                             if (mB == 0) {
                                 abort();
@@ -351,27 +353,30 @@ int main(int argc, char **argv) {
                                         }
                                     }
                                     out(logi);
+                                    listB_dispose_no_data(mboxB);
+                                    mboxB = NULL;
                                 } else {
                                     listB_dispose_no_data(mboxB);
                                     mboxB = NULL;
                                     break;
                                 }
                             }
-                            listB_dispose_no_data(mboxB);
-                            mboxB = NULL;
+                           
                             bround = THIRD_ROUND;
-                            mB = (msgb *) malloc(sizeof(msgb));
-                            if (mB == 0) {
-                                abort();
+                            if(pid == leader){
+                                mB = (msgb *) malloc(sizeof(msgb));
+                                if (mB == 0) {
+                                    abort();
+                                }
+                                mB->i = i;
+                                mB->round = bround;
+                                mB->epoch = epoch;
+                                mB->lab = Ack_LD;
+                                mB->sender = pid;
+                                send_msgb(mB, to_all);
+                                free(mB);
+                                mB = NULL;
                             }
-                            mB->i = i;
-                            mB->round = bround;
-                            mB->epoch = epoch;
-                            mB->lab = Ack_LD;
-                            mB->sender = pid;
-                            send_msgb(mB, to_all);
-                            free(mB);
-                            mB = NULL;
                             while (true) {
                                 mB = recv_msgb();
                                 if (mB != NULL && mB->i == i && mB->epoch == epoch && mB->round == bround &&
@@ -436,6 +441,11 @@ int main(int argc, char **argv) {
                     round = NewEpoch;
                 }
             }
+        } else {
+            list_dispose_mbox(mbox);
+            mbox = NULL;
+            epoch++;
+            round = NewEpoch;
         }
     }
     return 1;

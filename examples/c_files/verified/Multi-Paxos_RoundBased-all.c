@@ -502,7 +502,7 @@ int main(int argc, char **argv)//@ : main
                     //@ int old_phase = i -1;
                   
                     //@ open ltype_pred(lastEntry);
-                    if (lastEntry!= NULL && lastEntry->commit == true) {
+                    if (lastEntry!= NULL && lastEntry->commit == 1) {
                         //@ old_phase = i;
                         i++;
                         lastIndex++;
@@ -677,6 +677,10 @@ int main(int argc, char **argv)//@ : main
                                     //@ leak ltype_pred(logi);
                                     //cmt_number ++;
                                     out(logi);
+                                    //@ close eq_val_list_predB(epoch, round,i,bround,mboxB);
+                                    //@ eq_val_list_pred_to_list_pred_lemmaB(mboxB);
+                                    listB_dispose_no_data(mboxB);
+                                    mboxB = NULL;
                                     
                                 }
                                 else {
@@ -779,7 +783,7 @@ int main(int argc, char **argv)//@ : main
                                 }
                                 if(pid == leader){
                                     lastIndex++;
-                                    ltype * newEntry = create_ltype(in(),false);
+                                    ltype * newEntry = create_ltype(in(),0);
                                     list_add(log,newEntry);
                                     //@ close ltype_pred(newEntry);
                                     //@ leak ltype_pred(newEntry);
