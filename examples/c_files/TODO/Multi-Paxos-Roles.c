@@ -766,23 +766,6 @@ int main(int argc, char **argv)//@ : main
                 //@ open tag_leq(old_epoch,old_round,epoch,round);
                 
                 
-            }//end update of fourth round follower
-            else {
-                //@close mbox_tag_eq(epoch, round,mbox);
-                //@ mbox_tag_eq_to_list_pred_lemma(mbox);
-                list_dispose_mbox(mbox);
-                mbox = NULL;
-                //@ old_epoch = epoch;
-                epoch++;
-                //@ old_round = round;
-                round = CEpoch;
-                //@ close tag_leq(old_epoch,old_round,epoch,round);
-                //@assert tag_leq(old_epoch,old_round,epoch,round);
-                //@ open tag_leq(old_epoch,old_round,epoch,round);
-                //list_dispose(log); //remove when continue;
-                break; // replace by continue
-                
-            }//timeout go back to the loops begining into a new epoch
             
             
             list_dispose_mbox(mbox);
@@ -1060,11 +1043,30 @@ int main(int argc, char **argv)//@ : main
             //@ old_epoch = epoch;
             epoch++;
             //@ old_round = round;
-            round = CEpoch;
+            round = NewEpoch;
             //@ close tag_leq(old_epoch,old_round,epoch,round);
             //@assert tag_leq(old_epoch,old_round,epoch,round);
             //@ open tag_leq(old_epoch,old_round,epoch,round);
-            
+          
+            }//end update of fourth round follower
+            else {
+                //@close mbox_tag_eq(epoch, round,mbox);
+                //@ mbox_tag_eq_to_list_pred_lemma(mbox);
+                list_dispose_mbox(mbox);
+                mbox = NULL;
+                //@ old_epoch = epoch;
+                epoch++;
+                //@ old_round = round;
+                round = CEpoch;
+                //@ close tag_leq(old_epoch,old_round,epoch,round);
+                //@assert tag_leq(old_epoch,old_round,epoch,round);
+                //@ open tag_leq(old_epoch,old_round,epoch,round);
+                //list_dispose(log); //remove when continue;
+                break; // replace by continue
+                
+            }//timeout go back to the loops begining into a new epoch
+                
+                
         }//end update of first round follower
             else {
                 //@close mbox_tag_geq(epoch, round,mbox);
