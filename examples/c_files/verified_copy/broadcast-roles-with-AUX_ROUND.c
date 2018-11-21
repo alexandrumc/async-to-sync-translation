@@ -120,7 +120,7 @@ int main(int argc, int pid, struct arraylist * log, int lastIndex, int cmt_numbe
                 if(logi != 0) {
                 logi->commit = true;
                 }
-                cmt_number ++;
+                cmt_number++;
                 int size = list_length(log);
                 out(logi);
             }

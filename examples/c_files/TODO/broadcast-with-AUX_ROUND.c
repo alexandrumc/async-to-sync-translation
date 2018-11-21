@@ -185,7 +185,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
         //@ foreach_unremove(lastEntry, log_data);
         
         //@ old_phase = i;
-        i++;
+        i = i + 1;
         lastIndex++;
         ltype * newEntry;
         if (pid == leader)
@@ -651,7 +651,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 mbox = NULL;
                 
                 //@ old_phase = i;
-                i++;
+                i = i + 1;
                 
                 //@ old_round = round;
                 round = AUX_ROUND;

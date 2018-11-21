@@ -1,5 +1,5 @@
 enum round_typ_A {
-    NewEpoch, Ack_E, New_Leader, Ack_LD, BCAST
+    NewEpoch, Ack_E, New_Leader, Ack_LD
 };
 typedef struct Msg {
     int round;
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
     list *mbox = NULL;
     list *mbox_new = NULL;
     msg *m = NULL;
-    
+
     while (true) {
         round = NewEpoch;
         if (pid == coord()) {
@@ -123,8 +123,8 @@ int main(int argc, char **argv) {
             list_dispose_mbox(mbox);
             mbox = NULL;
             round = Ack_E;
-        
-   
+
+
             m = (msg *) malloc(sizeof(msg));
             if (m == 0) {
                 abort();
@@ -167,16 +167,15 @@ int main(int argc, char **argv) {
                     log = longest_log(mbox, lastIndex);
                     list_dispose_mbox(mbox);
                     mbox = NULL;
-                    round = New_Leader;
                 } else {
                     list_dispose_mbox(mbox);
                     mbox = NULL;
                     epoch++;
                     round = AUX_ROUND;
+                    continue;
                 }
-            } else {
-                round = New_Leader;
             }
+            round = New_Leader;
             if (round == New_Leader) {
                 if (pid == coord) {
                     m = (msg *) malloc(sizeof(msg));
@@ -232,8 +231,6 @@ int main(int argc, char **argv) {
                     round = NewEpoch;
                 }
                 if (round == Ack_LD) {
-                    
-                    
                     epoch++;
                     round = NewEpoch;
                 }
