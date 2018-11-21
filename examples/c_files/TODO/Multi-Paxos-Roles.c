@@ -7,8 +7,7 @@
 #include "stdlib.h"
 #include<stdio.h>
 #include<limits.h>
-#include "Zab-Discovery_Synchronization_Broadcast.h"
-#include "broadcast-function-nested.h"
+
 
 enum round_typ_A {
     CEpoch, NewEpoch, Ack_E, New_Leader, Ack_LD, BCAST
@@ -48,29 +47,73 @@ typedef struct ListB {
 } listb;
 struct arraylist;
 
+/*@
+ predicate tag_leq(int p1, int r1, int p2, int r2) = (p1 < p2) || (p1==p2 && r1<=r2) ;
+ predicate tag_strict_leq(int p1, int r1, int p2, int r2) = (p1+1 == p2) || (p1==p2 && r1<=r2) ;
+ 
+ // Predicate describing a complete linked list
+ predicate list_pred(struct List* n;) =
+ n == 0 ?
+ true
+ :
+ n->message |-> ?msg &*& n->size |-> ?size &*& n->next |-> ?next &*& malloc_block_List(n) &*& n!=next
+ &*& msg->round |-> ?r &*& msg->epoch |-> _ &*&
+ msg->pid |-> _ &*& msg->history |-> ?hs &*& msg->history_lenght |-> _ &*& msg->sender |-> _  &*& malloc_block_Msg(msg) &*& list_pred(next);
+ @*/
+
+/*@
+ predicate arraylist(struct arraylist *a; list<void*> vs);
+
+ predicate ltype_pred(struct Ltype *lentry)=
+ lentry ==0 ? true :
+ lentry->commit |-> _ &*& lentry->op |-> _ &*& malloc_block_Ltype(lentry);
+ @*/
+
+
 struct arraylist *create_arraylist();
+//@ requires true;
+//@ ensures true;
 
 ltype *list_get(struct arraylist *a, int i);
+//@ requires true;
+//@ ensures ltype_pred(result);
 
 int list_length(struct arraylist *a);
+//@ requires true;
+//@ ensures true;
 
 void list_add(struct arraylist *a, void *v);
+//@ requires true;
+//@ ensures true;
 
 int reset_timeout();
+//@ requires emp;
+//@ ensures emp;
 
 int coord(int net_size);
-
+//@ requires emp;
+//@ ensures 0<=result && result < net_size;
 int timeout();
+//@ requires emp;
+//@ ensures emp;
 
 msg *recv();
-
+//@ requires emp;
+//@ ensures result->round |-> ?r &*& result->epoch |-> ?v &*& result->pid|->_ &*& result->history|-> ?hs &*& result->history_lenght|-> ?hslen &*& result->sender|->_ &*& malloc_block_Msg(result) &*& INT_MIN <v &*& v < INT_MAX;
 void send(msg *message, int pid);
+//@ requires true;
+//@ ensures true;
 
 int max_log_size(struct List *mbox);
+//@requires list_pred(mbox);
+//@ensures list_pred(mbox) &*& result>=0;
 
 struct arraylist *longest_log(struct List *mbox, int lastIndex);
-
+//@requires list_pred(mbox);
+//@ensures list_pred(mbox);
 void list_dispose_data(struct arraylist *a);
+//@ requires arraylist(a, ?vs)&*& foreach(vs,alloc_ctor) ;
+//@ ensures true;
 
 int main(int argc, char **argv)//@ : main
 //@ requires true;
@@ -90,11 +133,11 @@ int main(int argc, char **argv)//@ : main
     int epoch;
     
     
-    int pid;
+    int pid, leader;
     
     epoch = 0;
     round = NewEpoch;
-    int commit = false;
+    int commit = 0;
     
     int i; //phase of broadcast
     enum round_typ_B  bround; // round of broadcast
@@ -162,7 +205,6 @@ int main(int argc, char **argv)//@ : main
             
             
             
-            list_dispose_mbox(mbox);
             mbox = NULL;
             
             //@ close mbox_tag_eq(epoch, round,mbox);
@@ -269,14 +311,14 @@ int main(int argc, char **argv)//@ : main
                 //@ old_phase = i -1;
                 
                 //@ open ltype_pred(lastEntry);
-                if (lastEntry!= NULL && lastEntry->commit == true) {
+                if (lastEntry!= NULL && lastEntry->commit == 1) {
                     
                     
                     //@ old_phase = i;
                     i++;
                     lastIndex++;
                     ltype * newEntry;
-                    newEntry = create_ltype(in(),false);
+                    newEntry = create_ltype(in(),0);
                     list_add(log,newEntry);
                     
                     //@ close ltype_pred(newEntry);
@@ -296,7 +338,7 @@ int main(int argc, char **argv)//@ : main
                 {
                     bround = FIRST_ROUND;
                     mboxB = NULL;
-                    int leader = leader(epoch,n);
+                    
                     
                     mB = (msgb *) malloc(sizeof(msgb));
                     if(mB==0) {
@@ -390,7 +432,7 @@ int main(int argc, char **argv)//@ : main
                         ltype *logi = list_get(log,i);
                         //@ open ltype_pred(logi);
                         if(logi != 0)  {
-                            logi->commit = true;
+                            logi->commit = 1;
                         }
                         //@ close ltype_pred(logi);
                         //@ leak ltype_pred(logi);
@@ -435,7 +477,7 @@ int main(int argc, char **argv)//@ : main
                     mB=NULL;
                     
                     lastIndex++;
-                    ltype * newEntry = create_ltype(in(),false);
+                    ltype * newEntry = create_ltype(in(),0);
                     list_add(log,newEntry);
                     //@ close ltype_pred(newEntry);
                     //@ leak ltype_pred(newEntry);
@@ -581,7 +623,7 @@ int main(int argc, char **argv)//@ : main
                 m->history_lenght = lastIndex;
                 
                 //@assert(m->epoch == epoch && m->round == round);
-                send(m, leader(epoch,n));
+                send(m, leader);
                 
                 free(m);
                 m = NULL;
@@ -616,11 +658,12 @@ int main(int argc, char **argv)//@ : main
                         else
                         {
                             mbox_new->size =1 ;
+                            }
                             mbox_new->next = mbox;
                             //@ close mbox_tag_eq(epoch, round,mbox);
                             mbox = mbox_new;
                             //@ close mbox_tag_eq(epoch, round,mbox);
-                        }
+                        
                         
                     } else {
                         free(m);
@@ -640,15 +683,14 @@ int main(int argc, char **argv)//@ : main
                 
                 if(mbox != NULL && mbox->size ==1&& mbox->next==NULL){
                     
-                    //@ struct arraylist *old_log = log;
-                    
-                    //@ close mbox_tag_eq(epoch,round,mbox);
-                    //@ assert mbox_tag_eq(epoch,round,mbox);
-                    //@ mbox_tag_eq_to_list_pred_lemma(mbox->next);
                     
                     lastIndex = mbox->message->history_lenght;
+                     //@close mbox_tag_eq(epoch, round,mbox);
+                    //@ mbox_tag_eq_to_list_pred_lemma(mbox);
                     log = longest_log(mbox,lastIndex);
                     
+                    list_dispose_mbox(mbox);
+                    mbox = NULL;
                     
                     //@ old_round = round;
                     round = BCAST;
@@ -656,8 +698,7 @@ int main(int argc, char **argv)//@ : main
                     //@ assert tag_leq(old_epoch,old_round,epoch,round);
                     //@ open tag_leq(old_epoch,old_round,epoch,round);
                     
-                    list_dispose_mbox(mbox);
-                    mbox = NULL;
+
                     
                     //TODO Broadcast
                     
@@ -666,12 +707,12 @@ int main(int argc, char **argv)//@ : main
                     //@ old_phase = i -1;
                     ltype * lastEntry = list_get(log,lastIndex);
                     //@ open ltype_pred(lastEntry);
-                    if (lastEntry!= NULL && lastEntry->commit == true) {
+                    if (lastEntry!= NULL && lastEntry->commit == 1) {
                         //@ old_phase = i;
                         i++;
                         lastIndex++;
                         ltype * newEntry;
-                        newEntry = create_ltype(-1,false);
+                        newEntry = create_ltype(-1,0);
                         
                         list_add(log,newEntry);
                         //@ close ltype_pred(newEntry);
@@ -689,7 +730,7 @@ int main(int argc, char **argv)//@ : main
                     {
                         bround = FIRST_ROUND;
                         mboxB = NULL;
-                        int leader = leader(epoch,n);
+                       
                         
                         while (true)
                             //@ invariant eq_val_list_predB(epoch, round,i,bround,mboxB);
@@ -708,10 +749,10 @@ int main(int argc, char **argv)//@ : main
                                 }
                                 else
                                 {
-                                    mboxB_new->size =1 ;
+                                    mboxB_new->size =1 ;}
                                     mboxB_new->next = mboxB;
                                     mboxB = mboxB_new;
-                                }
+                                
                             }else {
                                 free(mB);
                             }
@@ -734,7 +775,7 @@ int main(int argc, char **argv)//@ : main
                             //@ open ltype_pred(logi);
                             if(logi != 0){
                                 logi->op = mboxB->message->op;
-                                logi->commit = false;
+                                logi->commit = 0;
                                 //@ close ltype_pred(logi);
                                 //@leak ltype_pred(logi);
                             }
@@ -800,10 +841,10 @@ int main(int argc, char **argv)//@ : main
                                 }
                                 else
                                 {
-                                    mboxB_new->size =1 ;
+                                    mboxB_new->size =1 ;}
                                     mboxB_new->next = mboxB;
                                     mboxB = mboxB_new;
-                                }
+                            
                             }else {
                                 free(mB);
                             }
@@ -818,7 +859,7 @@ int main(int argc, char **argv)//@ : main
                             
                         }
                         //@ close eq_val_list_predB(epoch, round,i,bround,mboxB);
-                        //@ assert eq_val_list_pred(epoch, round,i,bround,mboxB);
+                        //@ assert eq_val_list_predB(epoch, round,i,bround,mboxB);
                         //@ open eq_val_list_predB(epoch, round,i,bround,mboxB);
                         
                         if (mboxB != NULL && mboxB->size >= 1) {
@@ -826,17 +867,21 @@ int main(int argc, char **argv)//@ : main
                             ltype *logi = list_get(log,i);
                             //@ open ltype_pred(logi);
                             if(logi != 0){
-                                logi->commit = true;
+                                logi->commit = 1;
                                 //@ close ltype_pred(logi);
                                 //@leak ltype_pred(logi);
                                 //cmt_number++;
                                 out(logi);
                                 lastIndex++;
-                                ltype * newEntry = create_ltype(-1,false);
+                                ltype * newEntry = create_ltype(-1,0);
                                 list_add(log,newEntry);
                                 //@ close ltype_pred(newEntry);
                                 //@leak ltype_pred(newEntry);
                             }
+                            //@ close eq_val_list_predB(epoch, round,i,bround,mboxB);
+                            //@ eq_val_list_pred_to_list_pred_lemmaB(mboxB);
+                            listB_dispose_no_data(mboxB);
+                            mboxB = NULL;
                         }else{
                             //@ close eq_val_list_predB(epoch, round,i,bround,mboxB);
                             //@ eq_val_list_pred_to_list_pred_lemmaB(mboxB);
@@ -849,11 +894,17 @@ int main(int argc, char **argv)//@ : main
                         bround = FIRST_ROUND;
                         //@ old_phase = i;
                         i++;
-                        listB_dispose_no_data(mboxB);
-                        mboxB = NULL;
+                        
                         
                     }//end broadcast loop of follower
                     
+                    //@ old_epoch = epoch;
+                    epoch++;
+                    //@ old_round = round;
+                    round = NewEpoch;
+                    //@ close tag_leq(old_epoch,old_round,epoch,round);
+                    //@assert tag_leq(old_epoch,old_round,epoch,round);
+                    //@ open tag_leq(old_epoch,old_round,epoch,round);
                     
                 }//end update New_Leader round follower
                 else {
@@ -864,12 +915,12 @@ int main(int argc, char **argv)//@ : main
                     //@ old_epoch = epoch;
                     epoch++;
                     //@ old_round = round;
-                    round = CEpoch;
+                    round = NewEpoch;
                     //@ close tag_leq(old_epoch,old_round,epoch,round);
                     //@assert tag_leq(old_epoch,old_round,epoch,round);
                     //@ open tag_leq(old_epoch,old_round,epoch,round);
                     //list_dispose(log); //remove when continue;
-                    break; // replace by continue
+                    
                     
                 }//timeout go back to the loops begining into a new epoch
                 
@@ -888,7 +939,7 @@ int main(int argc, char **argv)//@ : main
                 //@assert tag_leq(old_epoch,old_round,epoch,round);
                 //@ open tag_leq(old_epoch,old_round,epoch,round);
                 //list_dispose(log); //remove when continue;
-                break; // replace by continue
+               
                 
             }//timeout go back to the loops begining into a new epoch
         }//END FOLLOWER
@@ -901,6 +952,198 @@ int main(int argc, char **argv)//@ : main
     
     return 1;
 }
+void list_dispose_mbox(struct List *l);
+//@ requires list_pred(l);
+//@ ensures emp;
+
+void send_msgb(msgb* message, int pid);
+//@ requires true;
+//@ ensures true;
+
+
+/*@
+ // Predicate describing the min of a complete linked list
+ predicate mbox_tag_eq(int val, int val2, struct List* n;) =
+ n == 0 ?
+ true
+ :
+ n->message |-> ?msg &*& msg->epoch |-> ?v &*& msg->round |-> ?r &*&
+ msg->pid |-> _ &*& msg->history |-> ?hs &*&
+ msg->history_lenght |-> _ &*& msg->sender |-> _  &*&
+ malloc_block_Msg(msg) &*& malloc_block_List(n) &*& n->next |-> ?next &*& n->size |-> ?s &*&
+ n!=next &*&  val== v &*&  val2== r &*& mbox_tag_eq(val,val2, next) ;
+ @*/
+
+/*@
+ // Predicate describing that all the elements of complete linked list are have geq phase than val and equal round tag with rval
+ predicate mbox_tag_geq( int val, int rval,struct List* n) =
+ n == 0 ?
+ true
+ :
+ n->message |-> ?msg &*& msg->epoch |-> ?v &*& msg->round |-> ?r &*&
+ msg->pid |-> _ &*& msg->history |-> _ &*&
+ msg->history_lenght |-> _ &*& msg->sender |-> _  &*&
+ malloc_block_Msg(msg) &*& malloc_block_List(n) &*& n->next |-> ?next &*& n->size |-> ?s &*&
+ n!=next &*&  val<= v &*& rval==r &*&  mbox_tag_geq(val,rval,next);
+ @*/
+
+
+
+/*@
+ // Lemma for converting a full max list predicate into a list predicate
+ lemma void mbox_tag_eq_to_list_pred_lemma(struct List *l)
+ requires mbox_tag_eq( ?val, ?val2, l);
+ ensures list_pred(l);
+ {
+ open mbox_tag_eq(val,val2, l);
+ if (l != 0) {
+ 
+ mbox_tag_eq_to_list_pred_lemma(l->next);
+ 
+ open list_pred(l->next);
+ close list_pred(l->next);
+ close list_pred(l);
+ }
+ else close list_pred(0);
+ }
+ @*/
+
+
+/*@
+ // Predicate describing the min of a complete linked list
+ predicate eq_val_list_predB(int p1, int r1, int p2, int r2, struct ListB* n;) =
+ n == 0 ?
+ true
+ :
+ n->message |-> ?msg &*& msg->epoch |-> ?e &*& msg->round |-> ?r  &*& msg->op |-> _ &*& msg->i |-> ?i
+ &*& msg->lab |-> ?lab &*& msg->sender |-> ?s &*&
+ malloc_block_MsgB(msg) &*&
+ malloc_block_ListB(n) &*& n->next |-> ?next &*& n->size |-> ?size &*&
+ n!=next &*&  e == p1 &*& lab == r1 &*&  r ==r2 &*& i==p2 &*& eq_val_list_predB(p1,r1,p2,r2, next);
+ @*/
+
+/*@
+ // Predicate describing a complete linked list
+ predicate list_predB(struct ListB* n;) =
+ n == 0 ?
+ true
+ :
+ n->message |-> ?msg &*& n->size |-> ?size &*& n->next |-> ?next &*& malloc_block_ListB(n) &*& n!=next
+ &*& list_predB(next)&*& malloc_block_MsgB(msg) &*&
+ msg->round |-> ?round &*& msg->lab |-> ?lab &*& msg->sender |-> ?sender &*&
+ msg->epoch |-> ?e &*& msg->i |-> ?i   &*& msg->op |-> ?op;
+ @*/
+
+/*@
+ // Lemma for converting a full eq_val_ list predicate into a list predicate
+ lemma void eq_val_list_pred_to_list_pred_lemmaB(struct ListB *l)
+ requires eq_val_list_predB( ?p1, ?r1, ?p2, ?r2, l);
+ ensures list_predB(l);
+ {
+ open eq_val_list_predB(p1,r1,p2,r2,l);
+ if (l != 0) {
+ 
+ eq_val_list_pred_to_list_pred_lemmaB(l->next);
+ 
+ // We need the next two lines to let VeriFast know that l != l->next
+ open list_predB(l->next);
+ close list_predB(l->next);
+ close list_predB(l);
+ }
+ else close list_predB(0);
+ }
+ @*/
+
+/*@
+ // Lemma for converting a full min list predicate into a list predicate
+ lemma void mbox_tag_geq_to_list_pred_lemma(struct List *l)
+ requires mbox_tag_geq(?val,?rval, l);
+ ensures list_pred(l);
+ {
+ open mbox_tag_geq(val,rval, l);
+ if (l != 0) {
+ mbox_tag_geq_to_list_pred_lemma(l->next);
+ 
+ // We need the next two lines to let VeriFast know that l != l->next
+ open list_pred(l->next);
+ close list_pred(l->next);
+ }
+ close list_pred(l);
+ }
+ @*/
+
+/*@
+ // Predicate describing that all the elements of complete linked list are have geq phase than val and equal round tag with rval
+ predicate max_tag_mbox(int val, int rval,struct List* n) =
+ n == 0 ?
+ true
+ :
+ n->message |-> ?msg &*& msg->epoch |-> ?v &*& msg->round |-> ?r &*&
+ msg->pid |-> _ &*& msg->history |-> ?hs &*&
+ msg->history_lenght |-> _ &*& msg->sender |-> _  &*&
+ malloc_block_Msg(msg) &*& malloc_block_List(n) &*& n->next |-> ?next &*& n->size |-> ?s &*&
+ n!=next &*&  val>= v &*& rval==r &*&  max_tag_mbox(?val1,rval,next) &*& val1 <= val;
+ @*/
+
+/*@
+ // Lemma for converting a full max list predicate into a list predicate
+ lemma void max_tag_mbox_to_list_pred_lemma(struct List *l)
+ requires max_tag_mbox(?val,?rval, l);
+ ensures list_pred(l);
+ {
+ open max_tag_mbox( val,rval,l);
+ if (l != 0) {
+ 
+ max_tag_mbox_to_list_pred_lemma(l->next);
+ 
+ // We need the next two lines to let VeriFast know that l != l->next
+ open list_pred(l->next);
+ close list_pred(l->next);
+ close list_pred(l);
+ }
+ else close list_pred(0);
+ }
+ @*/
+
+msgb* recv_msgb();
+//@ requires emp;
+/*@ ensures result->round |-> ?r &*& result->epoch |-> ?p &*& result->sender |-> ?s &*& result->i |-> ?e &*&
+ result->op |-> ?t &*& result->lab |-> ?a &*&
+ malloc_block_MsgB(result) &*& INT_MIN < p &*& p < INT_MAX;
+ @*/
+
+/*@
+ predicate tag_leqB(int pa1, int ra1, int pa2, int ra2, int pb1, int rb1, int pb2, int rb2) =
+ (pa1 == pb1) && (ra1 = rb1) &&  ((pa2 < pb2) || (pa2==pb2 && ra2<=rb2));
+ 
+ predicate tag_strict_leqB(int pa1, int ra1, int pa2, int ra2, int pb1, int rb1, int pb2, int rb2) =
+ (pa1 == pb1) && (ra1 == rb1) &&  ((pa2 + 1 == pb2) || (pa2==pb2 && ra2<=rb2)) ;
+ @*/
+
+void listB_dispose_no_data(struct ListB *l);
+//@ requires list_predB(l);
+//@ ensures emp;
+
+void out(ltype *v);
+//@ requires true;
+//@ ensures true;
+void out_external(ltype *v);
+//@ requires true;
+//@ ensures true;
+
+int in();
+//@ requires true;
+//@ ensures true;
+
+ltype * create_ltype(int op, int b);
+//@ requires true;
+//@ ensures malloc_block_Ltype(result) &*& result!= 0 &*& result->commit |->_ &*& result->op|-> _;
+
+
+
+/*@ predicate_ctor alloc_ctor()(struct Ltype* lentry) =
+ lentry!=0 &*& lentry->commit |-> _ &*& lentry->op |-> _ &*& malloc_block_Ltype(lentry);
+ @*/
 
 
 

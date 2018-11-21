@@ -94,10 +94,10 @@ int main(int argc, char**argv)
                                 }
                             else
                             {
-                            mbox_new->size =1 ;
+                                mbox_new->size =1 ;}
                             mbox_new->next = mbox;
                             mbox = mbox_new;
-                            }
+                            
                             break;
                         } else free(m);
                     }
@@ -257,7 +257,7 @@ int main(int argc, char**argv)
                             }
                             break;
                         }else {free(m);}
-                if (timeout()) break;
+                
             }
             if(mbox!=0 && mbox->message!=NULL){
              if (mbox->message->round == FOURTH_ROUND){

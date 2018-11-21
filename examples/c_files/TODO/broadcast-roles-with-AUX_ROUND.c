@@ -18,7 +18,7 @@
 typedef struct Msg {
     int op;
     int epoch;
-    int  lab;
+    int lab;
     int i;
     int round;
     int sender;
