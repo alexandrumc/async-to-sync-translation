@@ -1,5 +1,5 @@
 ===============
-NUME PROIECT
+ATHOS - Aynchronous To HO Synchronizer
 ===============
 
 :Authors:
@@ -14,10 +14,10 @@ NUME PROIECT
 Introduction
 ============
 
-What is NUME PROIECT?
+What is ATHOS?
 ------------------
 
-**NUME PROIECT** is a tool that, given a communication-closed asynchronous protocol, soundly computes its round-based synchronous counterpart. 
+**ATHOS** is a tool that, given a communication-closed asynchronous protocol, soundly computes its round-based synchronous counterpart. 
 
 Communication-closed protocol: the reception of a message is effectful only if its timestamp is equal to or greater than the local time of the receiver. In other words, stale messages are discarded.
 
@@ -25,12 +25,12 @@ Communication-closed protocol: the reception of a message is effectful only if i
 What is it good for?
 --------------------
 
-Fault-tolerant distributed systems are implemented over asynchronous networks, so that they use algorithms for asynchronous models with faults. Due to asynchronous communication and the occurrence of faults (e.g., process crashes or the network dropping messages) the implementations are hard to understand and analyze. In contrast, synchronous computation models simplify design and reasoning. A synchronous version of your asynchronous protocol can be computed using **NUME PROIECT**.
+Fault-tolerant distributed systems are implemented over asynchronous networks, so that they use algorithms for asynchronous models with faults. Due to asynchronous communication and the occurrence of faults (e.g., process crashes or the network dropping messages) the implementations are hard to understand and analyze. In contrast, synchronous computation models simplify design and reasoning. A synchronous version of your asynchronous protocol can be computed using **ATHOS**.
 
 What class of algorithms can this tool translate?
 ------------------------------------------
 
-**NUME PROIECT** can compute the synchronous counterpart of known consensus and leader election protocols, such as, Paxos, and Chandra and Toueg’s consensus.
+**ATHOS** can compute the synchronous counterpart of known consensus and leader election protocols, such as, Paxos, and Chandra and Toueg’s consensus.
 
 Some other examples of protocols that we translated can be found here: `examples <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/TODO>`_.
 
