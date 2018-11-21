@@ -1,7 +1,8 @@
 from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, \
-    Break
+    Break, StructRef, BinaryOp
 from pycparser import c_generator, c_ast
 from modify_whiles import to_modify
+import copy
 
 
 class LabelVisitor(c_ast.NodeVisitor):
@@ -490,7 +491,7 @@ class RoundGenerator(c_generator.CGenerator):
     The last case needs more complex computation.
     """
 
-    def __init__(self, mode, labelname, current_round, path=None):
+    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, path=None):
         c_generator.CGenerator.__init__(self)
         # a string that indicates send or update mode; "send" for send and "update" for update
         self.mode = mode
@@ -511,6 +512,10 @@ class RoundGenerator(c_generator.CGenerator):
         self.labelname = labelname
         # current round
         self.current_round = current_round
+        # what to delete
+        self.delete = delete_round_phase
+        self.message = message
+        self.variables = variables
 
     def visit_Break(self, n):
         return 'out();'
@@ -552,6 +557,22 @@ class RoundGenerator(c_generator.CGenerator):
                     if self.extend_visit is False:
                         self.extend_visit = True
                         changed_value = True
+
+                    if self.delete == True:
+                        if n.args is not None:
+                            for arg in n.args.exprs:
+                                if isinstance(arg, ID):
+                                    if arg.name == self.variables["phase"]:
+                                        arg.name = "PHASE"
+                                    elif arg.name == self.variables["round"]:
+                                        arg.name = "ROUND"
+                    else:
+                        if n.args is not None:
+                            for arg in n.args.exprs:
+                                if isinstance(arg, ID):
+                                    if arg.name == self.variables["phase"]:
+                                        arg.name = "PHASE"
+
                     fref = self._parenthesize_unless_simple(n.name)
                     s = fref + '(' + self.visit(n.args) + ')'
                     if "send" in n.name.name:
@@ -564,6 +585,22 @@ class RoundGenerator(c_generator.CGenerator):
                     if self.extend_visit is False:
                         self.extend_visit = True
                         changed_value = True
+
+                    if self.delete == True:
+                        if n.args is not None:
+                            for arg in n.args.exprs:
+                                if isinstance(arg, ID):
+                                    if arg.name == self.variables["phase"]:
+                                        arg.name = "PHASE"
+                                    elif arg.name == self.variables["round"]:
+                                        arg.name = "ROUND"
+                    else:
+                        if n.args is not None:
+                            for arg in n.args.exprs:
+                                if isinstance(arg, ID):
+                                    if arg.name == self.variables["phase"]:
+                                        arg.name = "PHASE"
+
                     fref = self._parenthesize_unless_simple(n.name)
                     s = fref + '(' + self.visit(n.args) + ')'
                     ok = False
@@ -579,12 +616,44 @@ class RoundGenerator(c_generator.CGenerator):
             if self.mode == "send" and not self.send_reached \
                     or self.visit_cond:
                 fref = self._parenthesize_unless_simple(n.name)
+
+                if self.delete == True:
+                    if n.args is not None:
+                        for arg in n.args.exprs:
+                            if isinstance(arg, ID):
+                                if arg.name == self.variables["phase"]:
+                                    arg.name = "PHASE"
+                                elif arg.name == self.variables["round"]:
+                                    arg.name = "ROUND"
+                else:
+                    if n.args is not None:
+                        for arg in n.args.exprs:
+                            if isinstance(arg, ID):
+                                if arg.name == self.variables["phase"]:
+                                    arg.name = "PHASE"
+
                 s = fref + '(' + self.visit(n.args) + ')'
                 if "send" in n.name.name :
                     self.send_reached = True
                 return s
             elif self.mode == "update" or self.visit_cond:
                 fref = self._parenthesize_unless_simple(n.name)
+
+                if self.delete == True:
+                    if n.args is not None:
+                        for arg in n.args.exprs:
+                            if isinstance(arg, ID):
+                                if arg.name == self.variables["phase"]:
+                                    arg.name = "PHASE"
+                                elif arg.name == self.variables["round"]:
+                                    arg.name = "ROUND"
+                else:
+                    if n.args is not None:
+                        for arg in n.args.exprs:
+                            if isinstance(arg, ID):
+                                if arg.name == self.variables["phase"]:
+                                    arg.name = "PHASE"
+
                 s = fref + '(' + self.visit(n.args) + ')'
                 ok = False
                 if self.send_reached:
@@ -714,6 +783,19 @@ class RoundGenerator(c_generator.CGenerator):
                         if n.lvalue.name == self.labelname and isinstance(n.rvalue, ID) \
                                 and n.rvalue.name == "AUX_ROUND":
                             n.rvalue.name = "FIRST_ROUND"
+
+                    if self.delete:
+                        if isinstance(n.rvalue, ID):
+                            if n.rvalue.name == self.variables["round"]:
+                                n.rvalue.name = "ROUND"
+                            elif n.rvalue.name == self.variables["phase"]:
+                                n.rvalue.name = "PHASE"
+                    else:
+                        if isinstance(n.rvalue, ID):
+                            if n.rvalue.name == self.variables["phase"]:
+                                n.rvalue.name = "PHASE"
+
+
                     changed_value = False
                     if self.extend_visit is False:
                         self.extend_visit = True
@@ -732,6 +814,18 @@ class RoundGenerator(c_generator.CGenerator):
                     if n.lvalue.name == self.labelname and isinstance(n.rvalue, ID) \
                             and n.rvalue.name == "AUX_ROUND":
                         n.rvalue.name = "FIRST_ROUND"
+
+                if self.delete:
+                    if isinstance(n.rvalue, ID):
+                        if n.rvalue.name == self.variables["round"]:
+                            n.rvalue.name = "ROUND"
+                        elif n.rvalue.name == self.variables["phase"]:
+                            n.rvalue.name = "PHASE"
+                else:
+                    if isinstance(n.rvalue, ID):
+                        if n.rvalue.name == self.variables["phase"]:
+                            n.rvalue.name = "PHASE"
+
                 rval_str = self._parenthesize_if(
                     n.rvalue,
                     lambda n: isinstance(n, c_ast.Assignment))
@@ -804,11 +898,28 @@ class RoundGenerator(c_generator.CGenerator):
 
                 self.visit_cond = False
                 s += ')\n'
-                s += self._generate_stmt(n.iftrue, add_indent=True)
+                s_aux = self._generate_stmt(n.iftrue, add_indent=True)
+                aux = copy.copy(s_aux)
+
+                aux = aux.replace(" ", "")
+                # print
+                # print "aici{0}gata".format(aux)
+                # print
+                if aux == "{\n}\n":
+                    return ""
+                s += s_aux
                 if n.iffalse:
                     if n.iftrue is not None:
                         s += self._make_indent() + 'else\n'
-                    s += self._generate_stmt(n.iffalse, add_indent=True)
+                    s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                    aux = copy.copy(s_aux)
+                    aux = aux.replace(" ", "")
+                    # print
+                    # print "aici{0}gata".format(aux)
+                    # print
+                    if aux == "{\n}\n":
+                        return ""
+                    s += s_aux
                 self.extend_visit = False
             elif self.path and n in self.path:
                 if n.iftrue and not n.iffalse and len(n.iftrue.block_items) == 1:
@@ -879,10 +990,24 @@ class RoundGenerator(c_generator.CGenerator):
 
 
                 if n.iftrue in self.path:
-                    s += self._generate_stmt(n.iftrue, add_indent=True)
+                    s_aux = self._generate_stmt(n.iftrue, add_indent=True)
+                    aux = copy.copy(s_aux)
+                    aux = aux.replace(" ", "")
+                    # print
+                    # print "aici{0}gata".format(aux)
+                    # print
+                    if aux == "{\n}\n":
+                        return ""
+                    s += s_aux
                 else:
                     if n.iffalse:
-                        s += self._generate_stmt(n.iffalse, add_indent=True)
+                        s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                        aux = copy.copy(s_aux)
+                        aux = aux.replace(" ", "")
+                        # print "aici{0}gata".format(aux)
+                        if aux == "{\n}\n":
+                            return ""
+                        s += s_aux
             elif (self.path and self.extend_visit) or not self.path:
                 if n.iftrue and not n.iffalse and len(n.iftrue.block_items) == 1:
                     child = n.iftrue.children()[0][1]
@@ -959,11 +1084,28 @@ class RoundGenerator(c_generator.CGenerator):
 
                 s += ')\n'
                 if n.iftrue:
-                    s += self._generate_stmt(n.iftrue, add_indent=True)
+                    s_aux = self._generate_stmt(n.iftrue, add_indent=True)
+                    aux = copy.copy(s_aux)
+                    aux = aux.replace(" ", "")
+                    # print
+                    # print "aici{0}gata".format(aux)
+                    # print
+                    if aux == "{\n}\n":
+                        return ""
+                    s += s_aux
                 if n.iffalse:
                     if n.iftrue is not None:
                         s += self._make_indent() + 'else\n'
-                    s += self._generate_stmt(n.iffalse, add_indent=True)
+
+                    s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                    aux = copy.copy(s_aux)
+                    aux = aux.replace(" ", "")
+                    # print
+                    # print "aici{0}gata".format(aux)
+                    # print
+                    if aux == "{\n}\n":
+                        return ""
+                    s += s_aux
             return s
 
         elif (self.mode == "update" and self.path is None) or \
@@ -1035,7 +1177,17 @@ class RoundGenerator(c_generator.CGenerator):
 
                 self.visit_cond = False
                 s += ')\n'
-                s += self._generate_stmt(n.iftrue, add_indent=True)
+                s_aux = self._generate_stmt(n.iftrue, add_indent=True)
+
+                aux = copy.copy(s_aux)
+                aux = aux.replace(" ", "")
+                # print
+                # print "aici{0}gata".format(aux)
+                print
+                if aux == "{\n}\n":
+                    return ""
+                s += s_aux
+
                 if self.send_last_instr:
                     ok1 = True
                     self.send_last_instr = False
@@ -1116,13 +1268,29 @@ class RoundGenerator(c_generator.CGenerator):
 
                 s += ')\n'
                 if n.iftrue in self.path:
-                    s += self._generate_stmt(n.iftrue, add_indent=True)
+                    s_aux = self._generate_stmt(n.iftrue, add_indent=True)
+                    aux = copy.copy(s_aux)
+                    aux = aux.replace(" ", "")
+                    # print
+                    # print "aici{0}gata".format(aux)
+                    # print
+                    if aux == "{\n}\n":
+                        return ""
+                    s += s_aux
                     if self.send_last_instr:
                         ok1 = True
                         self.send_last_instr = False
                 else:
                     if n.iffalse:
-                        s += self._generate_stmt(n.iffalse, add_indent=True)
+                        s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                        aux = copy.copy(s_aux)
+                        aux = aux.replace(" ", "")
+                        # print
+                        # print "aici{0}gata".format(aux)
+                        # print
+                        if aux == "{\n}\n":
+                            return ""
+                        s += s_aux
                         if self.send_last_instr:
                             ok2 = True
                             self.send_last_instr = False
@@ -1206,14 +1374,31 @@ class RoundGenerator(c_generator.CGenerator):
 
 
                 if n.iftrue:
-                    s += self._generate_stmt(n.iftrue, add_indent=True)
+                    s_aux = self._generate_stmt(n.iftrue, add_indent=True)
+                    aux = copy.copy(s_aux)
+                    aux = aux.replace(" ", "")
+                    # print
+                    # print "aici{0}gata".format(aux)
+                    # print
+                    if aux == "{\n}\n":
+                        return ""
+                    s += s_aux
                     if self.send_last_instr:
                         ok1 = True
                         self.send_last_instr = False
                 if n.iffalse:
                     if n.iftrue is not None:
                         s += self._make_indent() + 'else\n'
-                    s += self._generate_stmt(n.iffalse, add_indent=True)
+                    s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                    aux = copy.copy(s_aux)
+                    aux = aux.replace(" ", "")
+
+                    # print
+                    # print "aici{0}gata".format(aux)
+                    # print
+                    if aux == "{\n}\n":
+                        return ""
+                    s += s_aux
                     if self.send_last_instr:
                         ok2 = True
                         self.send_last_instr = False
@@ -1248,6 +1433,21 @@ class RoundGenerator(c_generator.CGenerator):
                                 if isinstance(stmt, Assignment):
                                     if stmt.lvalue.name == self.labelname:
                                         continue
+
+                                    if self.delete:
+                                        if stmt.op == "=" and isinstance(stmt.lvalue, StructRef) and \
+                                                isinstance(stmt.lvalue.name, ID) and stmt.lvalue.name.name == self.message["name"] \
+                                                and stmt.lvalue.type == "->" and isinstance(stmt.lvalue.field, ID) and \
+                                                ((stmt.lvalue.field.name == self.message["phase_field"]) or (
+                                                        stmt.lvalue.field.name == self.message["round_field"])):
+                                            continue
+                                    else:
+                                        if stmt.op == "=" and isinstance(stmt.lvalue, StructRef) and \
+                                                isinstance(stmt.lvalue.name, ID) and stmt.lvalue.name.name == self.message["name"] \
+                                                and stmt.lvalue.type == "->" and isinstance(stmt.lvalue.field, ID) and \
+                                                (stmt.lvalue.field.name == self.message["phase_field"]):
+                                                    continue
+
                             if isinstance(stmt, Break):
                                 out_break_reached = True
                             if isinstance(stmt, FuncCall):
@@ -1257,6 +1457,8 @@ class RoundGenerator(c_generator.CGenerator):
             self.indent_level -= 2
             if not remeber_compound:
                 s += self._make_indent() + '}\n'
+
+            # print "\n\n[[[[[[ {0} ]]]]]]\n\n".format(s)
             return s
         elif (self.mode == "update" and self.path is None) or \
                 (self.mode == "update" and self.path is not None and n in self.path) or \
@@ -1282,6 +1484,24 @@ class RoundGenerator(c_generator.CGenerator):
                             if isinstance(stmt, Assignment):
                                 if isinstance(stmt.rvalue, ID) and stmt.rvalue.name == self.current_round:
                                     continue
+                                if self.delete:
+                                    if isinstance(stmt.lvalue, ID) and (stmt.lvalue.name == self.variables["round"] or stmt.lvalue.name == self.variables["phase"]):
+                                            continue
+                                else:
+                                    if isinstance(stmt.lvalue, ID) and stmt.lvalue.name == self.variables["phase"]:
+                                        continue
+
+                            if isinstance(stmt, UnaryOp):
+                                if stmt.op == "p++":
+                                    if self.delete:
+                                        if isinstance(stmt.expr, ID):
+                                            if stmt.expr.name == self.variables["phase"] or stmt.expr.name == self.variables["round"]:
+                                                continue
+                                    else:
+                                        if isinstance(stmt.expr, ID):
+                                            if stmt.expr.name == self.variables["phase"]:
+                                                continue
+
                             if isinstance(stmt, Break):
                                 out_break_reached = True
                             if isinstance(stmt, FuncCall):
@@ -1292,6 +1512,7 @@ class RoundGenerator(c_generator.CGenerator):
             if not remeber_compound:
                 s += self._make_indent() + '}\n'
             if self.send_reached and not self.send_last_instr:
+                # print "\n\n[[[[[[ {0} ]]]]]]]\n\n".format(s)
                 return s
         return ""
 

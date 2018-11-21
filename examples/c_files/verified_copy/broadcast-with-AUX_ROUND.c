@@ -252,7 +252,7 @@ int main(int argc, int pid, struct arraylist * log, int lastIndex, int cmt_numbe
                 list_dispose_no_data(mbox);
                 mbox = NULL;
                 i++;
-                round = AUX_ROUND;
+                round = FIRST_ROUND;
             }else
             {
                 list_dispose_no_data(mbox);
