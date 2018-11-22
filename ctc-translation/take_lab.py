@@ -677,10 +677,11 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         res_aux_copy = copy.copy(res_aux)
         res_aux_copy = res_aux_copy.replace(" ", "")
         if res_aux_copy != "":
+            res += res_aux
             if is_job:
-                res += res_aux
                 res += "}\n"
             print res
+
 
 
 
