@@ -11,7 +11,7 @@ conditii = []
 whiles_to_if(x, conditii)
 
 identify_recv_exits(x, conditii)
-remove_mbox(x)
-take_code_from_file(ast,sys.argv[1], config.variables_1["round"])
+remove_mbox(x, config.mailbox_1, config.clean_mailbox_1)
 
-
+take_code_from_file(ast, sys.argv[1], config.variables_1['round'],
+                    config.rounds_list_1, config.delete_round_phase, config.msg_structure_fields_1, config.variables_1)
