@@ -1,19 +1,19 @@
 #!/bin/bash
 python_interpretor="python"
 
-examples_folder="$PWD/examples/c_files/TODO/"
+examples_folder="examples/c_files/TODO/"
 
-main_module="$PWD/ctc-translation/translation.py"
-main_module_folder="$PWD/ctc-translation/"
+main_module="ctc-translation/translation.py"
+main_module_folder="ctc-translation/"
 precompiled_ext="*.pyc"
 path_to_precomp="$main_module_folder$precompiled_ext"
 
 no_comments_ext="-clean.c"
 no_headers_ext="-noh.c"
 output_extension=".sync"
-results_dir="$PWD/results"
+results_dir="results"
 
-config_folder="$PWD/ctc-translation/config_files/"
+config_folder="ctc-translation/config_files/"
 config_base_name="config_"
 config_extension=".py"
 default_config="config.py"
@@ -169,13 +169,13 @@ elif [ $# == 2 ]; then
 		echo "Running algorithm on file: $1"
 		output_file=${basename_file//".c"/}
 
-		entry_no_comments="$PWD/$output_file$no_comments_ext"
+		entry_no_comments="$output_file$no_comments_ext"
 		call_remove_comments="gcc -fpreprocessed -dD -E -P $1 -o $entry_no_comments"
 		
-		entry_no_headers="$PWD/$output_file$no_headers_ext"
+		entry_no_headers="$output_file$no_headers_ext"
 		call_remove_headers="sed -e "/^#include/d" $entry_no_comments"
 
-		output="$PWD/$output_file$output_extension"
+		output="$output_file$output_extension"
 		
 		call_verifast="$verifast_run $verifast_options $1"
 
@@ -219,13 +219,13 @@ elif [ $# == 3 ]; then
 		echo "Running algorithm on file: $2"
 		output_file=${basename_file//".c"/}
 
-		entry_no_comments="$PWD/$output_file$no_comments_ext"
+		entry_no_comments="$output_file$no_comments_ext"
 		call_remove_comments="gcc -fpreprocessed -dD -E -P $2 -o $entry_no_comments"
 		
-		entry_no_headers="$PWD/$output_file$no_headers_ext"
+		entry_no_headers="$output_file$no_headers_ext"
 		call_remove_headers="sed -e "/^#include/d" $entry_no_comments"
 
-		output="$PWD/$output_file$output_extension"
+		output="$output_file$output_extension"
 
 		call_tool="$python_interpretor $main_module $entry_no_headers"
 		
@@ -237,8 +237,8 @@ elif [ $# == 3 ]; then
 		call_move_config_file="mv $config_copy $main_module_folder"
 
 		call_clean_1="rm -rf $path_to_precomp"
-		call_clean_2="rm -rf $PWD/*"$no_comments_ext""
-		call_clean_3="rm -rf $PWD/*"$no_headers_ext""
+		call_clean_2="rm -rf *"$no_comments_ext""
+		call_clean_3="rm -rf *"$no_headers_ext""
 
 		$call_remove_comments
 
