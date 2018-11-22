@@ -964,6 +964,13 @@ def identify_nested(ast_tree):
     list = []
     extern_while = get_extern_while_body(aux_ast)
     identify_nested_algorithms_bodies(extern_while, list)
+
+    labelname_inner = config.variables_2['round']
+    rounds_list_inner = config.rounds_list2
+    delete_round_phase_inner = config.delete_round_phase
+    message_inner = config.msg_structure_fields_2
+    variables_inner = config.variables_2
+
     if list:
         list.reverse()
         # labels = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
@@ -983,7 +990,8 @@ def identify_nested(ast_tree):
                                                                    config.variables_2['round'])
             # print_code(trees_dict, trees_paths_dict, labels)
 
-            print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job)
+            print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job, delete_round_phase_inner,
+                         message_inner, variables_inner)
             parent = find_parent(ast, elem)
             index = parent.block_items.index(elem)
             parent.block_items.remove(elem)
@@ -1010,7 +1018,7 @@ def identify_nested(ast_tree):
         return ast, code
     else:
         sys.stdout = old_stdout
-
+        print "pe else"
         return ast_tree
 
 
@@ -1042,6 +1050,9 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
     # print identify_epoch_jumps(ast, 'epoch')
     # print labels, labels_sorted
     # print generator.visit(ast)
+
+
+
     if config.number_of_nested_algorithms > 1:
 
         print "\n\nLaunched procedure for nested algorithms\n\n"

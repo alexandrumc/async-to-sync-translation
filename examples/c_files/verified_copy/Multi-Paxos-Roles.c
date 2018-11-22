@@ -136,16 +136,6 @@ int main(int argc, char **argv)
                 send(m, to_all);
                 free(m);
                 m = NULL;
-                //                round = BCAST;
-                //                m = (msg *) malloc(sizeof(msg));
-                //                if(m==0) {
-                //                    abort();
-                //                }
-                //                m->epoch = epoch;
-                //                m->round = BCAST;
-                //                send(m, to_all);
-                //                free(m);
-                //                m = NULL;
                 int len = list_length(log);
                 ltype * lastEntry = list_get(log,lastIndex);
                 i = lastIndex;
@@ -216,9 +206,13 @@ int main(int argc, char **argv)
                             free(mB);
                         }
                         if (timeout())
+                            {
                             break;
+                            }
                         if (mboxB != NULL && mboxB->size > n/2)
+                            {
                             break;
+                            }
                     }
                     if (mboxB != NULL && mboxB->size > n/2) {
                         ltype *logi = list_get(log,i);
@@ -295,7 +289,9 @@ int main(int argc, char **argv)
                 } else {
                     free(m);
                 }
-                if (timeout()) break;
+                if (timeout()) {
+                break;
+                }
                 if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
                     break;
                 }
@@ -342,7 +338,9 @@ int main(int argc, char **argv)
                     } else {
                         free(m);
                     }
-                    if (timeout()) break;
+                    if (timeout()) {
+                    break;
+                    }
                     if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
                         break;
                     }
@@ -397,7 +395,9 @@ int main(int argc, char **argv)
                                 break;
                             }
                             if (timeout())
+                                {
                                 break;
+                                }
                         }
                         if (mboxB!= NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader){
                             ltype *logi = list_get(log,i);
@@ -453,7 +453,9 @@ int main(int argc, char **argv)
                                 break;
                             }
                             if (timeout())
+                                {
                                 break;
+                                }
                         }
                         if (mboxB != NULL && mboxB->size >= 1) {
                             ltype *logi = list_get(log,i);

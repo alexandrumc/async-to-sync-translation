@@ -6,7 +6,7 @@ import config
 
 generator = c_generator.CGenerator()
 
-ast = parse_file(filename="/Users/alexandrum/ENS/pycparser/examples/c_files/verified_copy/Leader_Election-Multi-Paxos_Rounds.c", use_cpp=False)
+ast = parse_file(filename="../examples/c_files/verified_copy/Multi-Paxos-Roles.c", use_cpp=False)
 extern_while_body = None
 x = get_extern_while_body_from_func(ast, "main")
 conditii = []
@@ -19,5 +19,5 @@ remove_mbox(x, config.mailbox_1, config.clean_mailbox_1)
 
 # rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND']
 
-take_code_from_file(ast, "/Users/alexandrum/ENS/pycparser/examples/c_files/verified_copy/Leader_Election-Multi-Paxos_Rounds.c", config.variables_1['round'],
+take_code_from_file(ast, "../examples/c_files/verified_copy/Multi-Paxos-Roles.c", config.variables_1['round'],
                     config.rounds_list_1, config.delete_round_phase, config.msg_structure_fields_1, config.variables_1)
