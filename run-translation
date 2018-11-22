@@ -20,7 +20,6 @@ default_config="config.py"
 default_config_path=$main_module_folder$default_config
 
 verifast_path="../verifast/bin/verifast"
-verifast_run="./$verifast_path"
 verifast_options="-c -disable_overflow_check"
 
 export PYTHONPATH="$PYTHONPATH:$PWD"
@@ -51,7 +50,7 @@ elif [ $# == 1 ]; then
 
 				output="$results_dir/$file_name$output_extension"
 				
-				call_verifast="$verifast_run $verifast_options $entry"
+				call_verifast="$verifast_path $verifast_options $entry"
 
 				call_tool="$python_interpretor $main_module $entry_no_headers"
 				
@@ -177,7 +176,7 @@ elif [ $# == 2 ]; then
 
 		output="$output_file$output_extension"
 		
-		call_verifast="$verifast_run $verifast_options $1"
+		call_verifast="$verifast_path $verifast_options $1"
 
 		call_tool="$python_interpretor $main_module $entry_no_headers"
 		
