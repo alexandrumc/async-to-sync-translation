@@ -191,11 +191,9 @@ int main(int argc, char **argv)//@ : main
             
             //@assert(m->epoch == epoch && m->round == round);
             send(m, to_all);
-            
             free(m);
             m = NULL;
             coord = pid;
-            
         }else {coord = -1;}
         mbox = NULL;
         reset_timeout();
@@ -204,7 +202,6 @@ int main(int argc, char **argv)//@ : main
         while(true)
             //@ invariant mbox_tag_geq(epoch, round,mbox);
         {
-            
             m = recv();
             if (m != NULL && m->epoch >= epoch && m->round == NewEpoch){
                 //@open mbox_tag_geq(epoch, round,mbox);
@@ -213,21 +210,14 @@ int main(int argc, char **argv)//@ : main
                     abort();
                 }
                 mbox_new->message =m;
-                if(mbox!=0)
-                {
-                    mbox_new->size = mbox->size + 1;
-                }
-                else
-                {
-                    mbox_new->size =1 ; }
+                if(mbox!=0) {mbox_new->size = mbox->size + 1;}
+                else { mbox_new->size =1 ; }
                 mbox_new->next = mbox;
                 //@ close mbox_tag_geq(epoch, round,mbox);
                 mbox = mbox_new;
                 //@ close mbox_tag_geq(epoch, round,mbox);
                 
-            } else {
-                free(m);
-            }
+            } else {free(m);}
             if (timeout()) {
                 break;
             }
@@ -257,29 +247,18 @@ int main(int argc, char **argv)//@ : main
             //@ close tag_leq(old_epoch,old_round,epoch,round);
             //@assert tag_leq(old_epoch,old_round,epoch,round);
             //@ open tag_leq(old_epoch,old_round,epoch,round);
-            
-            
-            
             //@ max_tag_mbox_to_list_pred_lemma(mbox);
             
             list_dispose_mbox(mbox);
             mbox = NULL;
-            
             //@ old_round = round;
             round = Ack_E;
             //@ close tag_leq(old_epoch,old_round,epoch,round);
             //@assert tag_leq(old_epoch,old_round,epoch,round);
             //@ open tag_leq(old_epoch,old_round,epoch,round);
             
-            
-            
-            
-            
-            
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) {
-                abort();
-            }
+            if(m==0) { abort();}
             m->epoch = epoch;
             m->round = Ack_E;
             m->history = log;
@@ -290,14 +269,11 @@ int main(int argc, char **argv)//@ : main
             
             free(m);
             m = NULL;
-            
             if(pid == coord){
-                
                 //@ close mbox_tag_eq(epoch, round,mbox);
                 while(true)
                     //@ invariant mbox_tag_eq(epoch, round,mbox);
                 {
-                    
                     m = recv();
                     if (m != NULL && m->epoch == epoch && m->round == Ack_E){
                         //@ open mbox_tag_eq(epoch, round,mbox);
@@ -306,29 +282,18 @@ int main(int argc, char **argv)//@ : main
                             abort();
                         }
                         mbox_new->message =m;
-                        if(mbox!=0)
-                        {
-                            mbox_new->size = mbox->size + 1;
-                        }
-                        else
-                        {
-                            mbox_new->size =1 ;
-                        }
+                        if(mbox!=0) {mbox_new->size = mbox->size + 1; }
+                        else { mbox_new->size =1 ; }
                             mbox_new->next = mbox;
                             //@ close mbox_tag_eq(epoch, round,mbox);
                             mbox = mbox_new;
                             //@ close mbox_tag_eq(epoch, round,mbox);
                     }
-                    else {
-                        free(m);
-                    }
-                    if (timeout()){
-                        break;
-                    }
+                    else {free(m);}
+                    if (timeout()){break;}
                     
                     //@ open mbox_tag_eq(epoch, round,mbox);
                     if(mbox != NULL && mbox->size > n/2){
-                        
                         //@ close mbox_tag_eq(epoch, round,mbox);
                         break;
                     }
@@ -382,13 +347,9 @@ int main(int argc, char **argv)//@ : main
             
             // Synchronization
             if(round == New_Leader){
-                
-                
                 if(pid == coord){
                     m = (msg *) malloc(sizeof(msg));
-                    if(m==0) {
-                        abort();
-                    }
+                    if(m==0) {abort();}
                     m->epoch = epoch;
                     m->round = New_Leader;
                     m->history = log;
@@ -413,29 +374,17 @@ int main(int argc, char **argv)//@ : main
                     if (m != NULL && m->epoch == epoch && m->round == New_Leader){
                         //@open mbox_tag_eq(epoch, round,mbox);
                         mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) {
-                            abort();
-                        }
+                        if(mbox_new==0) { abort();}
                         mbox_new->message =m;
                         if(mbox!=0)
-                        {
-                            mbox_new->size = mbox->size + 1;
-                        }
-                        else
-                        {
-                            mbox_new->size =1 ;
+                        {mbox_new->size = mbox->size + 1;}
+                        else{mbox_new->size =1 ;}
                             mbox_new->next = mbox;
                             //@ close mbox_tag_eq(epoch, round,mbox);
                             mbox = mbox_new;
                             //@ close mbox_tag_eq(epoch, round,mbox);
-                        }
-                        
-                    } else {
-                        free(m);
-                    }
-                    if (timeout()) {
-                        break;
-                    }
+                    } else {free(m); }
+                    if (timeout()) {break;}
                     //@ open mbox_tag_eq(epoch, round,mbox);
                     if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
                         //@ close mbox_tag_eq(epoch, round,mbox);
@@ -532,9 +481,7 @@ int main(int argc, char **argv)//@ : main
                         if(pid == leader) {
                             
                             mB = (msgb *) malloc(sizeof(msgb));
-                            if(mB==0) {
-                                abort();
-                            }
+                            if(mB==0) {abort();}
                             mB->i = i;
                             mB->round = bround;
                             mB->epoch = epoch;
@@ -545,9 +492,7 @@ int main(int argc, char **argv)//@ : main
                             ltype * entry = list_get(log,lastIndex);
                             
                             //@ open ltype_pred(entry);
-                            if(entry != NULL) {
-                                mB->op = entry->op;
-                            }
+                            if(entry != NULL) {mB->op = entry->op;}
                             
                             //@ close ltype_pred(entry);
                             //@leak ltype_pred(entry);
@@ -569,35 +514,21 @@ int main(int argc, char **argv)//@ : main
                             if ( mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == Ack_LD) {
                                 
                                 mboxB_new = (listb*) malloc(sizeof(listb));
-                                if(mboxB_new==0) {
-                                    abort();
-                                }
+                                if(mboxB_new==0) {abort();}
                                 mboxB_new->message =mB;
-                                if(mboxB!=0)
-                                {
-                                    mboxB_new->size = mboxB->size + 1;
-                                }
-                                else
-                                {
-                                    mboxB_new->size =1 ;}
+                                if(mboxB!=0){mboxB_new->size = mboxB->size + 1;}
+                                else{mboxB_new->size =1 ;}
                                 
                                 mboxB_new->next = mboxB;
                                 mboxB = mboxB_new;
                                 
                                 
-                            }else {
-                                free(mB);
-                            }
+                            }else {free(mB);}
                             
                             if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
-                            {
-                                break;
-                            }
+                            {break;}
                             
-                            if (timeout())
-                            {
-                                break;
-                            }
+                            if (timeout()){break;}
                         }
                         
                         //@ assert eq_val_list_predB(epoch, round,i,bround,mboxB);
@@ -650,34 +581,15 @@ int main(int argc, char **argv)//@ : main
                                     
                                     if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == Ack_LD) {
                                         mboxB_new = (listb*) malloc(sizeof(listb));
-                                        if(mboxB_new==0) {
-                                            abort();
-                                        }
+                                        if(mboxB_new==0) {abort();}
                                         mboxB_new->message = mB;
-                                        if(mboxB!=0)
-                                        {
-                                            mboxB_new->size = mboxB->size + 1;
-                                        }
-                                        else
-                                        {
-                                            mboxB_new->size = 1 ;
-                                        }
+                                        if(mboxB!=0){ mboxB_new->size = mboxB->size + 1;}
+                                        else{ mboxB_new->size = 1 ;}
                                         mboxB_new->next = mboxB;
                                         mboxB = mboxB_new;
-                                        
-                                    }else {
-                                        free(mB);
-                                    }
-                                    
-                                    if (timeout())
-                                    {
-                                        break;
-                                    }
-                                    
-                                    if (mboxB != NULL && mboxB->size > n/2)
-                                    {
-                                        break;
-                                    }
+                                    }else {free(mB);}
+                                    if (timeout()){break;}
+                                    if (mboxB != NULL && mboxB->size > n/2){break;}
                                 }
                                 //@ assert eq_val_list_predB(epoch, round,i,bround,mboxB);
                                 if (mboxB != NULL && mboxB->size > n/2) {
@@ -685,11 +597,8 @@ int main(int argc, char **argv)//@ : main
                                     
                                     logi = list_get(log,i);
                                     //@ open ltype_pred(logi);
-                                    if(logi != 0)  {
-                                        {
-                                            logi->commit = 1;
-                                        }
-                                    }
+                                    if(logi != 0) {logi->commit = 1;}
+                                    
                                     //@ close ltype_pred(logi);
                                     //@ leak ltype_pred(logi);
                                     //cmt_number ++;
@@ -719,15 +628,9 @@ int main(int argc, char **argv)//@ : main
                             //@ close tag_strict_leqB(old_epoch2, old_round2,old_phase,old_bround, epoch,round, i,bround);
                             //@ assert tag_strict_leqB(old_epoch2, old_round2,old_phase,old_bround, epoch,round, i,bround);
                             //@ open tag_strict_leqB(old_epoch2, old_round2,old_phase,old_bround, epoch,round, i,bround);
-                            
-                            
-                            
                             if(pid == leader){
-                                
                                 mB = (msgb *) malloc(sizeof(msgb));
-                                if(mB==0) {
-                                    abort();
-                                }
+                                if(mB==0) {abort();}
                                 mB->i = i;
                                 mB->round = bround;
                                 mB->epoch = epoch;
@@ -747,34 +650,17 @@ int main(int argc, char **argv)//@ : main
                                 if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == Ack_LD) {
                                     
                                     mboxB_new = (listb*) malloc(sizeof(listb));
-                                    if(mboxB_new==0) {
-                                        abort();
-                                    }
+                                    if(mboxB_new==0) { abort();}
                                     mboxB_new->message =mB;
-                                    if(mboxB!=0)
-                                    {
-                                        mboxB_new->size = mboxB->size + 1;
-                                    }
-                                    else
-                                    {
-                                        mboxB_new->size =1 ;
-                                    }
+                                    if(mboxB!=0){mboxB_new->size = mboxB->size + 1;}
+                                    else{mboxB_new->size =1 ;}
                                     mboxB_new->next = mboxB;
                                     mboxB = mboxB_new;
-                                    
-                                }else {
-                                    free(mB);
-                                }
+                                }else { free(mB);}
                                 
-                                if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader)
-                                {
-                                    break;
-                                }
+                                if (mboxB != NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader){break;}
                                 
-                                if (timeout())
-                                {
-                                    break;
-                                }
+                                if (timeout()){break;}
                                 
                             }
                             //@ close eq_val_list_predB(epoch, round,i,bround,mboxB);
@@ -787,8 +673,8 @@ int main(int argc, char **argv)//@ : main
                                 //@ open ltype_pred(logi);
                                 if(logi != 0 && pid!= leader){
                                     logi->commit = 1;
-                                    //@ close ltype_pred(logi);
-                                    //@leak ltype_pred(logi);
+                                   // //@ close ltype_pred(logi);
+                                   // //@leak ltype_pred(logi);
                                     //cmt_number++;
                                     out(logi);
                                     lastIndex++;
@@ -796,10 +682,10 @@ int main(int argc, char **argv)//@ : main
                                     list_add(log,newEntry);
                                     //@ close ltype_pred(newEntry);
                                     //@leak ltype_pred(newEntry);
-                                    
-                                }else{ //@ close ltype_pred(logi);
-                                    //@ leak ltype_pred(logi);
                                 }
+                                //@ close ltype_pred(logi);
+                                //@ leak ltype_pred(logi);
+                                
                                 
                                 if(pid == leader){
                                     lastIndex++;
@@ -808,7 +694,6 @@ int main(int argc, char **argv)//@ : main
                                     //@ close ltype_pred(newEntry);
                                     //@ leak ltype_pred(newEntry);
                                 }
-                                
                                 
                                 //@ close eq_val_list_predB(epoch, round,i,bround,mboxB);
                                 //@ eq_val_list_pred_to_list_pred_lemmaB(mboxB);
@@ -863,8 +748,8 @@ int main(int argc, char **argv)//@ : main
             //@ old_epoch = epoch;
             epoch++;
             //@ old_round = round;
-            round = AUX_ROUND;
-            //round = NewEpoch;
+            //round = AUX_ROUND;
+            round = NewEpoch;
             //@ close tag_leq(old_epoch,old_round,epoch,round);
             //@assert tag_leq(old_epoch,old_round,epoch,round);
             //@ open tag_leq(old_epoch,old_round,epoch,round);

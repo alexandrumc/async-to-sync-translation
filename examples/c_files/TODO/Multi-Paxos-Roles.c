@@ -10,7 +10,7 @@
 
 
 enum round_typ_A {
-    CEpoch, NewEpoch, Ack_E, New_Leader, Ack_LD, BCAST
+    CEpoch, NewEpoch, Ack_E, New_Leader, BCAST
 };
 typedef struct Msg {
     int round;
@@ -193,17 +193,12 @@ int main(int argc, char **argv)//@ : main
             free(m);
             m = NULL;
             
-            
-            
-            
             //@ old_round = round;
             round = Ack_E;
             
             //@ close tag_leq(old_epoch,old_round,epoch,round);
             //@ assert tag_leq(old_epoch,old_round,epoch,round);
             //@ open tag_leq(old_epoch,old_round,epoch,round);
-            
-            
             
             mbox = NULL;
             
@@ -216,38 +211,23 @@ int main(int argc, char **argv)//@ : main
                 if (m != NULL && m->epoch == epoch && m->round == Ack_E){
                     //@ open mbox_tag_eq(epoch, round,mbox);
                     mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) {
-                        abort();
-                    }
+                    if(mbox_new==0) {abort();}
                     mbox_new->message =m;
                     if(mbox!=0)
-                    {
-                        mbox_new->size = mbox->size + 1;
-                    }
-                    else
-                    {
-                        mbox_new->size =1 ;
-                    }
+                    {mbox_new->size = mbox->size + 1;}
+                    else {mbox_new->size =1 ;}
                     mbox_new->next = mbox;
                     //@ close mbox_tag_eq(epoch, round,mbox);
                     mbox = mbox_new;
                     //@ close mbox_tag_eq(epoch, round,mbox);
                 }
-                else {
-                    free(m);
-                }
-                if (timeout()){
-                    break;
-                }
-                
+                else {free(m);}
+                if (timeout()){break;}
                 //@ open mbox_tag_eq(epoch, round,mbox);
                 if(mbox != NULL && mbox->size > n/2){
-                    
                     //@ close mbox_tag_eq(epoch, round,mbox);
                     break;
                 }
-                
-                
                 //@ close mbox_tag_eq(epoch, round,mbox);
             }//end reception loop of third round:leader
             
@@ -260,7 +240,6 @@ int main(int argc, char **argv)//@ : main
                 
                 lastIndex = max_log_size(mbox);
                 log = longest_log(mbox, lastIndex);
-                ////@ list_dispose(old_log);
                 
                 
                 round = New_Leader;
@@ -269,14 +248,10 @@ int main(int argc, char **argv)//@ : main
                 //@ open tag_leq(old_epoch,old_round,epoch,round);
                 
                 
-                
-                
                 //@ assert round == New_Leader;
                 
                 m = (msg *) malloc(sizeof(msg));
-                if(m==0) {
-                    abort();
-                }
+                if(m==0) {abort();}
                 m->epoch = epoch;
                 m->round = New_Leader;
                 m->history = log;
@@ -288,20 +263,13 @@ int main(int argc, char **argv)//@ : main
                 free(m);
                 m = NULL;
                 
-                
                 //@ old_round = round;
                 round = BCAST;
                 //@ close tag_leq(old_epoch,old_round,epoch,round);
                 //@ assert tag_leq(old_epoch,old_round,epoch,round);
                 //@ open tag_leq(old_epoch,old_round,epoch,round);
                 
-                
-                
-                
                 //@ assert round == BCAST;
-                
-                
-                
                 
                 int len = list_length(log);
                 //@ assume (lastIndex == len-1);
@@ -534,8 +502,6 @@ int main(int argc, char **argv)//@ : main
             //@ old_epoch = epoch;
             //@ old_round = round;
             
-            
-            
             mbox= NULL;
             reset_timeout();
             //@close mbox_tag_geq(epoch, round,mbox);
@@ -605,10 +571,6 @@ int main(int argc, char **argv)//@ : main
                 //@ close tag_leq(old_epoch,old_round,epoch,round);
                 //@assert tag_leq(old_epoch,old_round,epoch,round);
                 //@ open tag_leq(old_epoch,old_round,epoch,round);
-                
-                
-                
-                
                 
                 
                 //@ assert round == Ack_E;

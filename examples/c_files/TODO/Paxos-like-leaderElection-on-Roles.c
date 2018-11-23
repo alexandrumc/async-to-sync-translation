@@ -10,7 +10,7 @@
 //#include "Leader-election-Zab.h"
 //#include"Zab-Discovery_Synchronization_Broadcast2.h"
 
-enum round_typ_A {NewBallot_ROUND, AckBallot_ROUND, AUX_ROUND} ;
+enum round_typ {NewBallot_ROUND, AckBallot_ROUND, AUX_ROUND} ;
 
 struct arraylist;
 
@@ -40,19 +40,18 @@ void list_remove_nth(struct arraylist *a, int n);
 //@ requires true;
 //@ ensures true;
 
-void list_dispose(struct arraylist* a);
+
+
+int all_same(list *mbox, int leader);
 //@ requires true;
 //@ ensures true;
 
-
 typedef struct Msg {
-    int round; //round1
-    int pid;
-    int epoch; //phase1
-    struct arraylist *history;
-    int history_lenght;
-    int sender;
+    int round;
+    int ballot;
+    int leader;
 } msg;
+
 
 
 
@@ -75,7 +74,7 @@ typedef struct List{
  (l == 0 && len == 0) ?
  true
  :
- len == 1 &*& l->message|-> ?msg &*& l->next |-> NULL &*& l->size |-> 1 &*& malloc_block_Msg(msg) &*& msg->round |-> ?v1 &*& msg->epoch |-> ?v2 &*& msg->sender |-> ?s2 &*& msg->pid|->_ &*& msg->history|-> ?hs &*& msg->history_lenght|-> ?hslen &*& malloc_block_List(l) &*& max <= v2 ?
+ len == 1 &*& l->message|-> ?msg &*& l->next |-> NULL &*& l->size |-> 1 &*& malloc_block_Msg(msg) &*& msg->round |-> ?v1 &*& msg->ballot |-> ?v2 &*& msg->leader |-> ?s2 &*& malloc_block_List(l) &*& max <= v2 ?
  true : false ;
  @*/
 
@@ -83,6 +82,9 @@ void list_dispose1(struct List *l);
 //@ requires  mbox_geq_1(?v,l,?s);
 //@ ensures emp;
 
+void out(int v1, int v2);
+//@ requires true;
+//@ ensures true;
 
 int main(int argc, char **argv)//@ : main
 //@ requires true;
@@ -98,15 +100,15 @@ int main(int argc, char **argv)//@ : main
     int lastIndex = list_length(log);
     
     
-    enum round_typ_A round;
-    int epoch;
+    enum round_typ round;
+    int ballot;
     
-    int pid;
+    int pid,leader;
     
-    epoch = 0;
+    ballot = 0;
     round = NewBallot_ROUND;
     
-    //@ int old_epoch = epoch-1;
+    //@ int old_ballot = ballot-1;
     //@ enum round_typ_A old_round = round;
     
     
@@ -114,41 +116,36 @@ int main(int argc, char **argv)//@ : main
     list* mbox_new = NULL;
     msg* m = NULL;
     
-    round = AUX_ROUND;
+    round = NewBallot_ROUND;
     
     while (true)
-        //@ invariant ((old_epoch<epoch && round == AUX_ROUND)) ;
+        //@ invariant ((old_ballot<ballot && round == NewBallot_ROUND)) ;
     {
         
-        
-        if(pid == leader(epoch,n)){
+        if(pid == coord(n)){
             
-            //@ old_epoch = epoch;
+            //@ old_ballot = ballot;
             round = NewBallot_ROUND;
             
             //@ old_round = round;
             
-            //@ close  tag_leq(old_epoch,old_round,epoch,round);
-            //@assert tag_leq(old_epoch,old_round,epoch,round);
-            //@open  tag_leq(old_epoch,old_round,epoch,round);
-            
-            
+            //@ close  tag_leq(old_ballot,old_round,ballot,round);
+            //@assert tag_leq(old_ballot,old_round,ballot,round);
+            //@open  tag_leq(old_ballot,old_round,ballot,round);
             
             //@ assert round == NewBallot_ROUND;
             
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) {
-            abort();
-            }
-            m->epoch = epoch;
+            if(m==0) {abort();}
+            m->ballot = ballot;
             m->round = NewBallot_ROUND;
+            m->leader = pid;
             
-            //@assert(m->epoch == epoch && m->round == round);
+            //@assert(m->ballot == ballot && m->round == round);
             send(m, to_all);
             
             free(m);
             m = NULL;
-            
             
             mbox= NULL;
             reset_timeout();
@@ -159,62 +156,51 @@ int main(int argc, char **argv)//@ : main
             {
                 
                 m = recv();
-                if (m != NULL && m->epoch >= epoch && m->round == NewBallot_ROUND){
+                if (m != NULL && m->ballot >= ballot && m->round == NewBallot_ROUND){
                     
                     mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) {
-                    abort();
-                    }
+                    if(mbox_new==0) {abort();}
                     mbox_new->message =m;
-                    if(mbox!=0)
-                        {
-                        mbox_new->size = mbox->size + 1;
-                        }
-                    else
-                    {
-                    mbox_new->size =1 ;
+                    if(mbox!=0){mbox_new->size = mbox->size + 1;}
+                    else{mbox_new->size =1 ;}
                     mbox_new->next = mbox;
                     //@ len =1;
                     mbox = mbox_new;
-                    //@ close mbox_geq_1(epoch,mbox,1);
-                    }
-                    
-                    
-                } else { //@ close mbox_geq_1(epoch,NULL,0);
+                    //@ close mbox_geq_1(ballot,mbox,1);
+                } else { //@ close mbox_geq_1(ballot,NULL,0);
                     free(m);}
                 
-                //@ open mbox_geq_1(epoch,mbox,len);
-                
+                //@ open mbox_geq_1(ballot,mbox,len);
                 
                 if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
-                    //@ close mbox_geq_1(epoch, mbox,1);
+                    //@ close mbox_geq_1(ballot, mbox,1);
                     break;
                 }
-                
                 if (timeout()){
-                    //@ close mbox_geq_1(epoch, mbox,0);
+                    //@ close mbox_geq_1(ballot, mbox,0);
                     break;}
                 
             }//end reception loop second round follower
             
-            //@ assert mbox_geq_1(epoch,mbox,len);
-            //@ open mbox_geq_1(epoch,mbox,len);
+            //@ assert mbox_geq_1(ballot,mbox,len);
+            //@ open mbox_geq_1(ballot,mbox,len);
             
             if(mbox != NULL && mbox->size ==1&& mbox->next==NULL){
-                //@ close mbox_geq_1(epoch,mbox,1);
-                //@ assert mbox_geq_1(epoch,mbox,1);
-                //@ open mbox_geq_1(epoch,mbox,1);
-                //@  old_epoch = epoch;
-                epoch = mbox->message->epoch;
+                //@ close mbox_geq_1(ballot,mbox,1);
+                //@ assert mbox_geq_1(ballot,mbox,1);
+                //@ open mbox_geq_1(ballot,mbox,1);
+                //@  old_ballot = ballot;
+                ballot = mbox->message->ballot;
+                leader = mbox->message->leader;
+                //@ close mbox_geq_1(old_ballot,mbox,1);
+                // close max_tag_eq(ballot,round,mbox);
                 
-                //@ close mbox_geq_1(old_epoch,mbox,1);
-                // close max_tag_eq(epoch,round,mbox);
-                
-                // assert max_tag_mbox(epoch,round,mbox);
-                
-                //@ close tag_leq(old_epoch,old_round,epoch,round);
-                //@assert tag_leq(old_epoch,old_round,epoch,round);
-                //@ open tag_leq(old_epoch,old_round,epoch,round);
+                // assert max_tag_mbox(ballot,round,mbox);
+
+
+                //@ close tag_leq(old_ballot,old_round,ballot,round);
+                //@assert tag_leq(old_ballot,old_round,ballot,round);
+                //@ open tag_leq(old_ballot,old_round,ballot,round);
                 
                 
                 // max_tag_mbox_to_list_pred_lemma(mbox);
@@ -223,22 +209,19 @@ int main(int argc, char **argv)//@ : main
                 
                 //@ old_round = round;
                 round = AckBallot_ROUND;
-                //@ close tag_leq(old_epoch,old_round,epoch,round);
-                //@assert tag_leq(old_epoch,old_round,epoch,round);
-                //@ open tag_leq(old_epoch,old_round,epoch,round);
+                //@ close tag_leq(old_ballot,old_round,ballot,round);
+                //@assert tag_leq(old_ballot,old_round,ballot,round);
+                //@ open tag_leq(old_ballot,old_round,ballot,round);
                 
                 
                 m = (msg *) malloc(sizeof(msg));
-                if(m==0) {
-                abort();
-                }
-                m->epoch = epoch;
+                if(m==0) {abort();}
+                m->ballot = ballot;
                 m->round = AckBallot_ROUND;
-                m->history = log;
-                m->history_lenght = lastIndex;
+                m->leader = leader;
                 
-                //@assert(m->epoch == epoch && m->round == round);
-                send(m, leader(epoch,n));
+                //@assert(m->ballot == ballot && m->round == round);
+                send(m, to_all);
                 
                 free(m);
                 m = NULL;
@@ -246,123 +229,89 @@ int main(int argc, char **argv)//@ : main
                 list_dispose1(mbox);
                 mbox = NULL;
                 
-                //@ close mbox_tag_eq(epoch, round,mbox);
+                //@ close mbox_tag_eq(ballot, round,mbox);
                 while(true)
-                    //@ invariant mbox_tag_eq(epoch, round,mbox);
+                    //@ invariant mbox_tag_eq(ballot, round,mbox);
                 {
                     
                     m = recv();
-                    if (m != NULL && m->epoch == epoch && m->round == AckBallot_ROUND){
-                        //@ open mbox_tag_eq(epoch, round,mbox);
+                    if (m != NULL && m->ballot == ballot && m->round == AckBallot_ROUND){
+                        //@ open mbox_tag_eq(ballot, round,mbox);
                         mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) {
-                        abort();
-                        }
+                        if(mbox_new==0) {abort();}
                         mbox_new->message =m;
                         if(mbox!=0)
-                            {
-                            mbox_new->size = mbox->size + 1;
-                            }
-                        else
-                        {
-                        mbox_new->size =1 ;
+                            {mbox_new->size = mbox->size + 1; }
+                        else{mbox_new->size =1 ;}
                         mbox_new->next = mbox;
-                        //@ close mbox_tag_eq(epoch, round,mbox);
+                        //@ close mbox_tag_eq(ballot, round,mbox);
                         mbox = mbox_new;
-                        //@ close mbox_tag_eq(epoch, round,mbox);
-                        }
+                        //@ close mbox_tag_eq(ballot, round,mbox);
                     }
                     else {free(m);}
                     if (timeout()){
                         break;
                     }
                     
-                    //@ open mbox_tag_eq(epoch, round,mbox);
+                    //@ open mbox_tag_eq(ballot, round,mbox);
                     if(mbox != NULL && mbox->size > n/2){
-                        
-                        //@ close mbox_tag_eq(epoch, round,mbox);
+                        //@ close mbox_tag_eq(ballot, round,mbox);
                         break;
                     }
                     
-                    
-                    //@ close mbox_tag_eq(epoch, round,mbox);
+                    //@ close mbox_tag_eq(ballot, round,mbox);
                 }//end reception loop of third round:leader
                 
-                //@ assert mbox_tag_eq(epoch, round,mbox);
+                //@ assert mbox_tag_eq(ballot, round,mbox);
                 
-                //@ open  mbox_tag_eq(epoch, round,mbox);
-                if(mbox != NULL && mbox->size > n/2){
-                    //@ close mbox_tag_eq(epoch, round,mbox);
-                    //@ mbox_tag_eq_to_list_pred_lemma(mbox);
+
+                if(mbox != NULL && mbox->size > n/2)
+                     if (all_same(mbox,leader)==1){
+                 //@ assert mbox_tag_eq(ballot,round,mbox);
+
+                   out(ballot, leader);
                     
-                    lastIndex = max_log_size(mbox);
-                    struct arraylist* old_log = log;
-                    log = longest_log(mbox, lastIndex);
-                    list_dispose(old_log);
+                }
+                //@ close mbox_tag_eq(ballot,round,mbox);
+                //@ mbox_tag_eq_to_list_pred_lemma(mbox);
+                
+                if(mbox!=0) {list_dispose(mbox);}
                     
-                    //round = New_Leader;
-                    //@ close tag_leq(old_epoch,old_round,epoch,round);
-                    //@ assert tag_leq(old_epoch,old_round,epoch,round);
-                    //@ open tag_leq(old_epoch,old_round,epoch,round);
-                    
-                    //end update third round leader
-                    
-                    
-                    //TODO Synchronization
-                    // assert round == New_Leader;
-                    
-                    //Move away this it the " normal " end of a leadership when it loses quorum
-                    //@ old_epoch = epoch;
-                    epoch++;
+                    //@ old_ballot = ballot;
+                    ballot++;
                     //@ old_round = round;
-                    round = AUX_ROUND;
+                    round = NewBallot_ROUND;
                     
-                    //@ close tag_leq(old_epoch,old_round,epoch,round);
-                    //@assert tag_leq(old_epoch,old_round,epoch,round);
-                    //@ open tag_leq(old_epoch,old_round,epoch,round);
-                    
-                    list_dispose_mbox(mbox);
-                    mbox = NULL;
-                    
-                }else{
-                    //@close mbox_tag_eq(epoch, round,mbox);
-                    //@ mbox_tag_eq_to_list_pred_lemma(mbox);
-                    list_dispose_mbox(mbox);
-                    mbox = NULL;
-                    //@ old_epoch = epoch;
-                    epoch++;
-                    //@ old_round = round;
-                    round = AUX_ROUND;
-                    //@ close tag_leq(old_epoch,old_round,epoch,round);
-                    //@assert tag_leq(old_epoch,old_round,epoch,round);
-                    //@ open tag_leq(old_epoch,old_round,epoch,round);
-                    break; // replace by continue
-                }//timeout of third round go back to the loops begining with new epoch.
+                    //@ close tag_leq(old_ballot,old_round,ballot,round);
+                    //@assert tag_leq(old_ballot,old_round,ballot,round);
+                    //@ open tag_leq(old_ballot,old_round,ballot,round);
+                
+                
             } else {
-                //@close mbox_geq_1(epoch,mbox,len);
+                //@close mbox_geq_1(ballot,mbox,len);
                 list_dispose1(mbox);
                 mbox = NULL;
-                //@ old_epoch = epoch;
-                epoch++;
+                //@ old_ballot = ballot;
+                ballot++;
                 //@ old_round = round;
-                round = AUX_ROUND;
-                //@ close tag_leq(old_epoch,old_round,epoch,round);
-                //@assert tag_leq(old_epoch,old_round,epoch,round);
-                //@ open tag_leq(old_epoch,old_round,epoch,round);
-                break; // replace by continue
-            }//timeout of the first round go back to the loops begining with new epoch.
+                round = NewBallot_ROUND;
+                //@ close tag_leq(old_ballot,old_round,ballot,round);
+                //@assert tag_leq(old_ballot,old_round,ballot,round);
+                //@ open tag_leq(old_ballot,old_round,ballot,round);
+                
+            }//timeout of the first round go back to the loops begining with new ballot.
             
             
         }//end LEADER
         else{
             //FOLLOWER
             
-            //@close  tag_leq(old_epoch,old_round,epoch,round);
-            //@assert tag_leq(old_epoch,old_round,epoch,round);
-            //@open  tag_leq(old_epoch,old_round,epoch,round);
+            //@close  tag_leq(old_ballot,old_round,ballot,round);
+            //@assert tag_leq(old_ballot,old_round,ballot,round);
+            //@open  tag_leq(old_ballot,old_round,ballot,round);
             
             round = NewBallot_ROUND;
-            //@ old_epoch = epoch;
+            //@ old_ballot = ballot;
             //@ old_round = round;
             
             
@@ -376,7 +325,7 @@ int main(int argc, char **argv)//@ : main
             {
                 
                 m = recv();
-                if (m != NULL && m->epoch >= epoch && m->round == NewBallot_ROUND){
+                if (m != NULL && m->ballot >= ballot && m->round == NewBallot_ROUND){
                     
                     mbox_new = (list*) malloc(sizeof(list));
                     if(mbox_new==0) {
@@ -384,96 +333,80 @@ int main(int argc, char **argv)//@ : main
                     }
                     mbox_new->message =m;
                     if(mbox!=0)
-                        {
-                        mbox_new->size = mbox->size + 1;
-                        }
+                        {mbox_new->size = mbox->size + 1; }
                     else
-                    {
-                    mbox_new->size =1 ;
+                    {mbox_new->size =1 ;}
                     mbox_new->next = mbox;
                     //@ len =1;
                     mbox = mbox_new;
-                    //@ close mbox_geq_1(epoch,mbox,1);
-                    }
-                    
-                    
-                } else { //@ close mbox_geq_1(epoch,NULL,0);
+                    //@ close mbox_geq_1(ballot,mbox,1);
+                } else { //@ close mbox_geq_1(ballot,NULL,0);
                     free(m);}
                 
-                //@ open mbox_geq_1(epoch,mbox,len);
+                //@ open mbox_geq_1(ballot,mbox,len);
                 
                 
                 if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
-                    //@ close mbox_geq_1(epoch, mbox,1);
+                    //@ close mbox_geq_1(ballot, mbox,1);
                     break;
                 }
                 
                 if (timeout()){
-                    //@ close mbox_geq_1(epoch, mbox,0);
+                    //@ close mbox_geq_1(ballot, mbox,0);
                     break;}
                 
             }//end reception loop second round follower
             
-            //@ assert mbox_geq_1(epoch,mbox,len);
-            //@ open mbox_geq_1(epoch,mbox,len);
+            //@ assert mbox_geq_1(ballot,mbox,len);
+            //@ open mbox_geq_1(ballot,mbox,len);
             
             if(mbox != NULL && mbox->size ==1&& mbox->next==NULL){
-                //@ close mbox_geq_1(epoch,mbox,1);
-                //@ assert mbox_geq_1(epoch,mbox,1);
-                //@ open mbox_geq_1(epoch,mbox,1);
-                //@  old_epoch = epoch;
-                epoch = mbox->message->epoch;
+                //@ close mbox_geq_1(ballot,mbox,1);
+                //@ assert mbox_geq_1(ballot,mbox,1);
+                //@ open mbox_geq_1(ballot,mbox,1);
+                //@  old_ballot = ballot;
+                ballot = mbox->message->ballot;
+                leader = mbox->message->leader;
+                //@ close mbox_geq_1(old_ballot,mbox,1);
+                // close max_tag_eq(ballot,round,mbox);
                 
-                //@ close mbox_geq_1(old_epoch,mbox,1);
-                // close max_tag_eq(epoch,round,mbox);
+                // assert max_tag_mbox(ballot,round,mbox);
                 
-                // assert max_tag_mbox(epoch,round,mbox);
-                
-                //@ close tag_leq(old_epoch,old_round,epoch,round);
-                //@assert tag_leq(old_epoch,old_round,epoch,round);
-                //@ open tag_leq(old_epoch,old_round,epoch,round);
+                //@ close tag_leq(old_ballot,old_round,ballot,round);
+                //@assert tag_leq(old_ballot,old_round,ballot,round);
+                //@ open tag_leq(old_ballot,old_round,ballot,round);
                 
                 
                 //@ old_round = round;
                 round = AckBallot_ROUND;
-                //@ close tag_leq(old_epoch,old_round,epoch,round);
-                //@assert tag_leq(old_epoch,old_round,epoch,round);
-                //@ open tag_leq(old_epoch,old_round,epoch,round);
-                
-                
-                //end update of second round follower
-                
-                
-                
-                
-                //@ assert round == AckBallot_ROUND;
-             
+                //@ close tag_leq(old_ballot,old_round,ballot,round);
+                //@assert tag_leq(old_ballot,old_round,ballot,round);
+                //@ open tag_leq(old_ballot,old_round,ballot,round);
                 
                 m = (msg *) malloc(sizeof(msg));
                 if(m==0) {
                 abort();
                 }
-                m->epoch = epoch;
+                m->ballot = ballot;
                 m->round = AckBallot_ROUND;
-                m->history = log;
-                m->history_lenght = lastIndex;
+                m->leader = leader;
                 
-                //@assert(m->epoch == epoch && m->round == round);
-                send(m, leader(epoch,n));
+                //@assert(m->ballot == ballot && m->round == round);
+                send(m, to_all);
                 
                 free(m);
                 m = NULL;
                 list_dispose1(mbox);
                 mbox = NULL;
                 
-                //@ close mbox_tag_eq(epoch, round,mbox);
+                //@ close mbox_tag_eq(ballot, round,mbox);
                 while(true)
-                    //@ invariant mbox_tag_eq(epoch, round,mbox);
+                    //@ invariant mbox_tag_eq(ballot, round,mbox);
                 {
                     
                     m = recv();
-                    if (m != NULL && m->epoch == epoch && m->round == AckBallot_ROUND){
-                        //@ open mbox_tag_eq(epoch, round,mbox);
+                    if (m != NULL && m->ballot == ballot && m->round == AckBallot_ROUND){
+                        //@ open mbox_tag_eq(ballot, round,mbox);
                         mbox_new = (list*) malloc(sizeof(list));
                         if(mbox_new==0) {
                         abort();
@@ -483,98 +416,67 @@ int main(int argc, char **argv)//@ : main
                             {
                             mbox_new->size = mbox->size + 1;
                             }
-                        else  {
-                        mbox_new->size =1 ;
+                        else  { mbox_new->size =1 ;}
 
                         mbox_new->next = mbox;
-                        //@ close mbox_tag_eq(epoch, round,mbox);
+                        //@ close mbox_tag_eq(ballot, round,mbox);
                         mbox = mbox_new;
-                        //@ close mbox_tag_eq(epoch, round,mbox);
-                        }
+                        //@ close mbox_tag_eq(ballot, round,mbox);
+           
                     }
                     else {free(m);}
                     if (timeout()){
                         break;
                     }
                     
-                    //@ open mbox_tag_eq(epoch, round,mbox);
+                    //@ open mbox_tag_eq(ballot, round,mbox);
                     if(mbox != NULL && mbox->size > n/2){
                         
-                        //@ close mbox_tag_eq(epoch, round,mbox);
+                        //@ close mbox_tag_eq(ballot, round,mbox);
                         break;
                     }
                     
                     
-                    //@ close mbox_tag_eq(epoch, round,mbox);
+                    //@ close mbox_tag_eq(ballot, round,mbox);
                 }//end reception loop of third round:leader
                 
-                //@ assert mbox_tag_eq(epoch, round,mbox);
+                //@ assert mbox_tag_eq(ballot, round,mbox);
                 
-                //@ open  mbox_tag_eq(epoch, round,mbox);
-                if(mbox != NULL && mbox->size > n/2){
-                    //@ close mbox_tag_eq(epoch, round,mbox);
+                //@ open  mbox_tag_eq(ballot, round,mbox);
+                if(mbox != NULL && mbox->size > n/2)
+                    if (all_same(mbox,leader)==1){
+                    //@ assert mbox_tag_eq(ballot,round,mbox);
+                    // log[ballot] = leader;
+                    out(ballot, leader);
+                }
+                    //@ close mbox_tag_eq(ballot, round,mbox);
                     //@ mbox_tag_eq_to_list_pred_lemma(mbox);
                     
-                    lastIndex = max_log_size(mbox);
-                    struct arraylist* old_log = log;
-                    log = longest_log(mbox, lastIndex);
-                    list_dispose(old_log);
-                    
-                    //round = New_Leader;
-                    //@ close tag_leq(old_epoch,old_round,epoch,round);
-                    //@ assert tag_leq(old_epoch,old_round,epoch,round);
-                    //@ open tag_leq(old_epoch,old_round,epoch,round);
-                    
-                    //end update third round leader
-                    
-                    
-                    //TODO Synchronization
-                    // assert round == New_Leader;
-                    
-                    //Move away this it the " normal " end of a leadership when it loses quorum
-                    //@ old_epoch = epoch;
-                    epoch++;
+                if(mbox!=0) {list_dispose(mbox);}
+                    //@ old_ballot = ballot;
+                    ballot++;
                     //@ old_round = round;
-                    round = AUX_ROUND;
+                round = NewBallot_ROUND;
                     
-                    //@ close tag_leq(old_epoch,old_round,epoch,round);
-                    //@assert tag_leq(old_epoch,old_round,epoch,round);
-                    //@ open tag_leq(old_epoch,old_round,epoch,round);
-                    
-                    list_dispose_mbox(mbox);
-                    mbox = NULL;
-                    
-                }else{
-                    //@close mbox_tag_eq(epoch, round,mbox);
-                    //@ mbox_tag_eq_to_list_pred_lemma(mbox);
-                    list_dispose_mbox(mbox);
-                    mbox = NULL;
-                    //@ old_epoch = epoch;
-                    epoch++;
-                    //@ old_round = round;
-                    round = NewBallot_ROUND;
-                    //@ close tag_leq(old_epoch,old_round,epoch,round);
-                    //@assert tag_leq(old_epoch,old_round,epoch,round);
-                    //@ open tag_leq(old_epoch,old_round,epoch,round);
-                    break; // replace by continue
-                }//timeout of third round go back to the loops begining with new epoch.
-                
-                
-            } else {
-                //@close mbox_geq_1(epoch,mbox,len);
+                    //@ close tag_leq(old_ballot,old_round,ballot,round);
+                    //@assert tag_leq(old_ballot,old_round,ballot,round);
+                    //@ open tag_leq(old_ballot,old_round,ballot,round);
+            
+        }else {
+                //@close mbox_geq_1(ballot,mbox,len);
                 
                 list_dispose1(mbox);
                 mbox = NULL;
-                //@ old_epoch = epoch;
-                epoch++;
+                //@ old_ballot = ballot;
+                ballot++;
                 //@ old_round = round;
-                round = AUX_ROUND;
-                //@ close tag_leq(old_epoch,old_round,epoch,round);
-                //@assert tag_leq(old_epoch,old_round,epoch,round);
-                //@ open tag_leq(old_epoch,old_round,epoch,round);
+                round = NewBallot_ROUND;
+                //@ close tag_leq(old_ballot,old_round,ballot,round);
+                //@assert tag_leq(old_ballot,old_round,ballot,round);
+                //@open tag_leq(old_ballot,old_round,ballot,round);
                 
                 
-            }//timeout of second round and go back to the loops begining into a new epoch
+            }//timeout of second round and go back to the loops begining into a new ballot
             
         }//END FOLLOWER
         
@@ -588,7 +490,7 @@ int reset_timeout();
 //@ requires emp;
 //@ ensures emp;
 
-int leader(int phase, int net_size);
+int coord(int net_size);
 //@ requires emp;
 //@ ensures 0<=result &*& result < net_size;
 
@@ -600,7 +502,7 @@ int timeout();
 
 msg* recv();
 //@ requires emp;
-//@ ensures result->round |-> ?r &*& result->epoch |-> ?v &*& result->pid|->_ &*& result->history|-> ?hs &*& result->history_lenght|-> ?hslen &*& result->sender|->_ &*& malloc_block_Msg(result) &*& INT_MIN <v &*& v < INT_MAX;
+//@ ensures result->round |-> ?r &*& result->ballot |-> ?v &*& result->leader|->_ &*& malloc_block_Msg(result) &*& INT_MIN <v &*& v < INT_MAX;
 
 void send(msg* message, int pid);
 //@ requires true;
@@ -615,7 +517,7 @@ struct arraylist* longest_log(struct List* mbox, int lastIndex);
 //@requires list_pred(mbox);
 //@ensures list_pred(mbox);
 
-void list_dispose_mbox(struct List *l);
+void list_dispose(struct List *l);
 //@ requires list_pred(l);
 //@ ensures emp;
 
@@ -625,9 +527,8 @@ void list_dispose_mbox(struct List *l);
  n == 0 ?
  true
  :
- n->message |-> ?msg &*& msg->epoch |-> ?v &*& msg->round |-> ?r &*&
- msg->pid |-> _ &*& msg->history |-> ?hs &*&
- msg->history_lenght |-> _ &*& msg->sender |-> _  &*&
+ n->message |-> ?msg &*& msg->ballot |-> ?v &*& msg->round |-> ?r &*&
+  msg->leader |-> _  &*&
  malloc_block_Msg(msg) &*& malloc_block_List(n) &*& n->next |-> ?next &*& n->size |-> ?s &*&
  n!=next &*&  val== v &*&  val2== r &*& mbox_tag_eq(val,val2, next) ;
  @*/
@@ -659,9 +560,8 @@ void list_dispose_mbox(struct List *l);
  true
  :
  n->message |-> ?msg &*& n->size |-> ?size &*& n->next |-> ?next &*& malloc_block_List(n) &*& n!=next
- &*& msg->round |-> ?r &*& msg->epoch |-> _ &*&
- msg->pid |-> _ &*& msg->history |-> ?hs &*& msg->history_lenght |-> _ &*& msg->sender |-> _  &*& malloc_block_Msg(msg) &*& list_pred(next);
+ &*& msg->round |-> ?r &*& msg->ballot |-> _ &*&
+  msg->leader |-> _  &*& malloc_block_Msg(msg) &*& list_pred(next);
  @*/
-
 
 
