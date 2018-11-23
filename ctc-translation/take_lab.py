@@ -1052,7 +1052,7 @@ def identify_nested(ast_tree):
 
                 print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job,
                              delete_round_phase_inner,
-                             message_inner, variables_inner)
+                             message_inner, variables_inner, rounds_list_inner[0])
                 parent = find_parent(ast, elem)
                 index = parent.block_items.index(elem)
                 parent.block_items.remove(elem)
