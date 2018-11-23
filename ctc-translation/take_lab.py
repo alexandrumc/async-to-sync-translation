@@ -1139,4 +1139,4 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
 
         # print generator.visit(cop)
-        # print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)

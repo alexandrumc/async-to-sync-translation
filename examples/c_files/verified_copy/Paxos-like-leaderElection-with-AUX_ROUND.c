@@ -116,7 +116,6 @@ int main(int argc, char **argv)
                 if(mbox != NULL && mbox->size > n/2){break;}
             }
             if (mbox != NULL && mbox->size > n/2){
-
             if (all_same(mbox,leader)==1){
                 out(ballot, leader);
             }
