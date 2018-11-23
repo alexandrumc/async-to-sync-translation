@@ -76,9 +76,6 @@ void list_dispose(struct List *l);
 //@ requires list_pred(l);
 //@ ensures emp;
 
-void list_dispose_no_data(struct List *l);
-
-void dispose_list(list *c);
 
 void send(msg *message, int pid);
 //@ requires true;
