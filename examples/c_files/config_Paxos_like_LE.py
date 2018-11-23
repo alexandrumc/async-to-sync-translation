@@ -81,21 +81,21 @@ number_of_nested_algorithms = 1
 
 # Modify with phase and round variables names
 variables_1 = dict(
-    phase="Insert PHASE variable name here",
+    phase="ballot",
     round="round"
 )
 
 # Modify with phase and round fields names in the message structure
 msg_structure_fields_1 = dict(
-    phase_field_1="Insert PHASE FIELD name here",
-    round_field_1="Insert ROUND FIELD name here"
+    phase_field_1="ballot",
+    round_field_1="round"
 )
 
 # Modify with mailbox name
-mailbox_1 = "Insert mailbox name here"
+mailbox_1 = "mbox"
 
 # Modify with clean mailbox function name
-clean_mailbox_1 = "Insert clean mailbox function name here"
+clean_mailbox_1 = "list_dispose"
 
 # Add as many fields as you need
 
