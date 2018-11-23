@@ -1,13 +1,12 @@
 #include "stdlib.h"
 #include<stdio.h>
 #include<limits.h>
-#include "broadcast-functions.h"
-#include "arraylist.h"
+//#include "broadcast-functions.h"
+//#include "arraylist.h"
 
 
 
 
-enum round_typ_A {PROPOSE, ACK, LEADER, BCAST} ;
 
 enum round_typ_B {FIRST_ROUND, SECOND_ROUND, THIRD_ROUND, AUX_ROUND} ;
 

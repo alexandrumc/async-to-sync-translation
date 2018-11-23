@@ -7,11 +7,8 @@
 #include "stdlib.h"
 #include<stdio.h>
 #include<limits.h>
-//#include "Zab-Discovery_Synchronization_Broadcast2.h"
 
 enum round_typ_A {NewEpoch, Ack_E, New_Leader,Ack_LD, BCAST} ;
-
-
 typedef struct Msg {
     int round; //round1
     int pid;
@@ -33,7 +30,6 @@ typedef struct List{
     struct List * next;
     int size;
 } list;
-
 
 
 

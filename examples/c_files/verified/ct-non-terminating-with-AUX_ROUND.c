@@ -3,31 +3,31 @@
 #include<limits.h>
 
 typedef struct Msg {
-	int round;
-	int phase;
-	int estimate;
-	int timestamp;
-	int ack;
-	int sender;
+    int round;
+    int phase;
+    int estimate;
+    int timestamp;
+    int ack;
+    int sender;
 } msg;
 
 
 /*@
  predicate msg_pred(struct Msg * msg) =
  msg == 0? true : msg->round |-> _ &*& msg->phase |-> _ &*& msg->sender |-> _ &*&
-  msg->estimate |-> _ &*& msg->timestamp |-> _ &*& msg->ack |-> _ &*& malloc_block_Msg(msg);
+ msg->estimate |-> _ &*& msg->timestamp |-> _ &*& msg->ack |-> _ &*& malloc_block_Msg(msg);
  @*/
- 
- /*@
+
+/*@
  predicate msg_pred_alloc1(struct Msg * msg, int phase, int round, int estimate, int timestamp, int ack, int sender) =
-  msg->round |-> round &*& msg->phase |-> phase &*& msg->sender |-> sender &*&
-  msg->estimate |-> estimate &*& msg->timestamp |-> timestamp &*& msg->ack |-> ack ;
+ msg->round |-> round &*& msg->phase |-> phase &*& msg->sender |-> sender &*&
+ msg->estimate |-> estimate &*& msg->timestamp |-> timestamp &*& msg->ack |-> ack ;
  @*/
- 
- /*@
+
+/*@
  predicate msg_pred_alloc2(struct Msg * msg) =
-  msg->round |-> _ &*& msg->phase |-> _ &*& msg->sender |-> _ &*&
-  msg->estimate |-> _ &*& msg->timestamp |-> _ &*& msg->ack |-> _ &*& malloc_block_Msg(msg);
+ msg->round |-> _ &*& msg->phase |-> _ &*& msg->sender |-> _ &*&
+ msg->estimate |-> _ &*& msg->timestamp |-> _ &*& msg->ack |-> _ &*& malloc_block_Msg(msg);
  @*/
 
 
@@ -38,10 +38,10 @@ typedef struct List{
 } list;
 
 /*@
-predicate msgs(list<struct Msg *> vs) = switch (vs) {
-case nil: return true;
-case cons(v, vs0): return msg_pred_alloc2(v) &*& msgs(vs0); };
-@*/
+ predicate msgs(list<struct Msg *> vs) = switch (vs) {
+ case nil: return true;
+ case cons(v, vs0): return msg_pred_alloc2(v) &*& msgs(vs0); };
+ @*/
 
 
 /*@
@@ -52,7 +52,7 @@ case cons(v, vs0): return msg_pred_alloc2(v) &*& msgs(vs0); };
  :
  n->message |-> ?msg &*& n->size |-> ?size &*& n->next |-> ?next &*& malloc_block_List(n) &*& n!=next 
  &*& list_pred(next)&*& malloc_block_Msg(msg) &*&   msg->round |-> ?round &*& msg->phase |-> ?phase &*& msg->sender |-> ?sender &*&
-  msg->estimate |-> ?estimate &*& msg->timestamp |-> ?timestamp &*& msg->ack |-> ?ack ;
+ msg->estimate |-> ?estimate &*& msg->timestamp |-> ?timestamp &*& msg->ack |-> ?ack ;
  @*/
 
 
@@ -65,25 +65,25 @@ case cons(v, vs0): return msg_pred_alloc2(v) &*& msgs(vs0); };
  :
  start->message |-> ?msg &*& start->size |-> ?size &*&  start->next |-> ?next &*& start != 0 &*& start != next 
  &*& malloc_block_List(start)&*& malloc_block_Msg(msg) &*&   msg->round |-> ?round &*& msg->phase |-> ?phase &*& msg->sender |-> ?sender &*&
-  msg->estimate |-> ?estimate &*& msg->timestamp |-> ?timestamp &*& msg->ack |-> ?ack  &*& lseg_pred(next, end)  ;
-
-@*/
+ msg->estimate |-> ?estimate &*& msg->timestamp |-> ?timestamp &*& msg->ack |-> ?ack  &*& lseg_pred(next, end)  ;
+ 
+ @*/
 
 /*@
  // Lemma for adding (appending) a node to a list segment predicate
  lemma void lseg_append_node(struct List* lseg_start, struct List* lseg_end)
  
  requires lseg_pred(lseg_start, lseg_end) &*&
-          lseg_end != 0 &*& lseg_end->message |-> ?msg &*& lseg_end->size |-> _ &*& lseg_end->next |-> ?next1  &*&
-          malloc_block_List(lseg_end)&*& malloc_block_Msg(msg) &*& msg->round |-> ?round &*& msg->phase |-> ?phase &*& msg->sender |-> ?sender &*&
-  msg->estimate |-> ?estimate &*& msg->timestamp |-> ?timestamp &*& msg->ack |-> ?ack &*&list_pred(next1);
+ lseg_end != 0 &*& lseg_end->message |-> ?msg &*& lseg_end->size |-> _ &*& lseg_end->next |-> ?next1  &*&
+ malloc_block_List(lseg_end)&*& malloc_block_Msg(msg) &*& msg->round |-> ?round &*& msg->phase |-> ?phase &*& msg->sender |-> ?sender &*&
+ msg->estimate |-> ?estimate &*& msg->timestamp |-> ?timestamp &*& msg->ack |-> ?ack &*&list_pred(next1);
  ensures lseg_pred(lseg_start, next1) &*& list_pred(next1);
  {
  open lseg_pred(lseg_start, lseg_end);
  if (lseg_start == lseg_end) {
-    close lseg_pred(next1, next1);
+ close lseg_pred(next1, next1);
  } else {
-    lseg_append_node(lseg_start->next, lseg_end);
+ lseg_append_node(lseg_start->next, lseg_end);
  }
  open list_pred(next1);
  close list_pred(next1);
@@ -116,7 +116,7 @@ void list_dispose(struct List *l)
         free(oldcurrent);
     }
 }
-  
+
 int in();
 //@requires true;
 //@ensures true;
@@ -161,50 +161,50 @@ msg* max_timestamp(struct List* mbox)
 //@ ensures (list_pred(mbox) &*& mbox!=0 &*& result->phase |-> ?p &*& result->round |-> ?r  &*& result->estimate |-> ?e &*& result->timestamp |-> _ &*& result->ack |-> _ &*& result->sender |-> _ &*& malloc_block_Msg(result));
 // max_lseg_pred(result,mbox,0);
 {
-
-  struct List *current = mbox;
-  //@open (list_pred(mbox));
-  msg *max = (msg*)malloc(sizeof(msg));
-  if (max ==0) abort();
-  max->estimate = mbox->message->estimate;
-  max->phase =  mbox->message->phase;
-  max->round =  mbox->message->round;
-  max->sender =  mbox->message->sender;
-  max->ack =  mbox->message->ack;
-  max->timestamp =  mbox->message->timestamp;
-  
-  current = mbox;
-  //@close lseg_pred(mbox,current);
-  //@close list_pred(current);
-  //@close msg_pred_alloc2(max);
-  ////@close(max_lseg_pred(max,mbox,current));
-  ////@close(list_pred(current));
-  struct List* current0  = NULL;
-  
-  while (current != NULL)
-  //@ invariant (lseg_pred(mbox,current) &*& list_pred(current) &*& msg_pred_alloc2(max)); 
-  {
-       //@open lseg_pred(mbox,current);
-       //@open list_pred(current);
-       //@open msg_pred_alloc2(max);
-      if(current->message->timestamp > max->timestamp){
-         	  max->estimate = current->message->estimate;
-  		  max->phase =  current->message->phase;
-  		  max->round =  current->message->round;
-  		  max->timestamp = current->message->timestamp;
-   		  max->sender =  current->message->sender;
-  		  max->ack = current->message->ack;	
-         	 }
+    
+    struct List *current = mbox;
+    //@open (list_pred(mbox));
+    msg *max = (msg*)malloc(sizeof(msg));
+    if (max ==0) abort();
+    max->estimate = mbox->message->estimate;
+    max->phase =  mbox->message->phase;
+    max->round =  mbox->message->round;
+    max->sender =  mbox->message->sender;
+    max->ack =  mbox->message->ack;
+    max->timestamp =  mbox->message->timestamp;
+    
+    current = mbox;
+    //@close lseg_pred(mbox,current);
+    //@close list_pred(current);
+    //@close msg_pred_alloc2(max);
+    ////@close(max_lseg_pred(max,mbox,current));
+    ////@close(list_pred(current));
+    struct List* current0  = NULL;
+    
+    while (current != NULL)
+        //@ invariant (lseg_pred(mbox,current) &*& list_pred(current) &*& msg_pred_alloc2(max)); 
+    {
+        //@open lseg_pred(mbox,current);
+        //@open list_pred(current);
+        //@open msg_pred_alloc2(max);
+        if(current->message->timestamp > max->timestamp){
+            max->estimate = current->message->estimate;
+            max->phase =  current->message->phase;
+            max->round =  current->message->round;
+            max->timestamp = current->message->timestamp;
+            max->sender =  current->message->sender;
+            max->ack = current->message->ack;	
+        }
         //@close msg_pred_alloc2(max);
-      current0 = current->next; 
-      //@lseg_append_node(mbox,current);
-      current = current0;    
-  }
-
-  //@assert lseg_pred(mbox,0);
-  //@ lseg_to_list(mbox);
-  //@open msg_pred_alloc2(max);
-  return max;
+        current0 = current->next; 
+        //@lseg_append_node(mbox,current);
+        current = current0;    
+    }
+    
+    //@assert lseg_pred(mbox,0);
+    //@ lseg_to_list(mbox);
+    //@open msg_pred_alloc2(max);
+    return max;
 }
 
 
@@ -260,135 +260,135 @@ int main(int argc, char**argv) //@ : main
 //@ requires true;
 //@ ensures true;
 {
-	int state = 0;
-	
-	int round = AUX_ROUND;
-	int old_round = round; 
-	int myid = 0;
-	int timestamp = 0;
-	
-	int phase = 0;
-	int old_phase = -1;
-	
-	int estimate = in();
-	int leader = 0;
-	
-	int n = argc; 
-	int to_all = n+1;
-	
-
-
-
-	list *mbox = NULL;
-    	list* mbox_new = NULL;
-
-
-	int retry;
-	int timeout;
-	int ack = 0;
-
-	msg* m = NULL;
-
-	volatile int random;
-	
-	
+    int state = 0;
+    
+    int round = AUX_ROUND;
+    //@ int old_round = round;
+    int myid = 0;
+    int timestamp = 0;
+    
+    int phase = 0;
+    //@ int old_phase = -1;
+    
+    int estimate = in();
+    int leader = 0;
+    
+    int n = argc; 
+    int to_all = n+1;
+    
+    
+    
+    
+    list *mbox = NULL;
+    list* mbox_new = NULL;
+    
+    
+    int retry;
+    int timeout;
+    int ack = 0;
+    
+    msg* m = NULL;
+    
+    volatile int random;
+    
+    
     while(true)
         //@invariant ((old_phase+1==phase) && (round==AUX_ROUND));
     {
-        	old_round = round; 
-        	round = FIRST_ROUND;
-        	
-        	//@ assert ((old_phase+1==phase) || (old_phase==phase && old_round <=round));
-        	////@ assert (old_round <=round);
-
-		old_phase = phase; 
-		old_round = round; 
-		//@ assert ((old_phase+1==phase) || (old_phase==phase && old_round <=round));
+        //@ old_round = round;
+        round = FIRST_ROUND;
         
-		m = NULL;
-		m = (msg*)malloc(sizeof(msg));
-		if (m == 0) abort();
-			
-		m->phase = phase;
-		m->round = round;
-		m->estimate = estimate;
-		m->sender = myid;
-		m->timestamp = timestamp;
-		
-		leader = leader(phase,n);
-		send(m,leader);
-		
-		dispose(m);
-		m = NULL;
-		mbox = NULL;
+        //@ assert ((old_phase+1==phase) || (old_phase==phase && old_round <=round));
+        ////@ assert (old_round <=round);
         
-		if (myid == leader) {
-			//@ close list_pred(mbox);
-			if (mbox!= 0) { list_dispose(mbox); }
-			mbox = NULL;
-            	
-           		 while (1)
-               		 //@ invariant eq_val_list_pred(phase,round,mbox);
-           		 {
-				//@open eq_val_list_pred(phase,round,mbox);
-				m = recv();
-				if (m->round == 1 && m->phase == phase && m->round == round) {
-					mbox_new = (list*) malloc(sizeof(list));
-               			        if(mbox_new==0) abort();
-               			        mbox_new->message =m;
-                			if(mbox!=0)
-                    				mbox_new->size = mbox->size + 1;
-                			else  mbox_new->size =1 ;
-                			mbox_new->next = mbox;
-                			mbox = mbox_new;
-				}else{free(m);}
-
-				if (timeout()) break;
-				else if (mbox!=0 && mbox->size >= (n + 1) / 2)
-					break;
-                	//@ close eq_val_list_pred(phase,round,mbox);
-            		}
-			
-			if (mbox!=0 && mbox->size >= (n + 1) / 2) {
-             	 	  //@ close eq_val_list_pred(phase,round,mbox);
-             	   	  //@ eq_val_list_pred_to_list_pred_lemma(mbox);
-                        	m = max_timestamp(mbox);
-                        	estimate = m->estimate;
-                        	free(m);
-                        	m=NULL;
-            		}else{
-                	//@ close eq_val_list_pred(phase,round,mbox);
-			//@ eq_val_list_pred_to_list_pred_lemma(mbox);
-                		list_dispose(mbox);
-                		mbox = NULL;
-                	}
+        //@ old_phase = phase;
+        //@ old_round = round;
+        //@ assert ((old_phase+1==phase) || (old_phase==phase && old_round <=round));
+        
+        m = NULL;
+        m = (msg*)malloc(sizeof(msg));
+        if (m == 0) abort();
+        
+        m->phase = phase;
+        m->round = round;
+        m->estimate = estimate;
+        m->sender = myid;
+        m->timestamp = timestamp;
+        
+        leader = leader(phase,n);
+        send(m,leader);
+        
+        dispose(m);
+        m = NULL;
+        mbox = NULL;
+        
+        if (myid == leader) {
+            //@ close list_pred(mbox);
+            if (mbox!= 0) { list_dispose(mbox); }
+            mbox = NULL;
+            
+            while (1)
+                //@ invariant eq_val_list_pred(phase,round,mbox);
+            {
+                //@open eq_val_list_pred(phase,round,mbox);
+                m = recv();
+                if (m->round == 1 && m->phase == phase && m->round == round) {
+                    mbox_new = (list*) malloc(sizeof(list));
+                    if(mbox_new==0) abort();
+                    mbox_new->message =m;
+                    if(mbox!=0)
+                        mbox_new->size = mbox->size + 1;
+                    else  mbox_new->size =1 ;
+                    mbox_new->next = mbox;
+                    mbox = mbox_new;
+                }else{free(m);}
+                
+                if (timeout()) break;
+                else if (mbox!=0 && mbox->size >= (n + 1) / 2)
+                    break;
+                //@ close eq_val_list_pred(phase,round,mbox);
+            }
+            
+            if (mbox!=0 && mbox->size >= (n + 1) / 2) {
+                //@ close eq_val_list_pred(phase,round,mbox);
+                //@ eq_val_list_pred_to_list_pred_lemma(mbox);
+                m = max_timestamp(mbox);
+                estimate = m->estimate;
+                free(m);
+                m=NULL;
+            }else{
+                //@ close eq_val_list_pred(phase,round,mbox);
+                //@ eq_val_list_pred_to_list_pred_lemma(mbox);
+                list_dispose(mbox);
+                mbox = NULL;
+            }
         }
-       		 
+        
         //@close list_pred(mbox);
         //@ assert list_pred(mbox);
-
+        
         if (mbox!= 0) { list_dispose(mbox); }
         mbox = NULL;
-    
-    
-        old_round = round; 
+        
+        
+        //@ old_round = round;
         round = SECOND_ROUND;
         ////@ assert (old_round <=round);
         //@ assert ((old_phase+1==phase) || (old_phase==phase && old_round <=round));
-    
+        
         if (myid == leader) {
-                m = (msg *) malloc(sizeof(msg));
-                if(m==0) abort();
-                m->sender = myid;
-                m->phase = phase;
-                m->round = round;
-                m->estimate = estimate;
-                m->timestamp = timestamp;
-                send(m,to_all);
-                dispose(m);
-                m = NULL;
+            m = (msg *) malloc(sizeof(msg));
+            if(m==0) abort();
+            m->sender = myid;
+            m->phase = phase;
+            m->round = round;
+            m->estimate = estimate;
+            m->timestamp = timestamp;
+            send(m,to_all);
+            dispose(m);
+            m = NULL;
         }
-    
+        
         while (1)
             //@ invariant eq_val_list_pred(phase,round,mbox);
         {
@@ -398,151 +398,150 @@ int main(int argc, char**argv) //@ : main
                 mbox_new = (list*) malloc(sizeof(list));
                 if(mbox_new==0) abort();
                 mbox_new->message =m;
-                if(mbox!=0)
-                    mbox_new->size = mbox->size + 1;
-                else  mbox_new->size =1 ;
+                if(mbox!=0){ mbox_new->size = mbox->size + 1;}
+                else { mbox_new->size =1 ;}
                 mbox_new->next = mbox;
                 mbox = mbox_new;
             }else{free(m);}
-        
+            
             //@ assert eq_val_list_pred(phase,round,mbox);
             if (timeout()) break;
             else if (mbox!=0 && mbox->message->sender ==leader )
                 break;
-        
+            
             //@ close eq_val_list_pred(phase,round,mbox);
         }
-
+        
         if (mbox!=0 && mbox->message->sender ==leader ) {
             estimate = mbox->message->estimate;
             timestamp = phase;
             //@ close eq_val_list_pred(phase,round,mbox);
             //@ eq_val_list_pred_to_list_pred_lemma(mbox);
         }else{	
-   	 	//@ close eq_val_list_pred(phase,round,mbox);
-	 	//@ eq_val_list_pred_to_list_pred_lemma(mbox);
-          	list_dispose(mbox);
-          	mbox = NULL;
+            //@ close eq_val_list_pred(phase,round,mbox);
+            //@ eq_val_list_pred_to_list_pred_lemma(mbox);
+            list_dispose(mbox);
+            mbox = NULL;
         }
         
-        old_round = round;
+        //@ old_round = round;
         round = THIRD_ROUND;
         //@ assert ((old_phase+1==phase) || (old_phase==phase && old_round <=round));
-   
+        
         if (timestamp == phase) {
-    		m = (msg *) malloc(sizeof(msg));
-    		if(m==0) abort();
-        	m->sender = myid;
-        	m->phase = phase;
-        	m->round = round;
-        	m->estimate = estimate;
-        	m->timestamp = timestamp;
-        	send(m,leader);
-        	dispose(m);
-        	m = NULL;
-        	}
-    
-       //@close list_pred(mbox);
-       if (mbox!= 0) { list_dispose(mbox); } 
-       mbox = NULL;
-       if (myid == leader) {
-           while (1)
-               //@ invariant eq_val_list_pred(phase,round,mbox);
-           {
-               //@open eq_val_list_pred(phase,round,mbox);
-               m = recv();
-               if (m->phase == phase && m->round == round) {
-                   mbox_new = (list*) malloc(sizeof(list));
-                   if(mbox_new==0) abort();
-                   mbox_new->message =m;
-                   if(mbox!=0)
-                       mbox_new->size = mbox->size + 1;
-                   else  mbox_new->size =1 ;
-                   mbox_new->next = mbox;
-                   mbox = mbox_new;
-               }else{free(m);}
-        
-        
-               if (timeout()) break;
-               else if (mbox!=0 && mbox->size >= (n + 1) / 2)
-                   break;
-        
-               //@ close eq_val_list_pred(phase,round,mbox);
-    	}
-    
-    	if (mbox!=0 && mbox->size >= (n + 1) / 2) {
-        	//@ close eq_val_list_pred(phase,round,mbox);
-        	//@ eq_val_list_pred_to_list_pred_lemma(mbox);
-        	ack = 1;
-   	 
-        }else{
-   	 	//@ close eq_val_list_pred(phase,round,mbox);
-	 	//@ eq_val_list_pred_to_list_pred_lemma(mbox);
-          	list_dispose(mbox);
-          	mbox = NULL;
-        }
+            m = (msg *) malloc(sizeof(msg));
+            if(m==0) abort();
+            m->sender = myid;
+            m->phase = phase;
+            m->round = round;
+            m->estimate = estimate;
+            m->timestamp = timestamp;
+            send(m,leader);
+            dispose(m);
+            m = NULL;
         }
         
-        old_round = round;
+        //@close list_pred(mbox);
+        if (mbox!= 0) { list_dispose(mbox); } 
+        mbox = NULL;
+        if (myid == leader) {
+            while (1)
+                //@ invariant eq_val_list_pred(phase,round,mbox);
+            {
+                //@open eq_val_list_pred(phase,round,mbox);
+                m = recv();
+                if (m->phase == phase && m->round == round) {
+                    mbox_new = (list*) malloc(sizeof(list));
+                    if(mbox_new==0) abort();
+                    mbox_new->message =m;
+                    if(mbox!=0)
+                    { mbox_new->size = mbox->size + 1;}
+                    else  {mbox_new->size =1 ;}
+                    mbox_new->next = mbox;
+                    mbox = mbox_new;
+                }else{free(m);}
+                
+                
+                if (timeout()) break;
+                else if (mbox!=0 && mbox->size >= (n + 1) / 2)
+                    break;
+                
+                //@ close eq_val_list_pred(phase,round,mbox);
+            }
+            
+            if (mbox!=0 && mbox->size >= (n + 1) / 2) {
+                //@ close eq_val_list_pred(phase,round,mbox);
+                //@ eq_val_list_pred_to_list_pred_lemma(mbox);
+                ack = 1;
+                
+            }else{
+                //@ close eq_val_list_pred(phase,round,mbox);
+                //@ eq_val_list_pred_to_list_pred_lemma(mbox);
+                list_dispose(mbox);
+                mbox = NULL;
+            }
+        }
+        
+        //@   old_round = round;
         round = FOURTH_ROUND;
-	//@ assert ((old_phase+1==phase) || (old_phase==phase && old_round <=round));
-	
-	if (myid == leader && ack == 1) {
-   		m = (msg *) malloc(sizeof(msg));
-   		if(m==0) abort();
-    		m->sender = myid;
-    		m->phase = phase;
-    		m->round = round;
-    		m->estimate = estimate;
-    		m->ack = ack;
-    		send(m,to_all);
-    		dispose(m);
-    		m = NULL;
-	}
-	 
-   	//@close list_pred(mbox);
-    //@ assert list_pred(mbox);
-
+        //@ assert ((old_phase+1==phase) || (old_phase==phase && old_round <=round));
         
-   	if (mbox!= 0) { list_dispose(mbox); }
-   	
-   	mbox = NULL;
+        if (myid == leader && ack == 1) {
+            m = (msg *) malloc(sizeof(msg));
+            if(m==0) abort();
+            m->sender = myid;
+            m->phase = phase;
+            m->round = round;
+            m->estimate = estimate;
+            m->ack = ack;
+            send(m,to_all);
+            dispose(m);
+            m = NULL;
+        }
+        
+        //@close list_pred(mbox);
+        //@ assert list_pred(mbox);
+        
+        
+        if (mbox!= 0) { list_dispose(mbox); }
+        
+        mbox = NULL;
         
         while (1) //@ invariant eq_val_list_pred(phase,round,mbox);
-	{
-        //@ assert eq_val_list_pred(phase,round,mbox);
-   	 	//@open eq_val_list_pred(phase,round,mbox);
-    		m = recv();
-    		if (m->round == FOURTH_ROUND && m->phase == phase) {
-        		mbox_new = (list*) malloc(sizeof(list));
-        		if(mbox_new==0) abort();
-        		mbox_new->message =m;
-        		if(mbox!=0)
-            			mbox_new->size = mbox->size + 1;
-        		else  mbox_new->size =1 ;
-        		mbox_new->next = mbox;
-        		mbox = mbox_new;
-    	}else{free(m);}
-    
-    
-    	if (timeout()) break;
-    	else if (mbox!=0 )break;
-        //@ assert eq_val_list_pred(phase,round,mbox);
-    
-    	//@ close eq_val_list_pred(phase,round,mbox);
-	}
+        {
+            //@ assert eq_val_list_pred(phase,round,mbox);
+            //@open eq_val_list_pred(phase,round,mbox);
+            m = recv();
+            if (m->round == FOURTH_ROUND && m->phase == phase) {
+                mbox_new = (list*) malloc(sizeof(list));
+                if(mbox_new==0) abort();
+                mbox_new->message =m;
+                if(mbox!=0)
+                    mbox_new->size = mbox->size + 1;
+                else  mbox_new->size =1 ;
+                mbox_new->next = mbox;
+                mbox = mbox_new;
+            }else{free(m);}
+            
+            
+            if (timeout()) break;
+            else if (mbox!=0 )break;
+            //@ assert eq_val_list_pred(phase,round,mbox);
+            
+            //@ close eq_val_list_pred(phase,round,mbox);
+        }
         
-
-           	 	
+        
+        
         if (mbox!=0)
         {
-   	 	//@ assert eq_val_list_pred(phase,round,mbox);
-    		estimate = mbox->message->estimate;
-    		state = 1;
-    		out(myid,estimate);
-    		//@ close eq_val_list_pred(phase,round,mbox);
-    		//@ eq_val_list_pred_to_list_pred_lemma(mbox);
-    		
+            //@ assert eq_val_list_pred(phase,round,mbox);
+            estimate = mbox->message->estimate;
+            state = 1;
+            out(myid,estimate);
+            //@ close eq_val_list_pred(phase,round,mbox);
+            //@ eq_val_list_pred_to_list_pred_lemma(mbox);
+            
         }	
         
         //@ assert list_pred(mbox);
@@ -551,12 +550,12 @@ int main(int argc, char**argv) //@ : main
         if (mbox!= 0) { list_dispose(mbox); }
         mbox = NULL; 
         
-        old_phase = phase; 
+        //@  old_phase = phase;
         
-    	phase = phase + 1;
+        phase = phase + 1;
         round = AUX_ROUND;
     }
-return 1;
+    return 1;
 }
 
 //}
