@@ -31,7 +31,8 @@ typedef struct List {
 
 
 void out(int v1, int v2);
-
+//@ requires true;
+//@ ensures true;
 
 int in();
 //@ requires true;
@@ -287,15 +288,14 @@ int main(int argc, char **argv) //@ : main
                         		{
                         		mbox_new->size = mbox->size + 1;
                         		}
-                    		else
-                    		{
-                    		mbox_new->size =1 ;
+                    		else{
+                    		mbox_new->size =1 ;}
                     		mbox_new->next = mbox;
                             //@ close lseg(mbox,0, v);
                             mbox = mbox_new;
                             //@ close lseg(mbox,0, cons(m,v));
                             //@ close foreach(cons(m,v), eq_list(phase,round));
-                            }
+                            
                 }else free(m);
             
             	//@open lseg(mbox, 0, ?nnv);
@@ -375,15 +375,14 @@ int main(int argc, char **argv) //@ : main
                     			mbox_new->size = mbox->size + 1;
                     			}
                 		else
-                		{
-                		mbox_new->size =1 ;
+                		{mbox_new->size =1 ;}
                 		mbox_new->next = mbox; 
                 		//@ close lseg(mbox,0, v);
                             	mbox = mbox_new;
                             	//@ close lseg(mbox,0, cons(m,v));
                             	//@ close foreach(cons(m,v), eq_list(phase,round));
-                            	}
-			}else free(m);
+                            	
+			}else {free(m);}
 			
             		leader = leader(phase,n);
             		
@@ -478,14 +477,14 @@ int main(int argc, char **argv) //@ : main
                         }
                     else
                     {
-                    mbox_new->size =1 ;
+                    mbox_new->size =1 ;}
                     mbox_new->next = mbox;
 		   //@ close lseg(mbox,0, v);
                     mbox = mbox_new;
                     //@ close lseg(mbox,0, cons(m,v));
                     //@ close foreach(cons(m,v), eq_list(phase,round));
-                    }
-                }else free(m);
+                    
+                }else {free(m);}
 		//@open lseg(mbox, 0, ?nnv);
 		if (mbox!= NULL && mbox->size == n){
 			//@close lseg(mbox, 0, nnv);
