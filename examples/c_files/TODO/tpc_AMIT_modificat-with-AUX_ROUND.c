@@ -39,7 +39,8 @@ int in();
 //@ ensures true;
 
 int rand_bool();
-
+//@ requires true;
+//@ ensures true;
 
 msg *recv();
 //@ requires emp;
@@ -181,14 +182,13 @@ int main(int argc, char **argv) //@ : main
                     			mbox_new->size = mbox->size + 1;
                     			}
                 		else
-                		{
-                		mbox_new->size =1 ;
+                		{mbox_new->size =1 ;}
                 		mbox_new->next = mbox;
                 		//@ close lseg(mbox,0, v);
                 		mbox = mbox_new;
                         //@ close lseg(mbox,0, cons(m,v));
                 		//@ close foreach(cons(m,v), eq_list(phase,round));
-                		}
+                		
                 
             		}else free(m);
 
