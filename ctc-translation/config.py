@@ -93,7 +93,7 @@ msg_structure_fields_1 = dict(
 )
 
 # Modify with mailbox name
-mailbox_1 = "mbox"
+mailbox_1 = ["mbox", "m"]
 
 # Modify with clean mailbox function name
 clean_mailbox_1 = "list_dispose"

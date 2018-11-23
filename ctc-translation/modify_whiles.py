@@ -16,45 +16,28 @@ def remove_mbox_assign_to_zero(extern_while_body, mbox_name):
     """
     to_delete = []
     if extern_while_body.block_items:
-        for elem in extern_while_body.block_items:
-            # print elem.coord
-            if isinstance(elem, Assignment) and mbox_name == elem.lvalue.name:
-                # print type(elem)
-                if isinstance(elem.rvalue, ID):
-                    if elem.rvalue.name == "NULL":
-                        to_delete.append(elem)
-
-            if isinstance(elem, If):
-                remove_mbox_assign_to_zero(elem.iftrue, mbox_name)
-                if elem.iffalse:
-                    remove_mbox_assign_to_zero(elem.iffalse, mbox_name)
-            # print "aici e ok", elem.coord
-
-        for x in to_delete:
-            # print generator.visit(x)
-            extern_while_body.block_items.remove(x)
-
-
-def remove_mbox_free(extern_while_body, mbox_name):
-    """
-    The if which frees mbox is removed from the tree
-    :param extern_while_body:
-    :return:
-    """
-    to_delete = []
-    if extern_while_body.block_items:
-        for elem in extern_while_body.block_items:
-            if isinstance(elem, If):
-                for line in elem.iftrue:
-                    if isinstance(line, FuncCall) and line.name.name == "free":
-                        if line.args.exprs[0].name == mbox_name:
+        # print type(mbox_name)
+        for msg_name in mbox_name:
+            for elem in extern_while_body.block_items:
+                # print elem.coord
+                if isinstance(elem, Assignment) and msg_name == elem.lvalue.name:
+                    # print type(elem)
+                    if isinstance(elem.rvalue, ID):
+                        if elem.rvalue.name == "NULL":
                             to_delete.append(elem)
-                remove_mbox_free(elem.iftrue, mbox_name)
-                if elem.iffalse:
-                    remove_mbox_free(elem.iffalse, mbox_name)
 
-        for x in to_delete:
-            extern_while_body.block_items.remove(x)
+                if isinstance(elem, If):
+                    remove_mbox_assign_to_zero(elem.iftrue, mbox_name)
+                    if elem.iffalse:
+                        remove_mbox_assign_to_zero(elem.iffalse, mbox_name)
+                # print "aici e ok", elem.coord
+
+            for x in to_delete:
+                # print generator.visit(x)
+                if x in extern_while_body.block_items:
+                    extern_while_body.block_items.remove(x)
+
+
 
 
 def remove_list_dispose(extern_while_body, clean_mailbox_function):
@@ -64,6 +47,12 @@ def remove_list_dispose(extern_while_body, clean_mailbox_function):
             if isinstance(elem, FuncCall) and clean_mailbox_function in elem.name.name:
                 to_delete.append(elem)
             if isinstance(elem, FuncCall) and "dispose" in elem.name.name:
+                if elem not in to_delete:
+                    to_delete.append(elem)
+            if isinstance(elem, FuncCall) and "free" in elem.name.name:
+                if elem not in to_delete:
+                    to_delete.append(elem)
+            if isinstance(elem, FuncCall) and "timeout" in elem.name.name:
                 if elem not in to_delete:
                     to_delete.append(elem)
             if isinstance(elem, If):
@@ -103,7 +92,6 @@ def remove_mbox(extern_while_body, mbox_name, clean_mailbox_function):
     :return:
     """
     remove_mbox_assign_to_zero(extern_while_body, mbox_name)
-    remove_mbox_free(extern_while_body, mbox_name)
     remove_list_dispose(extern_while_body, clean_mailbox_function)
     remove_null_if(extern_while_body)
 

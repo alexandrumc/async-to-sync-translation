@@ -103,8 +103,8 @@ msg_structure_fields_2 = dict(
     round_field="bround"
 )
 # Modify with mailbox name
-mailbox_1 = "mbox"
-mailbox_2 = "mboxB"
+mailbox_1 = ["mbox", "m"]
+mailbox_2 = ["mboxB", "mB"]
 
 # Modify with clean mailbox function name
 clean_mailbox_1 = "list_dispose"
