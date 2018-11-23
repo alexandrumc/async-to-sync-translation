@@ -63,6 +63,9 @@ def remove_list_dispose(extern_while_body, clean_mailbox_function):
         for elem in extern_while_body.block_items:
             if isinstance(elem, FuncCall) and clean_mailbox_function in elem.name.name:
                 to_delete.append(elem)
+            if isinstance(elem, FuncCall) and "dispose" in elem.name.name:
+                if elem not in to_delete:
+                    to_delete.append(elem)
             if isinstance(elem, If):
                 remove_list_dispose(elem.iftrue, clean_mailbox_function)
                 if elem.iffalse:
@@ -78,7 +81,7 @@ def remove_null_if(extern_while_body):
             if isinstance(elem, If):
                 if isinstance(elem.iftrue, Compound):
                     if len(elem.iftrue.block_items) == 0:
-                        print generator.visit(elem), "aaaaaaa"
+                        # print generator.visit(elem), "aaaaaaa"
                         to_delete.append(elem)
                     else:
                         # print generator.visit(elem), "AAAAAAA"

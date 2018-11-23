@@ -677,12 +677,10 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         res_aux_copy = copy.copy(res_aux)
         res_aux_copy = res_aux_copy.replace(" ", "")
         if res_aux_copy != "":
+            res += res_aux
             if is_job:
-                res += res_aux
                 res += "}\n"
             print res
-
-
 
         print "  UPDATE():\n"
 
@@ -963,53 +961,105 @@ def identify_nested(ast_tree):
     list = []
     extern_while = get_extern_while_body(aux_ast)
     identify_nested_algorithms_bodies(extern_while, list)
+
+    labelname_inner = config.variables_2['round']
+    rounds_list_inner = config.rounds_list2
+    delete_round_phase_inner = config.delete_round_phase
+    message_inner = config.msg_structure_fields_2
+    variables_inner = config.variables_2
+
     if list:
         list.reverse()
-        # labels = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
         labels = config.rounds_list2
         labels.append('ERR_ROUND')
         code = None
-        # print len(list)
-        for elem in list:
-            # print generator.visit(elem), "AAAAAAAAAAA"
-            conditii = []
-            whiles_to_if(elem.stmt, conditii)
+        cop = duplicate_element(ast)
+        if len(list) >= config.number_of_nested_algorithms:
+            extern = get_extern_while_body(cop)
+            if isinstance(extern.block_items[0], If):
+                myif = extern.block_items[0]
+                list1 = []
+                list2 = []
+                aux1 = []
+                aux2 = []
+                identify_nested_algorithms_bodies(extern.block_items[0].iftrue, list1)
+                if list1:
+                    sys.stdout = old_stdout
 
-            identify_recv_exits(elem.stmt, conditii)
-            remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
-            # print generator.visit(elem)
-            trees_dict, trees_paths_dict, is_job = get_paths_trees(elem.stmt, labels, labels,
-                                                                   config.variables_2['round'])
-            # print_code(trees_dict, trees_paths_dict, labels)
+                    for elem in list1:
+                        conditii = []
+                        whiles_to_if(elem.stmt, conditii)
+                        identify_recv_exits(elem.stmt, conditii)
+                        remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
+                        aux1 = elem.stmt
+                identify_nested_algorithms_bodies(extern.block_items[0].iffalse, list2)
+                if list2:
+                    for elem in list2:
+                        conditii = []
+                        whiles_to_if(elem.stmt, conditii)
+                        identify_recv_exits(elem.stmt, conditii)
+                        remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
+                        aux2 = elem.stmt
+                if aux1 and aux2:
+                    myif.iftrue = None
+                    myif.iffalse = None
+                    myif.iftrue = aux1
+                    myif.iffalse = aux2
 
-            print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job)
-            parent = find_parent(ast, elem)
-            index = parent.block_items.index(elem)
-            parent.block_items.remove(elem)
+                    trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels,
+                                                                           config.variables_2['round'])
 
-            coord = elem.coord
+                    print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job,
+                                 delete_round_phase_inner,
+                                 message_inner, variables_inner)
 
-            new_id = ID("inner_algorithm",coord)
-            func = FuncCall(new_id, None,coord)
-            assign_unique_coord(func,coord)
-            parent.block_items.insert(index, func)
-            # print generator.visit(parent.block_items[index])
-            # print generator.visit(ast)
-            # print generator.visit(func)
+                    code = mystdout.getvalue()
 
-            funcdecl = FuncDecl(None, TypeDecl('inner_algorithm', None, IdentifierType(['int'])))
-            decl = Decl('inner_algorithm', None, None, None, funcdecl, None, None)
-            funcdef = FuncDef(decl, None, None)
-            code = mystdout.getvalue()
-            funcdef.body = Compound([code])
+                    return ast, code
 
-            # print generator.visit(ast)
+        else:
+            for elem in list:
+                # print generator.visit(elem), "AAAAAAAAAAA"
+                conditii = []
+                whiles_to_if(elem.stmt, conditii)
 
-        sys.stdout = old_stdout
-        return ast, code
+                identify_recv_exits(elem.stmt, conditii)
+                remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
+                # print generator.visit(elem)
+                trees_dict, trees_paths_dict, is_job = get_paths_trees(elem.stmt, labels, labels,
+                                                                       config.variables_2['round'])
+                # print_code(trees_dict, trees_paths_dict, labels)
+
+                print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job,
+                             delete_round_phase_inner,
+                             message_inner, variables_inner)
+                parent = find_parent(ast, elem)
+                index = parent.block_items.index(elem)
+                parent.block_items.remove(elem)
+
+                coord = elem.coord
+
+                new_id = ID("inner_algorithm", coord)
+                func = FuncCall(new_id, None, coord)
+                assign_unique_coord(func, coord)
+                parent.block_items.insert(index, func)
+                # print generator.visit(parent.block_items[index])
+                # print generator.visit(ast)
+                # print generator.visit(func)
+
+                funcdecl = FuncDecl(None, TypeDecl('inner_algorithm', None, IdentifierType(['int'])))
+                decl = Decl('inner_algorithm', None, None, None, funcdecl, None, None)
+                funcdef = FuncDef(decl, None, None)
+                code = mystdout.getvalue()
+                funcdef.body = Compound([code])
+
+                # print generator.visit(ast)
+
+            sys.stdout = old_stdout
+            return ast, code
     else:
         sys.stdout = old_stdout
-
+        print "pe else"
         return ast_tree
 
 
@@ -1041,10 +1091,11 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
     # print identify_epoch_jumps(ast, 'epoch')
     # print labels, labels_sorted
     # print generator.visit(ast)
+
     if config.number_of_nested_algorithms > 1:
 
         print "\n\nLaunched procedure for nested algorithms\n\n"
-        #outer algo rounds
+        # outer algo rounds
         labs = config.rounds_list_1
         labs.append('ERR_ROUND')
         cop, code = identify_nested(cop)
@@ -1057,8 +1108,7 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         # print generator.visit(cop)
         print "Outer Algo code \n"
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
-        print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)
-        # print_code(trees_dict, trees_paths_dict, labels_sorted)
+        # print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)
         # print generator.visit(ast)
     else:
         print "No inner algorithm detected\n"
@@ -1069,4 +1119,4 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
 
         # print generator.visit(cop)
-        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)
+        # print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)
