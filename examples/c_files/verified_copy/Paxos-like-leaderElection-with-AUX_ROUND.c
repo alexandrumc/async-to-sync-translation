@@ -46,7 +46,7 @@ int main(int argc, char **argv)
     round = AUX_ROUND;
     while(1)
     {
-        round = NEW_BALLOT_ROUND;
+        round = NewBallot_ROUND;
         if (pid == leader(ballot,n))
         {
             m = (msg *) malloc(sizeof(msg));
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
             abort();
             }
             m->ballot = ballot;
-            m->round = NEW_BALLOT_ROUND;
+            m->round = NewBallot_ROUND;
             send(m, to_all);
             dispose(m);
             m = NULL;
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         while(true)
         {
             m = recv();
-            if (m != NULL && m->ballot>=ballot && m->round == NEW_BALLOT_ROUND){
+            if (m != NULL && m->ballot>=ballot && m->round == NewBallot_ROUND){
                 mbox_new = (list*) malloc(sizeof(list));
                 if(mbox_new==0) {
                 abort();
@@ -89,13 +89,13 @@ int main(int argc, char **argv)
         }
          if(mbox!=NULL && mbox->size ==1 && mbox->next == NULL){
              ballot = mbox->message->ballot;
-            round = ACK_BALLOT_ROUND;
+            round = AckBallot_ROUND;
             m = (msg *) malloc(sizeof(msg));
             if (m==0) {
             abort();
             }
             m->ballot = ballot;
-            m->round = ACK_BALLOT_ROUND;
+            m->round = AckBallot_ROUND;
             send(m, to_all);
             dispose(m);
             m = NULL;

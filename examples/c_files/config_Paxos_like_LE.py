@@ -97,6 +97,10 @@ mailbox_1 = "mbox"
 # Modify with clean mailbox function name
 clean_mailbox_1 = "list_dispose"
 
+rounds_list = ['NewBallot_ROUND', 'AckBallot_ROUND', 'AUX_ROUND']
+
+delete_round_phase = False
+
 # Add as many fields as you need
 
 ######################################################################################################################
