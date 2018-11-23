@@ -496,7 +496,7 @@ def create_new_assign(old_cond, new_cond, coord):
     new_coord = Coord(coord.file, coord.line, coord.column)
     new_coord.line = coord_aux
     new_coord.column = coord_aux
-
+    # print type(new_cond), type(new_cond)
     assign = Assignment('=', ID(new_cond), ID(old_cond), new_coord)
     return assign
 
@@ -1030,7 +1030,7 @@ def identify_nested(ast_tree):
 
                     print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job,
                                  delete_round_phase_inner,
-                                 message_inner, variables_inner)
+                                 message_inner, variables_inner, rounds_list_inner[0])
 
                     code = mystdout.getvalue()
                     sys.stdout = old_stdout
