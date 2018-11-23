@@ -81,14 +81,14 @@ number_of_nested_algorithms = 1
 
 # Modify with phase and round variables names
 variables_1 = dict(
-    phase="epoch",
+    phase="ballot",
     round="round"
 )
 
 # Modify with phase and round fields names in the message structure
 msg_structure_fields_1 = dict(
     name="m",
-    phase_field="epoch",
+    phase_field="ballot",
     round_field="round"
 )
 
@@ -98,8 +98,11 @@ mailbox_1 = ["mbox", "m"]
 # Modify with clean mailbox function name
 clean_mailbox_1 = "list_dispose"
 
-rounds_list_1 = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND', 'AUX_ROUND']
+rounds_list_1 = ['NewBallot_ROUND', 'AckBallot_ROUND', 'AUX_ROUND']
+
 delete_round_phase = True
+
 # Add as many fields as you need
 
 ######################################################################################################################
+
