@@ -165,7 +165,9 @@ msg* max_timestamp(struct List* mbox)
     struct List *current = mbox;
     //@open (list_pred(mbox));
     msg *max = (msg*)malloc(sizeof(msg));
-    if (max ==0) abort();
+    if (max ==0) {
+        abort();
+    }
     max->estimate = mbox->message->estimate;
     max->phase =  mbox->message->phase;
     max->round =  mbox->message->round;
@@ -236,7 +238,9 @@ msg* recv()
 //@ ensures result->round |-> ?v1 &*& result->phase |-> ?v &*& result->estimate |-> _ &*& result->timestamp |-> _ &*& result->sender |-> _&*& result->ack |-> _ &*& malloc_block_Msg(result) &*& INT_MIN <v &*& v < INT_MAX;
 {
     msg* m = (msg *)malloc(sizeof(msg));
-    if(m == 0) abort();
+    if(m == 0) {
+        abort();
+    }
     //@ assume(m->phase > INT_MIN && m->phase < INT_MAX);
     return m;
 }
@@ -250,7 +254,7 @@ void out(int pid, int est);
 //@ requires true;
 //@ ensures true;
 
-bool timeout();
+int timeout();
 //@ requires emp;
 //@ ensures emp;
 
@@ -307,7 +311,9 @@ int main(int argc, char**argv) //@ : main
         
         m = NULL;
         m = (msg*)malloc(sizeof(msg));
-        if (m == 0) abort();
+        if (m == 0) {
+            abort();
+        }
         
         m->phase = phase;
         m->round = round;
@@ -334,13 +340,20 @@ int main(int argc, char**argv) //@ : main
                 m = recv();
                 if (m->round == 1 && m->phase == phase && m->round == round) {
                     mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) abort();
+                    if(mbox_new==0) {
+                        abort();
+                    }
                     mbox_new->message =m;
                     if(mbox!=0)
+                    {
                         mbox_new->size = mbox->size + 1;
-                    else  mbox_new->size =1 ;
-                    mbox_new->next = mbox;
-                    mbox = mbox_new;
+                    }
+                    else
+                    {
+                        mbox_new->size =1 ;
+                        mbox_new->next = mbox;
+                        mbox = mbox_new;
+                    }
                 }else{free(m);}
                 
                 if (timeout()) break;
@@ -371,14 +384,16 @@ int main(int argc, char**argv) //@ : main
         mbox = NULL;
         
         
-        //@ old_round = round;
+        //@  old_round = round;
         round = SECOND_ROUND;
         ////@ assert (old_round <=round);
         //@ assert ((old_phase+1==phase) || (old_phase==phase && old_round <=round));
         
         if (myid == leader) {
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {
+                abort();
+            }
             m->sender = myid;
             m->phase = phase;
             m->round = round;
@@ -396,12 +411,20 @@ int main(int argc, char**argv) //@ : main
             m = recv();
             if (m->phase == phase && m->round == SECOND_ROUND) {
                 mbox_new = (list*) malloc(sizeof(list));
-                if(mbox_new==0) abort();
+                if(mbox_new==0) {
+                    abort();
+                }
                 mbox_new->message =m;
-                if(mbox!=0){ mbox_new->size = mbox->size + 1;}
-                else { mbox_new->size =1 ;}
-                mbox_new->next = mbox;
-                mbox = mbox_new;
+                if(mbox!=0)
+                {
+                    mbox_new->size = mbox->size + 1;
+                }
+                else
+                {
+                    mbox_new->size =1 ;
+                    mbox_new->next = mbox;
+                    mbox = mbox_new;
+                }
             }else{free(m);}
             
             //@ assert eq_val_list_pred(phase,round,mbox);
@@ -430,7 +453,9 @@ int main(int argc, char**argv) //@ : main
         
         if (timestamp == phase) {
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {
+                abort();
+            }
             m->sender = myid;
             m->phase = phase;
             m->round = round;
@@ -452,13 +477,20 @@ int main(int argc, char**argv) //@ : main
                 m = recv();
                 if (m->phase == phase && m->round == round) {
                     mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) abort();
+                    if(mbox_new==0) {
+                        abort();
+                    }
                     mbox_new->message =m;
                     if(mbox!=0)
-                    { mbox_new->size = mbox->size + 1;}
-                    else  {mbox_new->size =1 ;}
-                    mbox_new->next = mbox;
-                    mbox = mbox_new;
+                    {
+                        mbox_new->size = mbox->size + 1;
+                    }
+                    else
+                    {
+                        mbox_new->size =1 ;
+                        mbox_new->next = mbox;
+                        mbox = mbox_new;
+                    }
                 }else{free(m);}
                 
                 
@@ -488,7 +520,9 @@ int main(int argc, char**argv) //@ : main
         
         if (myid == leader && ack == 1) {
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) abort();
+            if(m==0) {
+                abort();
+            }
             m->sender = myid;
             m->phase = phase;
             m->round = round;
@@ -514,13 +548,20 @@ int main(int argc, char**argv) //@ : main
             m = recv();
             if (m->round == FOURTH_ROUND && m->phase == phase) {
                 mbox_new = (list*) malloc(sizeof(list));
-                if(mbox_new==0) abort();
+                if(mbox_new==0) {
+                    abort();
+                }
                 mbox_new->message =m;
                 if(mbox!=0)
+                {
                     mbox_new->size = mbox->size + 1;
-                else  mbox_new->size =1 ;
-                mbox_new->next = mbox;
-                mbox = mbox_new;
+                }
+                else
+                {
+                    mbox_new->size =1 ;
+                    mbox_new->next = mbox;
+                    mbox = mbox_new;
+                }
             }else{free(m);}
             
             

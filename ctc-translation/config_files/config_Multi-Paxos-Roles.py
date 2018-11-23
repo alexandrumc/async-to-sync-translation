@@ -86,7 +86,7 @@ variables_1 = dict(
 )
 
 variables_2 = dict(
-    phase="epoch",
+    phase="i",
     round="bround"
 )
 
@@ -99,7 +99,7 @@ msg_structure_fields_1 = dict(
 
 msg_structure_fields_2 = dict(
     name="mB",
-    phase_field="epoch",
+    phase_field="i",
     round_field="bround"
 )
 # Modify with mailbox name
@@ -111,7 +111,7 @@ clean_mailbox_1 = "list_dispose"
 clean_mailbox_2 = 'list_dispose2'
 
 rounds_list_1 = ['NewEpoch', 'Ack_E', 'New_Leader', 'BCAST', 'AUX_ROUND']
-rounds_list2 = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
+rounds_list_2 = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND']
 
 delete_round_phase = False
 
