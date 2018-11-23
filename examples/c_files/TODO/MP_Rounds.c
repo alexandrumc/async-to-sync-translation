@@ -9,7 +9,7 @@
 #include<limits.h>
 //#include "Zab-Discovery_Synchronization_Broadcast2.h"
 
-enum round_typ_A {NewEpoch, Ack_E, New_Leader,Ack_LD, BCAST} ;
+enum round_typ_A {NewEpoch, Ack_E, New_Leader, BCAST} ;
 
 
 typedef struct Msg {
@@ -284,10 +284,10 @@ int main(int argc, char **argv)//@ : main
                         mbox_new->message =m;
                         if(mbox!=0) {mbox_new->size = mbox->size + 1; }
                         else { mbox_new->size =1 ; }
-                            mbox_new->next = mbox;
-                            //@ close mbox_tag_eq(epoch, round,mbox);
-                            mbox = mbox_new;
-                            //@ close mbox_tag_eq(epoch, round,mbox);
+                        mbox_new->next = mbox;
+                        //@ close mbox_tag_eq(epoch, round,mbox);
+                        mbox = mbox_new;
+                        //@ close mbox_tag_eq(epoch, round,mbox);
                     }
                     else {free(m);}
                     if (timeout()){break;}
@@ -379,10 +379,10 @@ int main(int argc, char **argv)//@ : main
                         if(mbox!=0)
                         {mbox_new->size = mbox->size + 1;}
                         else{mbox_new->size =1 ;}
-                            mbox_new->next = mbox;
-                            //@ close mbox_tag_eq(epoch, round,mbox);
-                            mbox = mbox_new;
-                            //@ close mbox_tag_eq(epoch, round,mbox);
+                        mbox_new->next = mbox;
+                        //@ close mbox_tag_eq(epoch, round,mbox);
+                        mbox = mbox_new;
+                        //@ close mbox_tag_eq(epoch, round,mbox);
                     } else {free(m); }
                     if (timeout()) {break;}
                     //@ open mbox_tag_eq(epoch, round,mbox);
@@ -410,29 +410,12 @@ int main(int argc, char **argv)//@ : main
                     mbox = NULL;
                     
                     //@ old_round = round;
-                    round = Ack_LD;
+                    round = BCAST;
                     //@ close tag_leq(old_epoch,old_round,epoch,round);
                     //@assert tag_leq(old_epoch,old_round,epoch,round);
                     //@ open tag_leq(old_epoch,old_round,epoch,round);
                     
                     
-                }//end update of fourth round follower
-                else {
-                    //@close mbox_tag_eq(epoch, round,mbox);
-                    //@ mbox_tag_eq_to_list_pred_lemma(mbox);
-                    list_dispose_mbox(mbox);
-                    mbox = NULL;
-                    //@ old_epoch = epoch;
-                    epoch++;
-                    //@ old_round = round;
-                    round = NewEpoch;
-                    //@ close tag_leq(old_epoch,old_round,epoch,round);
-                    //@assert tag_leq(old_epoch,old_round,epoch,round);
-                    //@ open tag_leq(old_epoch,old_round,epoch,round);
-                    
-                }//timeout from NewLeader go back to the loops begining into a new epoch
-                
-                if(round == Ack_LD){
                     
                     // BROADCAST
                     
@@ -485,7 +468,7 @@ int main(int argc, char **argv)//@ : main
                             mB->i = i;
                             mB->round = bround;
                             mB->epoch = epoch;
-                            mB->lab = Ack_LD;
+                            mB->lab = BCAST;
                             mB->sender = pid;
                             
                             
@@ -511,7 +494,7 @@ int main(int argc, char **argv)//@ : main
                             //@ invariant eq_val_list_predB(epoch, round,i,bround,mboxB);
                         {
                             mB = recv_msgb();
-                            if ( mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == Ack_LD) {
+                            if ( mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == BCAST) {
                                 
                                 mboxB_new = (listb*) malloc(sizeof(listb));
                                 if(mboxB_new==0) {abort();}
@@ -560,7 +543,7 @@ int main(int argc, char **argv)//@ : main
                             mB->i = i;
                             mB->round = bround;
                             mB->epoch = epoch;
-                            mB->lab = Ack_LD;
+                            mB->lab = BCAST;
                             mB->sender = pid;
                             
                             
@@ -579,7 +562,7 @@ int main(int argc, char **argv)//@ : main
                                 {
                                     mB = recv_msgb();
                                     
-                                    if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == Ack_LD) {
+                                    if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == BCAST) {
                                         mboxB_new = (listb*) malloc(sizeof(listb));
                                         if(mboxB_new==0) {abort();}
                                         mboxB_new->message = mB;
@@ -634,7 +617,7 @@ int main(int argc, char **argv)//@ : main
                                 mB->i = i;
                                 mB->round = bround;
                                 mB->epoch = epoch;
-                                mB->lab = Ack_LD;
+                                mB->lab = BCAST;
                                 mB->sender = pid;
                                 
                                 //@ assert (mB->lab == round && mB->epoch == epoch && mB->i == i && mB->round == bround);
@@ -647,7 +630,7 @@ int main(int argc, char **argv)//@ : main
                                 //@ invariant eq_val_list_predB(epoch, round,i,bround,mboxB);
                             {
                                 mB = recv_msgb();
-                                if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == Ack_LD) {
+                                if (mB!=NULL && mB->i == i && mB->epoch == epoch && mB->round == bround && mB->lab == BCAST) {
                                     
                                     mboxB_new = (listb*) malloc(sizeof(listb));
                                     if(mboxB_new==0) { abort();}
@@ -673,8 +656,8 @@ int main(int argc, char **argv)//@ : main
                                 //@ open ltype_pred(logi);
                                 if(logi != 0 && pid!= leader){
                                     logi->commit = 1;
-                                   // //@ close ltype_pred(logi);
-                                   // //@leak ltype_pred(logi);
+                                    // //@ close ltype_pred(logi);
+                                    // //@leak ltype_pred(logi);
                                     //cmt_number++;
                                     out(logi);
                                     lastIndex++;
@@ -736,7 +719,27 @@ int main(int argc, char **argv)//@ : main
                     //@assert tag_leq(old_epoch,old_round,epoch,round);
                     //@ open tag_leq(old_epoch,old_round,epoch,round);
                     
-                }//no Ack_LD; timeout in New_Leader; // ack_Ld Classic -> bcast
+                    
+                    
+                    
+                    
+                }//end update of fourth round follower
+                else {
+                    //@close mbox_tag_eq(epoch, round,mbox);
+                    //@ mbox_tag_eq_to_list_pred_lemma(mbox);
+                    list_dispose_mbox(mbox);
+                    mbox = NULL;
+                    //@ old_epoch = epoch;
+                    epoch++;
+                    //@ old_round = round;
+                    round = NewEpoch;
+                    //@ close tag_leq(old_epoch,old_round,epoch,round);
+                    //@assert tag_leq(old_epoch,old_round,epoch,round);
+                    //@ open tag_leq(old_epoch,old_round,epoch,round);
+                    
+                }//timeout from NewLeader go back to the loops begining into a new epoch
+                
+                
             }// no New_Leader; timeout in ACK_E;
             //}//
         }//no Ack_E; timeout in Newepoch;

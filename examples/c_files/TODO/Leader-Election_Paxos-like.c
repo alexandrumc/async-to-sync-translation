@@ -34,9 +34,6 @@ typedef struct List{
     int size;
 } list;
 
-
-
-
 /*@
  // Predicate describing a complete linked list
  predicate list_pred(struct List* n;) =
@@ -49,28 +46,11 @@ typedef struct List{
  @*/
 
 
-enum round_typ_B {FIRST_ROUND, SECOND_ROUND, THIRD_ROUND, AUX_ROUND} ;
-
-typedef struct MsgB {
-    int op;
-    int epoch; // phase1
-    int  lab; // round1
-    int i;  //phase2
-    int round; // round2
-    int sender;
-} msgb;
-
 typedef struct Ltype {
     int op;
     int commit;
 } ltype;
 
-
-typedef struct ListB{
-    msgb * message;
-    struct ListB * next;
-    int size;
-} listb;
 
 
 
@@ -214,21 +194,14 @@ int main(int argc, char **argv)//@ : main
                 }
                 mbox_new->message =m;
                 if(mbox!=0)
-                {
-                    mbox_new->size = mbox->size + 1;
-                }
+                {mbox_new->size = mbox->size + 1;}
                 else
-                {
-                    mbox_new->size =1 ;}
+                { mbox_new->size =1 ;}
                 mbox_new->next = mbox;
                 //@ close mbox_tag_geq(epoch, round,mbox);
                 mbox = mbox_new;
                 //@ close mbox_tag_geq(epoch, round,mbox);
-                
-                
-            } else {
-                free(m);
-            }
+            } else {free(m);}
             if (timeout()) {
                 break;
             }
@@ -410,35 +383,20 @@ int main(int argc, char **argv)//@ : main
                 while(true)
                     //@ invariant mbox_tag_eq(epoch, round,mbox);
                 {
-                    
                     m = recv();
                     if (m != NULL && m->epoch == epoch && m->round == New_Leader){
                         //@open mbox_tag_eq(epoch, round,mbox);
                         mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) {
-                            abort();
-                        }
+                        if(mbox_new==0) {abort();}
                         mbox_new->message =m;
-                        if(mbox!=0)
-                        {
-                            mbox_new->size = mbox->size + 1;
-                        }
-                        else
-                        {
-                            mbox_new->size =1 ;
-                            }
+                        if(mbox!=0){mbox_new->size = mbox->size + 1;}
+                        else{mbox_new->size =1 ;}
                             mbox_new->next = mbox;
                             //@ close mbox_tag_eq(epoch, round,mbox);
                             mbox = mbox_new;
                             //@ close mbox_tag_eq(epoch, round,mbox);
-                        
-                        
-                    } else {
-                        free(m);
-                    }
-                    if (timeout()) {
-                        break;
-                    }
+                    } else {free(m); }
+                    if (timeout()) {break;}
                     //@ open mbox_tag_eq(epoch, round,mbox);
                     if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
                         //@ close mbox_tag_eq(epoch, round,mbox);
@@ -473,6 +431,16 @@ int main(int argc, char **argv)//@ : main
                     //@assert tag_leq(old_epoch,old_round,epoch,round);
                     //@ open tag_leq(old_epoch,old_round,epoch,round);
                     
+                    // BROADCAST
+                    
+                    //@ old_epoch = epoch;
+                    epoch++;
+                    //@ old_round = round;
+                    round = NewEpoch;
+                    
+                    //@ close tag_leq(old_epoch,old_round,epoch,round);
+                    //@assert tag_leq(old_epoch,old_round,epoch,round);
+                    //@ open tag_leq(old_epoch,old_round,epoch,round);
                     
                 }//end update of fourth round follower
                 else {
@@ -490,20 +458,7 @@ int main(int argc, char **argv)//@ : main
                     
                 }//timeout from NewLeader go back to the loops begining into a new epoch
                 
-                if(round == Ack_LD){
-                    
-                    // BROADCAST
-                    
-                    //@ old_epoch = epoch;
-                    epoch++;
-                    //@ old_round = round;
-                    round = NewEpoch;
-                    
-                    //@ close tag_leq(old_epoch,old_round,epoch,round);
-                    //@assert tag_leq(old_epoch,old_round,epoch,round);
-                    //@ open tag_leq(old_epoch,old_round,epoch,round);
-                    
-                }//no Ack_LD; timeout in New_Leader; // ack_Ld Classic -> bcast
+                
             }// no New_Leader; timeout in ACK_E;
             //}//
         }//no Ack_E; timeout in Newepoch;
