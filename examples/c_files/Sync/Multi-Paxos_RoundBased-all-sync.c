@@ -3,10 +3,7 @@ Inner algo code:
 def round FIRST_ROUND:
   SEND():
 
-if(round == FIRST_ROUND)
-{
-  int leader = leader(epoch, n);
-  if ((pid == leader(epoch, n)))
+  if ((pid == leader))
   {
     mB = (msgb *) malloc(sizeof(msgb));
     if ((mB == 0))
@@ -15,9 +12,8 @@ if(round == FIRST_ROUND)
     }
     mB->i = i;
     mB->round = bround;
-    mB->epoch = epoch;
     mB->lab = Ack_LD;
-    mB->sender = leader;
+    mB->sender = pid;
     ltype *entry = list_get(log, lastIndex);
     if ((entry != NULL))
     {
@@ -25,17 +21,10 @@ if(round == FIRST_ROUND)
     }
     send_msgb(mB, to_all);
   }
-}
 
   UPDATE():
 
-if(round == FIRST_ROUND)
-{
-  if ((pid == leader(epoch, n)))
-  {
-    free(mB);
-    mB = NULL;
-  }
+
   old_0_mboxB = mboxB;
   if (((((mboxB != NULL) && (mboxB->size >= 1)) && (mboxB->message != NULL)) && (mboxB->message->sender == leader)))
   {
@@ -43,18 +32,15 @@ if(round == FIRST_ROUND)
     if ((logi != 0))
     {
       logi->op = mboxB->message->op;
-      logi->commit = false;
+      logi->commit = 0;
     }
     bround = SECOND_ROUND;
   }
-}
 
 
 def round SECOND_ROUND:
   SEND():
 
-if(round == SECOND_ROUND)
-{
   if (((((old_0_mboxB != NULL) && (old_0_mboxB->size >= 1)) && (old_0_mboxB->message != NULL)) && (old_0_mboxB->message->sender == leader)))
   {
     mB = (msgb *) malloc(sizeof(msgb));
@@ -64,22 +50,15 @@ if(round == SECOND_ROUND)
     }
     mB->i = i;
     mB->round = bround;
-    mB->epoch = epoch;
     mB->lab = Ack_LD;
     mB->sender = pid;
     send_msgb(mB, leader);
   }
-}
 
   UPDATE():
 
-if(round == SECOND_ROUND)
-{
   if (((((old_0_mboxB != NULL) && (old_0_mboxB->size >= 1)) && (old_0_mboxB->message != NULL)) && (old_0_mboxB->message->sender == leader)))
   {
-    free(mB);
-    mB = NULL;
-    listB_dispose_no_data(mboxB);
     if ((pid == leader))
     {
       if (((mboxB != NULL) && (mboxB->size > (n / 2))))
@@ -87,145 +66,114 @@ if(round == SECOND_ROUND)
         logi = list_get(log, i);
         if ((logi != 0))
         {
-          {
-            logi->commit = true;
-          }
+          logi->commit = 1;
         }
         out(logi);
       }
       else
       {
-        listB_dispose_no_data(mboxB);
         out();
       }
     }
-    listB_dispose_no_data(mboxB);
     bround = THIRD_ROUND;
   }
-}
 
 
 def round THIRD_ROUND:
   SEND():
 
-if(round == THIRD_ROUND)
-{
   if (((((old_0_mboxB != NULL) && (old_0_mboxB->size >= 1)) && (old_0_mboxB->message != NULL)) && (old_0_mboxB->message->sender == leader)))
   {
-    mB = (msgb *) malloc(sizeof(msgb));
-    if ((mB == 0))
+    if ((pid == leader))
     {
-      abort();
+      mB = (msgb *) malloc(sizeof(msgb));
+      if ((mB == 0))
+      {
+        abort();
+      }
+      mB->i = i;
+      mB->round = bround;
+      mB->lab = Ack_LD;
+      mB->sender = pid;
+      send_msgb(mB, to_all);
     }
-    mB->i = i;
-    mB->round = bround;
-    mB->epoch = epoch;
-    mB->lab = Ack_LD;
-    mB->sender = pid;
-    send_msgb(mB, to_all);
   }
-}
 
   UPDATE():
 
-if(round == THIRD_ROUND)
-{
   if (((((old_0_mboxB != NULL) && (old_0_mboxB->size >= 1)) && (old_0_mboxB->message != NULL)) && (old_0_mboxB->message->sender == leader)))
   {
-    free(mB);
-    mB = NULL;
+
     if (((mboxB != NULL) && (mboxB->size >= 1)))
     {
       logi = list_get(log, i);
       if (((logi != 0) && (pid != leader)))
       {
-        logi->commit = true;
+        logi->commit = 1;
         out(logi);
       }
-    }
-  }
-  if (((((old_0_mboxB != NULL) && (old_0_mboxB->size >= 1)) && (old_0_mboxB->message != NULL)) && (old_0_mboxB->message->sender == leader)))
-  {
-    free(mB);
-    mB = NULL;
-    if (((mboxB != NULL) && (mboxB->size >= 1)))
-    {
-      logi = list_get(log, i);
-      if (!((logi != 0) && (pid != leader)))
+      if ((pid == leader))
       {
-        if ((pid == leader))
-        {
-          lastIndex++;
-          ltype *newEntry = create_ltype(in(), false);
-          list_add(log, newEntry);
-        }
-        bround = FIRST_ROUND;
+        lastIndex++;
+        ltype *newEntry = create_ltype(in(), 0);
+        list_add(log, newEntry);
       }
+      bround = FIRST_ROUND;
     }
   }
-}
 
 
 
 End of inner algo code
 
 
-Outer Algo code 
+Outer Algo code
 
-def round CEpoch:
+def round NewEpoch:
   SEND():
 
-  if ((old_0_round == Ack_E))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
-    if ((pid == leader(epoch, n)) && !((old_1_mbox != NULL) && (old_1_mbox->size > (n / 2))))
-    {
-    }
-    old_1_round = round;
+
+    old_0_round = round;
     if ((round == New_Leader))
     {
-      if ((pid == leader(epoch, n)))
+      if ((pid == coord))
       {
         m = (msg *) malloc(sizeof(msg));
         if ((m == 0))
         {
           abort();
         }
-        m->epoch = epoch;
         m->round = New_Leader;
         m->history = log;
         m->history_lenght = lastIndex;
+        m->sender = pid;
         send(m, to_all);
       }
     }
   }
-  
-  old_0_round = round;
-  if ((round == Ack_E))
+  if ((pid == coord()))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
     {
       abort();
     }
-    m->epoch = epoch;
-    m->round = Ack_E;
-    m->history = log;
-    m->history_lenght = lastIndex;
-    send(m, leader(epoch, n));
+    m->round = NewEpoch;
+    m->sender = pid;
+    send(m, to_all);
   }
+  else
+
   UPDATE():
 
-  if ((old_0_round == Ack_E))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     if ((round == New_Leader))
     {
-      if ((pid == leader(epoch, n)))
-      {
-        free(m);
-        m = NULL;
-      }
-      reset_timeout();
-      old_0_mbox = mbox;
+
+      old_1_mbox = mbox;
       if ((((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
       {
         lastIndex = mbox->message->history_lenght;
@@ -234,119 +182,45 @@ def round CEpoch:
       }
     }
   }
-  if ((round == Ack_E))
+  if ((pid == coord()))
   {
-    free(m);
-    m = NULL;
-    if ((pid == leader(epoch, n)))
-    {
-      old_1_mbox = mbox;
-      if (((mbox != NULL) && (mbox->size > (n / 2))))
-      {
-        lastIndex = max_log_size(mbox);
-        log = longest_log(mbox, lastIndex);
-        round = New_Leader;
-      }
-    }
+    coord = pid;
   }
-  if ((round == Ack_E))
+  else
   {
-    free(m);
-    m = NULL;
-    if (!(pid == leader(epoch, n)))
-    {
-      round = New_Leader;
-    }
+    coord = -1;
   }
-  if ((old_0_round == Ack_E))
-  {
-    if ((round == New_Leader))
-    {
-      if ((pid == leader(epoch, n)))
-      {
-        free(m);
-        m = NULL;
-      }
-      reset_timeout();
-      old_0_mbox = mbox;
-      if (!(((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
-      {
-        epoch++;
-        round = NewEpoch;
-      }
-    }
-  }
-
-
-def round NewEpoch:
-  SEND():
-
-  if ((pid == leader(epoch, n)))
-  {
-    m = (msg *) malloc(sizeof(msg));
-    if ((m == 0))
-    {
-      abort();
-    }
-    m->epoch = epoch;
-    m->round = NewEpoch;
-    send(m, to_all);
-  }
-  UPDATE():
-
-  if ((pid == leader(epoch, n)))
-  {
-    free(m);
-    m = NULL;
-  }
-  reset_timeout();
-  old_2_mbox = mbox;
+  old_0_mbox = mbox;
   if ((((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
   {
-    epoch = mbox->message->epoch;
+    leader = mbox->message->sender;
     round = Ack_E;
-  }
-  if ((pid == leader(epoch, n)))
-  {
-    free(m);
-    m = NULL;
-  }
-  reset_timeout();
-  old_2_mbox = mbox;
-  if (!(((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
-  {
-    epoch++;
-    round = CEpoch;
   }
 
 
 def round Ack_E:
   SEND():
 
-  
-  old_0_round = round;
-  if ((round == Ack_E))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
     {
       abort();
     }
-    m->epoch = epoch;
     m->round = Ack_E;
     m->history = log;
     m->history_lenght = lastIndex;
-    send(m, leader(epoch, n));
+    send(m, leader);
   }
+
   UPDATE():
 
-  if ((round == Ack_E))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
-    free(m);
-    m = NULL;
-    if ((pid == leader(epoch, n)))
+    if ((pid == coord))
     {
-      old_1_mbox = mbox;
+      old_2_mbox = mbox;
       if (((mbox != NULL) && (mbox->size > (n / 2))))
       {
         lastIndex = max_log_size(mbox);
@@ -355,26 +229,21 @@ def round Ack_E:
       }
     }
   }
-  if ((round == Ack_E))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
-    free(m);
-    m = NULL;
-    if (!(pid == leader(epoch, n)))
+    if (!(pid == coord))
     {
       round = New_Leader;
     }
   }
-  if ((round == Ack_E))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
-    free(m);
-    m = NULL;
-    if ((pid == leader(epoch, n)))
+    if ((pid == coord))
     {
-      old_1_mbox = mbox;
+      old_2_mbox = mbox;
       if (!((mbox != NULL) && (mbox->size > (n / 2))))
       {
-        epoch++;
-        round = CEpoch;
+        round = NewEpoch;
       }
     }
   }
@@ -383,63 +252,36 @@ def round Ack_E:
 def round New_Leader:
   SEND():
 
-  if ((old_0_round == Ack_E))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
-    if ((pid == leader(epoch, n)) && ((old_1_mbox != NULL) && (old_1_mbox->size > (n / 2))))
-    {
-    }
-    old_1_round = round;
+
+    old_0_round = round;
     if ((round == New_Leader))
     {
-      if ((pid == leader(epoch, n)))
+      if ((pid == coord))
       {
         m = (msg *) malloc(sizeof(msg));
         if ((m == 0))
         {
           abort();
         }
-        m->epoch = epoch;
         m->round = New_Leader;
         m->history = log;
         m->history_lenght = lastIndex;
+        m->sender = pid;
         send(m, to_all);
       }
     }
   }
-  if ((old_0_round == Ack_E))
-  {
-    
-    old_1_round = round;
-    if ((round == New_Leader))
-    {
-      if ((pid == leader(epoch, n)))
-      {
-        m = (msg *) malloc(sizeof(msg));
-        if ((m == 0))
-        {
-          abort();
-        }
-        m->epoch = epoch;
-        m->round = New_Leader;
-        m->history = log;
-        m->history_lenght = lastIndex;
-        send(m, to_all);
-      }
-    }
-  }
+
   UPDATE():
 
-  if ((old_0_round == Ack_E))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     if ((round == New_Leader))
     {
-      if ((pid == leader(epoch, n)))
-      {
-        free(m);
-        m = NULL;
-      }
-      reset_timeout();
-      old_0_mbox = mbox;
+
+      old_1_mbox = mbox;
       if ((((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
       {
         lastIndex = mbox->message->history_lenght;
@@ -448,20 +290,14 @@ def round New_Leader:
       }
     }
   }
-  if ((old_0_round == Ack_E))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)))
   {
     if ((round == New_Leader))
     {
-      if ((pid == leader(epoch, n)))
-      {
-        free(m);
-        m = NULL;
-      }
-      reset_timeout();
-      old_0_mbox = mbox;
+
+      old_1_mbox = mbox;
       if (!(((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
       {
-        epoch++;
         round = NewEpoch;
       }
     }
@@ -473,9 +309,9 @@ def round Ack_LD:
 
   UPDATE():
 
-  if ((old_0_round == Ack_E) && (old_1_round == New_Leader))
+  if ((((old_0_mbox != NULL) && (old_0_mbox->size == 1)) && (old_0_mbox->next == NULL)) && (old_0_round == New_Leader))
   {
-    
+
     if ((round == Ack_LD))
     {
       listb *mboxB = NULL;
@@ -484,21 +320,23 @@ def round Ack_LD:
       int len = list_length(log);
       ltype *lastEntry = list_get(log, lastIndex);
       int i = lastIndex;
-      if (((lastEntry != NULL) && (lastEntry->commit == true)))
+      if (((lastEntry != NULL) && (lastEntry->commit == 1)))
       {
         i++;
         lastIndex++;
         ltype *newEntry;
-        newEntry = create_ltype(-1, false);
+        if ((pid == leader))
+        {
+          newEntry = create_ltype(in(), 0);
+        }
+        else
+        {
+          newEntry = create_ltype(-1, 0);
+        }
         list_add(log, newEntry);
       }
-      enum round_typ_B bround = FIRST_ROUND;
+      enum round_typ_B baFIRST_ROUND;
       inner_algorithm();
-      epoch++;
       round = NewEpoch;
     }
   }
-
-
-
-Process finished with exit code 0
