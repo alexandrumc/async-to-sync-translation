@@ -3,7 +3,10 @@ ATHOS - Aynchronous To HO Synchronizer
 ===============
 
 :Authors:
-
+    Andrei Damian,
+    Cezara Drăgoi,
+    Alexandru Militaru,
+    Josef Widder
 
 .. contents::
     :backlinks: none
@@ -59,105 +62,85 @@ Steps
 2. Install Python
 3. Download Verifast
 
+Or you can download the virtual machine (with the setup already made) from here.
 
 
 ------------------------------------------
 
-C code almost always ``#include``\s various header files from the standard C
-library, like ``stdio.h``. While (with some effort) **pycparser** can be made to
-parse the standard headers from any C compiler, it's much simpler to use the
-provided "fake" standard  includes in ``utils/fake_libc_include``. These are
-standard C header files that contain only the bare necessities to allow valid
-parsing of the files that use them. As a bonus, since they're minimal, it can
-significantly improve the performance of parsing large C files.
-
-The key point to understand here is that **pycparser** doesn't really care about
-the semantics of types. It only needs to know whether some token encountered in
-the source is a previously defined type. This is essential in order to be able
-to parse C correctly.
-
-See `this blog post
-<http://eli.thegreenplace.net/2015/on-parsing-c-type-declarations-and-fake-headers>`_
-for more details.
-
 Basic usage
------------
+----------
+First, you have to replace  the ``verifast_path`` variable from `here <https://github.com/alexandrumc/async-to-sync-translation/blob/0485622bd67d351e83d251aab56d8f006f18779f/run-translation#L22>`_ with the one on your file system.
 
-Take a look at the |examples|_ directory of the distribution for a few examples
-of using **pycparser**. These should be enough to get you started. Please note
-that most realistic C code samples would require running the C preprocessor
-before passing the code to **pycparser**; see the previous sections for more
-details.
+Use the script located in the root of the project: ``run-translation``.
+If you want to run the translation on all our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/TODO>`_) you should run the following command::
 
-.. |examples| replace:: ``examples``
-.. _examples: examples
+./run-translation -allExamples
 
+If you want to run the translation without Verifast(i.e., without checking that the protocol is communication-closed, according to the criteria specified in Section 5.) you should disable it by adding the following flag::
+
+./run-translation -allExamples -disableVerifast
 
 Advanced usage
 --------------
 
-The public interface of **pycparser** is well documented with comments in
-``pycparser/c_parser.py``. For a detailed overview of the various AST nodes
-created by the parser, see ``pycparser/_c_ast.cfg``.
+The tool can be also runned on a given input file. The command has the following format::
 
-There's also a `FAQ available here <https://github.com/eliben/pycparser/wiki/FAQ>`_.
-In any case, you can always drop me an `email <eliben@gmail.com>`_ for help.
+./run-translation [option] /path/to/file /path/to/config_file.py
+
+If you want to run the translation on one of our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/TODO>`_) you will find the associated configuration file `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/ctc-translation/config_files>`_.
+
+If you want to skip this verification phase, you should disable it by adding the flag::
+
+./run-translation -disableVerifast /path/to/file /path/to/config_file.py
+
+To run the tool on another protocol, you should write a configuration file for it first. An example of a configuration file and some instructions on how to write it can be found `here <https://github.com/alexandrumc/async-to-sync-translation/blob/master/ctc-translation/config.py>`_. 
+Your protocol has to respect the following format:
+    * Only C99-like syntactic constructions are allowed.
+    * All the code has to be placed inside a ``main()`` function.
+    * Directives and headers are not supported yet. As mentioned in the pycparser documentation, "the key point to understand here is that pycparser doesn't really care about the semantics of types. It only needs to know whether some token encountered in the source is a previously defined type. This is essential in order to be able to parse C correctly.".
+    * ``if`` and ``else`` tokens are always followed by curly braces. 
 
 
 Package contents
 ================
 
-Once you unzip the ``pycparser`` package, you'll 
-the following files and
-directories:
-
 README.rst:
   This README file.
 
-LICENSE:
-  The pycparser license
+run-translation:
+  Running script.
 
-setup.py:
-  Installation script
+examples/c_files:
+  A directory with some examples on which we runned **ATHOS**
 
-examples/:
-  A directory with some examples of using **pycparser**
+examples/config_files:
+  A directory with the configuration files for our examples.
+
+examples/sync:
+  A directory with the synchronous versions of our examples produced by **ATHOS**.
+
+ctc-translation/:
+  The **ATHOS** source code.
 
 pycparser/:
-  The **pycparser** module source code.
-
-tests/:
-  Unit tests.
-
-utils/fake_libc_include:
-  Minimal standard C library include files that should allow to parse any C code.
-
-utils/internal/:
-  Internal utilities for my own use. You probably don't need them.
+  The pycparser module source code.
 
 
 Contributors
 ============
 
-Some people have contributed to **pycparser** by opening issues on bugs they've
-found and/or submitting patches. The list of contributors is in the CONTRIBUTORS
-file in the source distribution. After **pycparser** moved to Github I stopped
-updating this list because Github does a much better job at tracking
-contributions.
+Andrei Damian - Politehnica University Bucharest
+
+Cezara Drăgoi - INRIA, ENS, CNRS, PSL
+
+Alexandru Militaru - Politehnica University Bucharest
+
+Josef Widder - TU Wien
+
+Special thanks go to the author of **pycparser**, Eli Bendersky. 
 
 
-CI Status
+Contact
 =========
 
-**pycparser** has automatic testing enabled through the convenient
-`Travis CI project <https://travis-ci.org>`_. Here is the latest build status:
-
-.. image:: https://travis-ci.org/eliben/pycparser.png?branch=master
-  :align: center
-  :target: https://travis-ci.org/eliben/pycparser
-
-AppVeyor also helps run tests on Windows:
-
-.. image:: https://ci.appveyor.com/api/projects/status/wrup68o5y8nuk1i9?svg=true
-  :align: center
-  :target: https://ci.appveyor.com/project/eliben/pycparser/
+For questions or any problems with the tool, you can `write us <cezara.dragoi@inria.fr>`_ to ask for help.
