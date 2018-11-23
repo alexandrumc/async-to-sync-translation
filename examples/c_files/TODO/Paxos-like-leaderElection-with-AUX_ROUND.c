@@ -265,7 +265,9 @@ int main(int argc, char **argv)//@ : main
                     mbox = mbox_new;
                 }
                 else {free(m);};
-                if (timeout()) break;
+                if (timeout()) {
+                    break;
+                }
                 if(mbox != NULL && mbox->size > n/2){break;}
                 
                 //@ close eq_val_list_pred(ballot,round,mbox);
