@@ -12,6 +12,26 @@
 
 enum round_typ {NewBallot_ROUND, AckBallot_ROUND, AUX_ROUND} ;
 
+
+
+typedef struct Msg {
+	int round;
+	int ballot;
+	int leader;
+} msg;
+
+typedef struct List{
+    msg * message;
+    struct List * next;
+    int size;
+} list;
+
+
+/*@
+ predicate msg_pred(struct Msg * msg) =
+ msg == 0? true : msg->round |-> _ &*& msg->ballot |-> _ &*& malloc_block_Msg(msg);
+ @*/
+
 struct arraylist;
 
 /*@
@@ -265,12 +285,13 @@ int main(int argc, char **argv)//@ : main
                 //@ assert mbox_tag_eq(ballot, round,mbox);
                 
 
-                if(mbox != NULL && mbox->size > n/2)
+                if(mbox != NULL && mbox->size > n/2){
                      if (all_same(mbox,leader)==1){
                  //@ assert mbox_tag_eq(ballot,round,mbox);
 
                    out(ballot, leader);
                     
+                }
                 }
                 //@ close mbox_tag_eq(ballot,round,mbox);
                 //@ mbox_tag_eq_to_list_pred_lemma(mbox);
@@ -443,11 +464,13 @@ int main(int argc, char **argv)//@ : main
                 //@ assert mbox_tag_eq(ballot, round,mbox);
                 
                 //@ open  mbox_tag_eq(ballot, round,mbox);
-                if(mbox != NULL && mbox->size > n/2)
+                if(mbox != NULL && mbox->size > n/2){
                     if (all_same(mbox,leader)==1){
                     //@ assert mbox_tag_eq(ballot,round,mbox);
                     // log[ballot] = leader;
                     out(ballot, leader);
+                }
+
                 }
                     //@ close mbox_tag_eq(ballot, round,mbox);
                     //@ mbox_tag_eq_to_list_pred_lemma(mbox);
