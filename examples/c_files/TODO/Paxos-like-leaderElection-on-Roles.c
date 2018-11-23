@@ -66,11 +66,6 @@ int all_same(list *mbox, int leader);
 //@ requires true;
 //@ ensures true;
 
-typedef struct Msg {
-    int round;
-    int ballot;
-    int leader;
-} msg;
 
 
 
