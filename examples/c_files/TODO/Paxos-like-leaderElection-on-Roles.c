@@ -7,8 +7,7 @@
 #include "stdlib.h"
 #include<stdio.h>
 #include<limits.h>
-//#include "Leader-election-Zab.h"
-//#include"Zab-Discovery_Synchronization_Broadcast2.h"
+
 
 enum round_typ {NewBallot_ROUND, AckBallot_ROUND, AUX_ROUND} ;
 
@@ -75,12 +74,6 @@ int all_same(list *mbox, int leader);
  
  predicate tag_strict_leq(int p1, int r1, int p2, int r2) = (p1+1 == p2) || (p1==p2 && r1<=r2) ;
  @*/
-
-typedef struct List{
-    msg * message;
-    struct List * next;
-    int size;
-} list;
 
 
 /*@
