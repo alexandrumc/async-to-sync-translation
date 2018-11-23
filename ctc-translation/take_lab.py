@@ -1033,6 +1033,7 @@ def identify_nested(ast_tree):
                                  message_inner, variables_inner)
 
                     code = mystdout.getvalue()
+                    sys.stdout = old_stdout
 
                     return ast, code
 

@@ -273,11 +273,12 @@ int main(int argc, char **argv)//@ : main
                 //@ close eq_val_list_pred(ballot,round,mbox);
             }
         
-            if (mbox != NULL && mbox->size > n/2) 
+            if (mbox != NULL && mbox->size > n/2){
             if (all_same(mbox,leader)==1){
                 //@ assert eq_val_list_pred(ballot,round,mbox);
                 // log[ballot] = leader;
                 out(ballot, leader);
+            }
             }
             //@ close eq_val_list_pred(ballot,round,mbox);
             //@ eq_val_list_pred_to_list_pred_lemma(mbox);

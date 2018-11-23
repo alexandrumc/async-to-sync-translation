@@ -1,8 +1,9 @@
 typedef struct Msg {
  int round;
  int ballot;
- int sender;
+ int leader;
 } msg;
+enum round_typ {NewBallot_ROUND, AckBallot_ROUND, AUX_ROUND} ;
 typedef struct List{
     msg * message;
     struct List * next;
@@ -11,6 +12,7 @@ typedef struct List{
 int timeout();
 int reset_timeout();
 void out(int v1, int v2);
+int all_same(list *mbox, int leader);
 void send(msg* message, int pid);
 msg* recv()
 {
@@ -27,18 +29,14 @@ void dispose(msg* c)
 void list_dispose(struct List *l);
 void list_dispose1(struct List *l);
 void dispose_list(list* c);
-int leader(int phase, int net_size)
-{
-    int res = phase % net_size;
-    return res;
-}
+int coord(int net_size);
 int main(int argc, char **argv)
 {
     int n = argc;
     int to_all = n+1;
     enum round_typ round;
     int ballot;
-    int pid;
+    int pid,leader;
     list *mbox = NULL;
     list* mbox_new = NULL;
     msg* m = NULL;
@@ -47,7 +45,7 @@ int main(int argc, char **argv)
     while(1)
     {
         round = NewBallot_ROUND;
-        if (pid == leader(ballot,n))
+        if (pid == coord(n))
         {
             m = (msg *) malloc(sizeof(msg));
             if(m==0) {
@@ -70,11 +68,8 @@ int main(int argc, char **argv)
                 abort();
                 }
                 mbox_new->message =m;
-                if(mbox!=0){
-                    mbox_new->size = mbox->size + 1;
-                    }
-                else { mbox_new->size =1 ;
-                 }
+                if(mbox!=0){mbox_new->size = mbox->size + 1;}
+                else { mbox_new->size =1 ;}
                 mbox_new->next = mbox;
                 mbox = mbox_new;
             }
@@ -89,13 +84,13 @@ int main(int argc, char **argv)
         }
          if(mbox!=NULL && mbox->size ==1 && mbox->next == NULL){
              ballot = mbox->message->ballot;
+             leader = mbox->message->leader;
             round = AckBallot_ROUND;
             m = (msg *) malloc(sizeof(msg));
-            if (m==0) {
-            abort();
-            }
+            if (m==0) {abort();}
             m->ballot = ballot;
             m->round = AckBallot_ROUND;
+            m->leader = leader;
             send(m, to_all);
             dispose(m);
             m = NULL;
@@ -104,39 +99,35 @@ int main(int argc, char **argv)
             mbox = NULL;
             while(true)
             {
-                 m = recv();
-                 if (m != NULL && m->ballot == ballot && m->round == round){
-                                mbox_new = (list*) malloc(sizeof(list));
-                                if(mbox_new==0) {
-                                abort();
-                                }
-                                mbox_new->message =m;
-                                if(mbox!=0)
-                                    {
-                                    mbox_new->size = mbox->size + 1;
-                                    }
-                                else
-                                {
-                                mbox_new->size =1 ;
-                                mbox_new->next = mbox;
-                                mbox = mbox_new;
-                                }
-                    }
-                    else free(m);
-                    if (timeout()) break;
-                    if(mbox != NULL && mbox->size > n/2){
-                                break;
-                    }
+                m = recv();
+                if (m != NULL && m->ballot == ballot && m->round == round){
+                    mbox_new = (list*) malloc(sizeof(list));
+                    if(mbox_new==0) {abort(); }
+                    mbox_new->message =m;
+                    if(mbox!=0) {mbox_new->size = mbox->size + 1;}
+                    else {mbox_new->size =1 ;}
+                    mbox_new->next = mbox;
+                    mbox = mbox_new;
+                }
+                else {free(m);};
+                if (timeout()) {
+                    break;
+                }
+                if(mbox != NULL && mbox->size > n/2){break;}
             }
             if (mbox != NULL && mbox->size > n/2){
-                printf("\n%d", ballot);
-                int leader = leader(ballot,n);
+
+            if (all_same(mbox,leader)==1){
                 out(ballot, leader);
+            }
             }
             if(mbox!=0) {
             list_dispose(mbox);
             }
-        }
+         }else{
+             list_dispose1(mbox);
+             mbox=NULL;
+         }
         ballot++;
         round = AUX_ROUND;
     }
