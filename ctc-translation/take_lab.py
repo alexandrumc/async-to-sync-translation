@@ -622,7 +622,7 @@ def print_code(trees_dict, trees_paths_dict, labels):
     print_code_from_trees_paths(trees_paths_dict, labels)
 
 
-def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables):
+def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, first_round):
     labels.reverse()
     # print labels[:len(labels) - 1]
     for label in labels[:len(labels) - 1]:
@@ -646,7 +646,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
 
         for tree in trees_dict[label]:
             # print TreeGenerator().visit(get_extern_while_body(tree))
-            gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables)
+            gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, first_round)
             result = gen.visit(get_extern_while_body(tree))
             result = os.linesep.join([s for s in result.splitlines() if s])
             if gen.send_reached:
@@ -662,7 +662,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
                 # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
-                gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, tuple_el[1])
+                gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, first_round, tuple_el[1])
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
                 result = os.linesep.join([s for s in result.splitlines() if s])
                 if gen.send_reached:
@@ -691,7 +691,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         history_of_strings = []
         for i, tree in enumerate(trees_dict[label]):
             # print TreeGenerator().visit(get_extern_while_body(tree))
-            gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables)
+            gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, first_round)
             if not found_send_list[i]:
                 gen.send_reached = True
             result = gen.visit(get_extern_while_body(tree))
@@ -704,7 +704,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
                 # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
-                gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, tuple_el[1])
+                gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, first_round, tuple_el[1])
                 if not found_send_list[i]:
                     gen.send_reached = True
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
@@ -1128,7 +1128,7 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         # print generator.visit(cop)
         print "Outer Algo code \n"
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
-        print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)
+        print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, rounds_list[0])
         # print generator.visit(ast)
     else:
         print "No inner algorithm detected\n"
@@ -1139,4 +1139,4 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
 
         # print generator.visit(cop)
-        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, rounds_list[0])

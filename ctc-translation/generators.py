@@ -491,7 +491,7 @@ class RoundGenerator(c_generator.CGenerator):
     The last case needs more complex computation.
     """
 
-    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, path=None):
+    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, first_round, path=None):
         c_generator.CGenerator.__init__(self)
         # a string that indicates send or update mode; "send" for send and "update" for update
         self.mode = mode
@@ -516,6 +516,7 @@ class RoundGenerator(c_generator.CGenerator):
         self.delete = delete_round_phase
         self.message = message
         self.variables = variables
+        self.first_round = first_round
 
     def visit_Break(self, n):
         return 'out();'
@@ -782,7 +783,7 @@ class RoundGenerator(c_generator.CGenerator):
                     if self.mode == "update" and self.send_reached:
                         if n.lvalue.name == self.labelname and isinstance(n.rvalue, ID) \
                                 and n.rvalue.name == "AUX_ROUND":
-                            n.rvalue.name = "FIRST_ROUND"
+                            n.rvalue.name = self.first_round
 
                     if self.delete:
                         if isinstance(n.rvalue, ID):
@@ -813,7 +814,7 @@ class RoundGenerator(c_generator.CGenerator):
                 if self.mode == "update" and self.send_reached:
                     if n.lvalue.name == self.labelname and isinstance(n.rvalue, ID) \
                             and n.rvalue.name == "AUX_ROUND":
-                        n.rvalue.name = "FIRST_ROUND"
+                        n.rvalue.name = self.first_round
 
                 if self.delete:
                     if isinstance(n.rvalue, ID):
@@ -1481,6 +1482,17 @@ class RoundGenerator(c_generator.CGenerator):
                             elif self.send_reached:
                                 s += aux_s
                         else:
+                            if index < len(n.block_items) - 1:
+                                if isinstance(stmt, Assignment):
+                                    if isinstance(stmt.lvalue, ID) and "old" in stmt.lvalue.name:
+                                        if isinstance(n.block_items[index + 1], If):
+                                            aux = self._generate_stmt(n.block_items[index+1])
+                                            aux = aux.replace(" ","")
+                                            aux = aux.replace("\n","")
+                                            if aux == "":
+                                                continue
+
+
                             if isinstance(stmt, Assignment):
                                 if isinstance(stmt.rvalue, ID) and stmt.rvalue.name == self.current_round:
                                     continue
