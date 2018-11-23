@@ -1,5 +1,5 @@
 enum round_typ_A {
-    CEpoch, NewEpoch, Ack_E, New_Leader, BCAST
+    CEpoch, NewEpoch, Ack_E, New_Leader, Ack_LD, BCAST
 };
 typedef struct Msg {
     int round;
@@ -56,10 +56,10 @@ int main(int argc, char **argv)
     int lastIndex = list_length(log);
     enum round_typ_A round;
     int epoch;
-    int pid;
+    int pid, leader;
     epoch = 0;
     round = NewEpoch;
-    int commit = false;
+    int commit = 0;
     int i;
     enum round_typ_B bround;
     list *mbox = NULL;
@@ -82,11 +82,7 @@ int main(int argc, char **argv)
             send(m, to_all);
             free(m);
             m = NULL;
-            
-            
-            
             round = Ack_E;
-            list_dispose_mbox(mbox);
             mbox = NULL;
             while(true)
             {
@@ -107,7 +103,6 @@ int main(int argc, char **argv)
                     }
                     mbox_new->next = mbox;
                     mbox = mbox_new;
-                    
                 }
                 else {
                     free(m);
@@ -123,8 +118,6 @@ int main(int argc, char **argv)
                 lastIndex = max_log_size(mbox);
                 log = longest_log(mbox, lastIndex);
                 round = New_Leader;
-                
-                
                 m = (msg *) malloc(sizeof(msg));
                 if(m==0) {
                     abort();
@@ -136,6 +129,7 @@ int main(int argc, char **argv)
                 send(m, to_all);
                 free(m);
                 m = NULL;
+                round = BCAST;
                 int len = list_length(log);
                 ltype * lastEntry = list_get(log,lastIndex);
                 i = lastIndex;
@@ -151,7 +145,6 @@ int main(int argc, char **argv)
                 {
                     bround = FIRST_ROUND;
                     mboxB = NULL;
-                    int leader = leader(epoch,n);
                     mB = (msgb *) malloc(sizeof(msgb));
                     if(mB==0) {
                         abort();
@@ -201,23 +194,18 @@ int main(int argc, char **argv)
                             }
                             mboxB_new->next = mboxB;
                             mboxB = mboxB_new;
-                            
                         }else {
                             free(mB);
                         }
                         if (timeout())
-                            {
                             break;
-                            }
                         if (mboxB != NULL && mboxB->size > n/2)
-                            {
                             break;
-                            }
                     }
                     if (mboxB != NULL && mboxB->size > n/2) {
                         ltype *logi = list_get(log,i);
                         if(logi != 0) {
-                            logi->commit = true;
+                            logi->commit = 1;
                         }
                         out_external(logi);
                     }
@@ -257,9 +245,7 @@ int main(int argc, char **argv)
                 mbox = NULL;
                 epoch++;
                 round = NewEpoch;
-                
             }
-            
         }
         else{
             round = NewEpoch;
@@ -281,17 +267,13 @@ int main(int argc, char **argv)
                     else
                     {
                         mbox_new->size =1 ;
-                        
                     }
                     mbox_new->next = mbox;
                     mbox = mbox_new;
-                    
                 } else {
                     free(m);
                 }
-                if (timeout()) {
-                break;
-                }
+                if (timeout()) break;
                 if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
                     break;
                 }
@@ -300,7 +282,6 @@ int main(int argc, char **argv)
                 epoch = mbox->message->epoch;
                 leader = mbox->message->sender;
                 round = Ack_E;
-                
                 m = (msg *) malloc(sizeof(msg));
                 if(m==0) {
                     abort();
@@ -309,7 +290,7 @@ int main(int argc, char **argv)
                 m->round = Ack_E;
                 m->history = log;
                 m->history_lenght = lastIndex;
-                send(m, leader(epoch,n));
+                send(m, leader);
                 free(m);
                 m = NULL;
                 round = New_Leader;
@@ -332,15 +313,13 @@ int main(int argc, char **argv)
                         else
                         {
                             mbox_new->size =1 ;
+                            }
                             mbox_new->next = mbox;
                             mbox = mbox_new;
-                        }
                     } else {
                         free(m);
                     }
-                    if (timeout()) {
-                    break;
-                    }
+                    if (timeout()) break;
                     if(mbox != NULL && mbox->size ==1 && mbox->next==NULL){
                         break;
                     }
@@ -348,18 +327,16 @@ int main(int argc, char **argv)
                 if(mbox != NULL && mbox->size ==1&& mbox->next==NULL){
                     lastIndex = mbox->message->history_lenght;
                     log = longest_log(mbox,lastIndex);
-                    round = BCAST;
-                    
                     list_dispose_mbox(mbox);
                     mbox = NULL;
-                    
+                    round = BCAST;
                     i = lastIndex;
                     ltype * lastEntry = list_get(log,lastIndex);
-                    if (lastEntry!= NULL && lastEntry->commit == true) {
+                    if (lastEntry!= NULL && lastEntry->commit == 1) {
                         i++;
                         lastIndex++;
                         ltype * newEntry;
-                        newEntry = create_ltype(-1,false);
+                        newEntry = create_ltype(-1,0);
                         list_add(log,newEntry);
                     }
                     bround = FIRST_ROUND;
@@ -367,7 +344,6 @@ int main(int argc, char **argv)
                     {
                         bround = FIRST_ROUND;
                         mboxB = NULL;
-                        int leader = leader(epoch,n);
                         while (true)
                         {
                             mB = recv_msgb();
@@ -383,10 +359,9 @@ int main(int argc, char **argv)
                                 }
                                 else
                                 {
-                                    mboxB_new->size =1 ;
+                                    mboxB_new->size =1 ;}
                                     mboxB_new->next = mboxB;
                                     mboxB = mboxB_new;
-                                }
                             }else {
                                 free(mB);
                             }
@@ -395,15 +370,13 @@ int main(int argc, char **argv)
                                 break;
                             }
                             if (timeout())
-                                {
                                 break;
-                                }
                         }
                         if (mboxB!= NULL && mboxB->size >= 1 && mboxB->message!=NULL && mboxB->message->sender == leader){
                             ltype *logi = list_get(log,i);
                             if(logi != 0){
                                 logi->op = mboxB->message->op;
-                                logi->commit = false;
+                                logi->commit = 0;
                             }
                         } else {
                             listB_dispose_no_data(mboxB);
@@ -441,10 +414,9 @@ int main(int argc, char **argv)
                                 }
                                 else
                                 {
-                                    mboxB_new->size =1 ;
+                                    mboxB_new->size =1 ;}
                                     mboxB_new->next = mboxB;
                                     mboxB = mboxB_new;
-                                }
                             }else {
                                 free(mB);
                             }
@@ -453,19 +425,19 @@ int main(int argc, char **argv)
                                 break;
                             }
                             if (timeout())
-                                {
                                 break;
-                                }
                         }
                         if (mboxB != NULL && mboxB->size >= 1) {
                             ltype *logi = list_get(log,i);
                             if(logi != 0){
-                                logi->commit = true;
+                                logi->commit = 1;
                                 out(logi);
                                 lastIndex++;
-                                ltype * newEntry = create_ltype(-1,false);
+                                ltype * newEntry = create_ltype(-1,0);
                                 list_add(log,newEntry);
                             }
+                            listB_dispose_no_data(mboxB);
+                            mboxB = NULL;
                         }else{
                             listB_dispose_no_data(mboxB);
                             mboxB = NULL;
@@ -473,24 +445,32 @@ int main(int argc, char **argv)
                         }
                         bround = FIRST_ROUND;
                         i++;
-                        listB_dispose_no_data(mboxB);
-                        mboxB = NULL;
                     }
-                }else{
+                    epoch++;
+                    round = NewEpoch;
+                }
+                else {
                     list_dispose_mbox(mbox);
                     mbox = NULL;
                     epoch++;
                     round = NewEpoch;
                 }
-            }else {
+            }
+            else {
                 list_dispose_mbox(mbox);
                 mbox = NULL;
                 epoch++;
                 round = NewEpoch;
             }
         }
-        
     }
     return 1;
 }
-
+void list_dispose_mbox(struct List *l);
+void send_msgb(msgb* message, int pid);
+msgb* recv_msgb();
+void listB_dispose_no_data(struct ListB *l);
+void out(ltype *v);
+void out_external(ltype *v);
+int in();
+ltype * create_ltype(int op, int b);

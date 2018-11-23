@@ -992,6 +992,16 @@ def identify_nested(ast_tree):
                         identify_recv_exits(elem.stmt, conditii)
                         remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
                         aux1 = elem.stmt
+
+                        parent = find_parent(ast, elem)
+                        index = parent.block_items.index(elem)
+                        parent.block_items.remove(elem)
+                        coord = elem.coord
+                        new_id = ID("inner_algorithm", coord)
+                        func = FuncCall(new_id, None, coord)
+                        assign_unique_coord(func, coord)
+                        parent.block_items.insert(index, func)
+
                 identify_nested_algorithms_bodies(extern.block_items[0].iffalse, list2)
                 if list2:
                     for elem in list2:
@@ -1000,6 +1010,15 @@ def identify_nested(ast_tree):
                         identify_recv_exits(elem.stmt, conditii)
                         remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
                         aux2 = elem.stmt
+
+                        parent = find_parent(ast, elem)
+                        index = parent.block_items.index(elem)
+                        parent.block_items.remove(elem)
+                        coord = elem.coord
+                        new_id = ID("inner_algorithm", coord)
+                        func = FuncCall(new_id, None, coord)
+                        assign_unique_coord(func, coord)
+                        parent.block_items.insert(index, func)
                 if aux1 and aux2:
                     myif.iftrue = None
                     myif.iffalse = None
@@ -1108,7 +1127,7 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         # print generator.visit(cop)
         print "Outer Algo code \n"
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
-        # print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)
+        print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables)
         # print generator.visit(ast)
     else:
         print "No inner algorithm detected\n"
