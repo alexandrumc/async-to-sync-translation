@@ -906,7 +906,7 @@ class RoundGenerator(c_generator.CGenerator):
                 # print
                 # print "aici{0}gata".format(aux)
                 # print
-                print s_aux
+                # print s_aux
                 if aux == "{\n}\n":
                     return ""
                 s += s_aux
@@ -916,7 +916,7 @@ class RoundGenerator(c_generator.CGenerator):
                     s_aux = self._generate_stmt(n.iffalse, add_indent=True)
                     aux = copy.copy(s_aux)
                     aux = aux.replace(" ", "")
-                    print s_aux
+                    # print s_aux
                     # print
                     # print "aici{0}gata".format(aux)
                     # print
@@ -999,7 +999,7 @@ class RoundGenerator(c_generator.CGenerator):
                     # print
                     # print "aici{0}gata".format(aux)
                     # print
-                    print s_aux
+                    # print s_aux
                     if aux == "{\n}\n":
                         return ""
                     s += s_aux
@@ -1009,7 +1009,7 @@ class RoundGenerator(c_generator.CGenerator):
                         aux = copy.copy(s_aux)
                         aux = aux.replace(" ", "")
                         # print "aici{0}gata".format(aux)
-                        print s_aux
+                        # print s_aux
                         if aux == "{\n}\n":
                             return ""
                         s += s_aux
@@ -1095,7 +1095,7 @@ class RoundGenerator(c_generator.CGenerator):
                     # print
                     # print "aici{0}gata".format(aux)
                     # print
-                    print s_aux
+                    # print s_aux
                     if aux == "{\n}\n":
                         return ""
                     s += s_aux
@@ -1106,7 +1106,7 @@ class RoundGenerator(c_generator.CGenerator):
                     s_aux = self._generate_stmt(n.iffalse, add_indent=True)
                     aux = copy.copy(s_aux)
                     aux = aux.replace(" ", "")
-                    print s_aux
+                    # print s_aux
                     # print
                     # print "aici{0}gata".format(aux)
                     # print
@@ -1190,7 +1190,7 @@ class RoundGenerator(c_generator.CGenerator):
                 aux = aux.replace(" ", "")
                 # print
                 # print "aici{0}gata".format(aux)
-                print s_aux
+                # print s_aux
                 if aux == "{\n}\n":
                     return ""
                 s += s_aux
@@ -1281,7 +1281,7 @@ class RoundGenerator(c_generator.CGenerator):
                     # print
                     # print "aici{0}gata".format(aux)
                     # print
-                    print s_aux
+                    # print s_aux
                     if aux == "{\n}\n":
                         return ""
                     s += s_aux
@@ -1296,7 +1296,7 @@ class RoundGenerator(c_generator.CGenerator):
                         # print
                         # print "aici{0}gata".format(aux)
                         # print
-                        print s_aux
+                        # print s_aux
                         if aux == "{\n}\n":
                             return ""
                         s += s_aux
@@ -1389,7 +1389,7 @@ class RoundGenerator(c_generator.CGenerator):
                     # print
                     # print "aici{0}gata".format(aux)
                     # print
-                    print s_aux
+                    # print s_aux
                     if aux == "{\n}\n":
                         return ""
                     s += s_aux
@@ -1406,7 +1406,7 @@ class RoundGenerator(c_generator.CGenerator):
                     # print
                     # print "aici{0}gata".format(aux)
                     # print
-                    print s_aux
+                    # print s_aux
                     if aux == "{\n}\n":
                         return ""
                     s += s_aux
