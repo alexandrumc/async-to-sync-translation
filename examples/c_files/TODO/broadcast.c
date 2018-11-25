@@ -163,10 +163,8 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
     struct List *mbox_new;
     msg *m =NULL;
     
-    round = FIRST_ROUND;
-    
-    
-    
+    round = AUX_ROUND;
+
     ltype * lastEntry = list_get(log,lastIndex);
     
     //@ foreach_remove(lastEntry, log_data);
@@ -193,20 +191,16 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
         //@ foreach_unremove(lastEntry, log_data);
     }
     
-    
-    
-    
-    
-    
+
     while (true)
-    /*@ invariant (old_phase + 1 == i && round == FIRST_ROUND ) &*&
+    /*@ invariant (old_phase + 1 == i && round == AUX_ROUND) &*&
      arraylist(log, ?newlog_data) &*&  i==lastIndex &*&
      0<= lastIndex &*& lastIndex == length(newlog_data)-1 &*&
      foreach(newlog_data, alloc_ctor());
      @*/
         
     {
-        //@ assert (old_phase + 1 == i && round == AUX_ROUND );
+        //@ assert (old_phase + 1 == i && round == AUX_ROUND);
         
         round = FIRST_ROUND;
         //@ old_round = round;
