@@ -1,5 +1,5 @@
 //
-//  broadcast-roles-with-AUX_ROUND.c
+//  broadcast-roles.c
 //  
 //
 //  Created by C on 14/11/2018.
@@ -273,8 +273,6 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
             }
             else {
                 //@ old_round = round;
-                //round = AUX_ROUND;
-                //round = FIRST_ROUND;
                 //@close lseg(mbox, 0, mnv);
                 // close foreach(mnv,eq_list(i,round));
                 //@ lemma_EQ_list_to_alloc_list(mbox,i, old_round);
@@ -320,7 +318,6 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
             //@ foreach_append(newlog_data, cons(newEntry,nil));
             
             //@ old_round = round;
-            //round = AUX_ROUND;
             round = FIRST_ROUND;
             //@old_phase = i;
             i++;
@@ -558,14 +555,10 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     //@ lemma_EQ_list_to_alloc_list(mbox, i, round);
                     list_dispose(mbox);
                     mbox = NULL;
-                    
                     //@ old_phase = i;
                     i++;
-                    
                     //@ old_round = round;
                     round = FIRST_ROUND;
-                   // round = AUX_ROUND;
-                    //round = FIRST_ROUND;
                     //@ close tag_strict_leq(old_phase,old_round, i,round);
                     //@ assert tag_strict_leq(old_phase,old_round, i,round);
                     //@ open tag_strict_leq(old_phase,old_round,i,round);
@@ -576,9 +569,6 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     list_dispose(mbox);
                     mbox = NULL;
                     break;
-                    //round = AUX_ROUND;
-                    
-                    
                 }
             }else
             {
@@ -587,11 +577,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 //@ lemma_EQ_list_to_alloc_list(mbox,i, round);
                 list_dispose(mbox);
                 mbox = NULL;
-               
-                
-                 break;
-                //round = AUX_ROUND;
-                
+                break;
             }
         }
         
