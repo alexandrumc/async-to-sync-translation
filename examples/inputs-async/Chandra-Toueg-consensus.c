@@ -421,8 +421,12 @@ int main(int argc, char**argv) //@ : main
             }else{
                 if (mbox!=0 && mbox->size >= (n + 1) / 2) {
                     //@ assert eq_val_list_pred( phase, round,mbox);
-                    if(all_ack(mbox)) ack =1;
-                    else ack = -1;
+                    if(all_ack(mbox)) {
+                        ack =1;
+                    }
+                    else {
+                        ack = -1;
+                    }
                 }
             }
         }
@@ -512,7 +516,6 @@ int main(int argc, char**argv) //@ : main
         mbox = NULL;
         break;
         
-    }else {//@ leak eq_max_val_list_pred(mbox);
     }
     
     
