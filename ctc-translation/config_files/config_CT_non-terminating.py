@@ -99,6 +99,8 @@ clean_mailbox_1 = "list_dispose"
 
 rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND', 'AUX_ROUND']
 
+delete_round_phase = True
+
 # Add as many fields as you need
 
 ######################################################################################################################
