@@ -647,9 +647,10 @@ int main(int argc, char **argv)//@ : main
                     
                     
                     lastIndex = mbox->message->history_lenght;
+                     log = mbox->message->history;
                      //@close mbox_tag_eq(epoch, round,mbox);
                     //@ mbox_tag_eq_to_list_pred_lemma(mbox);
-                    log = longest_log(mbox,lastIndex);
+                   
                     
                     list_dispose_mbox(mbox);
                     mbox = NULL;

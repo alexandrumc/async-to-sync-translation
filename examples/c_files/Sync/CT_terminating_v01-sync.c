@@ -41,10 +41,6 @@ if(round == FIRST_ROUND)
     }
   }
 
-
-
-
-
   if ((myid == leader))
   {
     old_0_mbox = mbox;

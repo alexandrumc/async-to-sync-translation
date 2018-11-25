@@ -194,7 +194,7 @@ int main(int argc, char**argv) //@ : main
         
         //@ open mbox_CT_mbox(mbox, phase, round);
         
-        if(mbox!=0 && mbox->message!=NULL){
+        if(mbox!=0 && mbox->message!=NULL && mbox->message->round == FOURTH_ROUND){
             if (mbox->message->round == FOURTH_ROUND){
                 //@old_round = round;
                 round = FOURTH_ROUND;
@@ -317,14 +317,14 @@ int main(int argc, char**argv) //@ : main
             
             break;
         } else{
-        if (mbox!=0) {
             //@ assert eq_val_list_pred( phase, round,mbox);
             estimate = mbox->message->estimate;
             timestamp = phase;
             ack = 1;
-        }else {ack = -1;}
         }
     }
+    else {ack = -1;}
+
     
     //@ close mbox_CT_mbox(mbox, phase, round);
     //@ leak mbox_CT_mbox(mbox, phase, round);
