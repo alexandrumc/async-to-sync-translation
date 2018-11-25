@@ -213,6 +213,7 @@ int main(int argc, char**argv) //@ : main
                 mbox = NULL;
                 
                 break;
+                round = AUX_ROUND;
             }else{
                 if (mbox!=0 && mbox->size >= (n + 1) / 2) {
                     //@ assert eq_val_list_pred( phase, round,mbox);
@@ -389,6 +390,7 @@ int main(int argc, char**argv) //@ : main
             if(mbox!=NULL && mbox->size >= (n + 1) / 2) {
                 //@ close eq_val_list_pred(phase,round,mbox);
                 break;
+                round = AUX_ROUND;
             }
         }
         //@ close mbox_CT_mbox(mbox, phase, round);
@@ -418,6 +420,7 @@ int main(int argc, char**argv) //@ : main
                 //list_dispose(mbox);
                 mbox = NULL;
                 break;
+                round = AUX_ROUND;
             }else{
                 if (mbox!=0 && mbox->size >= (n + 1) / 2) {
                     //@ assert eq_val_list_pred( phase, round,mbox);
@@ -511,6 +514,7 @@ int main(int argc, char**argv) //@ : main
         //list_dispose(mbox);
         mbox = NULL;
         break;
+        round = AUX_ROUND;
         
     }else {//@ leak eq_max_val_list_pred(mbox);
     }
