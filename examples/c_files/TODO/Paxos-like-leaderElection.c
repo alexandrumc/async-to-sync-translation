@@ -157,10 +157,10 @@ int main(int argc, char **argv)//@ : main
     //@ int old_ballot = ballot-1;
 
 
-    round = AUX_ROUND;
+    round = NewBallot_ROUND;
    //@ enum round_typ old_round = round;
     while(1)
-        //@ invariant ((old_ballot<ballot && round == AUX_ROUND));
+        //@ invariant ((old_ballot<ballot && round == NewBallot_ROUND));
     {
         //@ old_ballot = ballot;
         round = NewBallot_ROUND;
@@ -295,7 +295,7 @@ int main(int argc, char **argv)//@ : main
         //@ old_ballot = ballot;
         ballot++;
        //@  old_round = round;
-        round = AUX_ROUND;
+        round = NewBallot_ROUND;
         //@ assert ((old_ballot<ballot) || (old_ballot==ballot && old_round <=round));
     }
     return 1;
