@@ -43,7 +43,6 @@ Our output for the aforementioned list of examples can be found here: `outputs <
 
 Using
 ==========
-https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs_async
 Prerequisites
 -------------
 
