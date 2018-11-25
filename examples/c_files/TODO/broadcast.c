@@ -339,8 +339,8 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 //@ lemma_EQ_list_to_alloc_list(mbox, i, round);
                 list_dispose_no_data(mbox);
             	mbox = NULL;
-            
                 break;
+                 round = AUX_ROUND;
             }
             
             
@@ -436,6 +436,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     list_dispose_no_data(mbox);
                     mbox = NULL;
                     break;
+                     round = AUX_ROUND;
                 }
                 //@close lseg(mbox, 0, mnv);
                 //@ lemma_EQ_list_to_alloc_list(mbox, i, round);
@@ -607,6 +608,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 list_dispose_no_data(mbox);
                 mbox = NULL;
                 break;
+                round = AUX_ROUND;
                 
             }
         }else{
@@ -617,6 +619,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
             list_dispose_no_data(mbox);
             mbox = NULL;
             break;
+             round = AUX_ROUND;
             
         }
         
