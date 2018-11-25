@@ -308,6 +308,7 @@ int main(int argc, char**argv) //@ : main
             //@ open max_tag_of_mbox(mbox, phase, round);
             estimate = mbox->message->estimate;
             state = 1;
+            out(myid, estimate);
             
             //@ close mbox_CT_mbox(mbox, phase, old_round);
             //@ leak mbox_CT_mbox(mbox, phase, old_round);
@@ -410,12 +411,12 @@ int main(int argc, char**argv) //@ : main
                 estimate = mbox->message->estimate;
                 state = 1;
                 
+                out(myid, estimate);
                 //@ close mbox_CT_mbox(mbox, phase, old_round);
                 //@ leak mbox_CT_mbox(mbox, phase, old_round);
                 
                 //list_dispose(mbox);
                 mbox = NULL;
-                
                 break;
             }else{
                 if (mbox!=0 && mbox->size >= (n + 1) / 2) {
