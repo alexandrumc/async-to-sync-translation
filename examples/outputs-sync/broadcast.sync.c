@@ -1,6 +1,9 @@
+No inner algorithm detected
+
 def round FIRST_ROUND:
   SEND():
 
+if(round == FIRST_ROUND){
   if ((pid == leader))
   {
     m = (msg *) malloc(sizeof(msg));
@@ -8,8 +11,6 @@ def round FIRST_ROUND:
     {
       abort();
     }
-    m->epoch = epoch;
-    m->lab = BCAST;
     m->sender = leader;
     ltype *entry = list_get(log, lastIndex);
     if ((entry != NULL))
@@ -18,10 +19,25 @@ def round FIRST_ROUND:
     }
     send(m, to_all);
   }
+}
 
   UPDATE():
 
-
+if(round == FIRST_ROUND)
+{
+  
+  old_0_mbox = mbox;
+  if (((mbox != NULL) && (mbox->size >= 1)) && !((mbox->message != NULL) && (mbox->message->sender == leader)))
+  {
+    out();
+  }
+  
+  old_0_mbox = mbox;
+  if (!((mbox != NULL) && (mbox->size >= 1)))
+  {
+    out();
+  }
+  
   old_0_mbox = mbox;
   if (((mbox != NULL) && (mbox->size >= 1)))
   {
@@ -33,20 +49,18 @@ def round FIRST_ROUND:
         if ((logi != 0))
         {
           logi->op = mbox->message->op;
-          logi->commit = false;
+          logi->commit = 0;
         }
       }
     }
-    else
-    {
-      out();
-    }
   }
+}
 
 
 def round SECOND_ROUND:
   SEND():
 
+if(round == SECOND_ROUND){
   if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
     m = (msg *) malloc(sizeof(msg));
@@ -54,14 +68,26 @@ def round SECOND_ROUND:
     {
       abort();
     }
-    m->epoch = epoch;
-    m->lab = BCAST;
     m->sender = pid;
     send(m, leader);
   }
+}
 
   UPDATE():
 
+if(round == SECOND_ROUND)
+{
+  if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  {
+    if ((pid == leader) && !((mbox != NULL) && (mbox->size > (n / 2))))
+    {
+      out();
+    }
+  }
+  if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  {
+    
+  }
   if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
     if ((pid == leader))
@@ -71,30 +97,24 @@ def round SECOND_ROUND:
         ltype *logi = list_get(log, PHASE);
         if ((logi != 0))
         {
-          logi->commit = true;
+          logi->commit = 1;
         }
         cmt_number++;
         int size = list_length(log);
         out(logi);
       }
-      else
-      {
-        out();
-      }
     }
   }
-  if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
-  {
-
-  }
+}
 
 
 def round THIRD_ROUND:
   SEND():
 
+if(round == THIRD_ROUND){
   if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
-
+    
     if ((pid == leader))
     {
       m = (msg *) malloc(sizeof(msg));
@@ -102,18 +122,19 @@ def round THIRD_ROUND:
       {
         abort();
       }
-      m->epoch = epoch;
-      m->lab = BCAST;
       m->sender = pid;
       send(m, to_all);
     }
   }
+}
 
   UPDATE():
 
+if(round == THIRD_ROUND)
+{
   if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
-
+    
     if (((mbox != NULL) && (mbox->size >= 1)))
     {
       if ((pid != leader))
@@ -121,7 +142,7 @@ def round THIRD_ROUND:
         ltype *logi = list_get(log, PHASE);
         if ((logi != 0))
         {
-          logi->commit = true;
+          logi->commit = 1;
         }
         cmt_number++;
         out(logi);
@@ -129,14 +150,25 @@ def round THIRD_ROUND:
       if ((pid == leader))
       {
         lastIndex++;
-        ltype *newEntry = create_ltype(in(), false);
+        ltype *newEntry = create_ltype(in(), 0);
         list_add(log, newEntry);
       }
       else
       {
         lastIndex++;
-        ltype *newEntry = create_ltype(-1, false);
+        ltype *newEntry = create_ltype(-1, 0);
         list_add(log, newEntry);
       }
     }
   }
+  if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  {
+    
+    if (!((mbox != NULL) && (mbox->size >= 1)))
+    {
+      out();
+    }
+  }
+}
+
+

@@ -1,3 +1,5 @@
+No inner algorithm detected
+
 def round NewBallot_ROUND:
   SEND():
 
@@ -72,4 +74,5 @@ def round AckBallot_ROUND:
       out(PHASE, leader);
     }
   }
+
 
