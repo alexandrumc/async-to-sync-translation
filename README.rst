@@ -35,9 +35,9 @@ What class of algorithms can this tool translate?
 
 **ATHOS** computes the synchronous counterpart of known consensus and leader election protocols, such as, Paxos, and Chandra and Toueg’s consensus.
 
-Some other examples of protocols that we translated can be found here: `examples <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs-async>`_.
+Some other examples of protocols that we translated can be found here: `examples <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs-async/>`_.
 
-Our output for the aforementioned list of examples can be found here: `outputs <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/outputs-sync>`_.
+Our output for the aforementioned list of examples can be found here: `outputs <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/outputs-sync/>`_.
 
 -----------------------------------
 
@@ -71,7 +71,7 @@ Basic usage
 First, you have to replace  the ``verifast_path`` variable from `here <https://github.com/alexandrumc/async-to-sync-translation/blob/0485622bd67d351e83d251aab56d8f006f18779f/run-translation#L22>`_ with the one on your file system.
 
 Use the script located in the root of the project: ``run-translation``.
-If you want to run the translation on all our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs-async>`_) you should run the following command::
+If you want to run the translation on all our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs-async/>`_) you should run the following command::
 
 ./run-translation -allExamples
 
