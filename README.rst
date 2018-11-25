@@ -35,8 +35,7 @@ What class of algorithms can this tool translate?
 
 **ATHOS** computes the synchronous counterpart of known consensus and leader election protocols, such as, Paxos, and Chandra and Toueg’s consensus.
 
-Some other examples of protocols that we translated can be found here: `examples <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs_async
->`_.
+Some other examples of protocols that we translated can be found here: `examples <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs_async>`_.
 
 Our output for the aforementioned list of examples can be found here: `outputs <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/outputs_sync>`_.
 
