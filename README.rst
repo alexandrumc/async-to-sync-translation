@@ -87,7 +87,7 @@ The tool can be also runned on a given input file. The command has the following
 
 ./run-translation [option] /path/to/file /path/to/config_file.py
 
-If you want to run the translation on one of our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/TODO>`_) you will find the associated configuration file `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/ctc-translation/config_files>`_.
+If you want to run the translation on one of our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs_async>`_) you will find the associated configuration file `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/ctc-translation/examples/config_files>`_.
 
 If you want to skip this verification phase, you should disable it by adding the flag::
 
@@ -110,13 +110,13 @@ README.rst:
 run-translation:
   Running script.
 
-examples/c_files:
+examples/inputs_async:
   A directory with some examples on which we runned **ATHOS**
 
 examples/config_files:
   A directory with the configuration files for our examples.
 
-examples/sync:
+examples/outputs_sync:
   A directory with the synchronous versions of our examples produced by **ATHOS**.
 
 ctc-translation/:
