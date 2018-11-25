@@ -136,7 +136,7 @@ int all_agree(struct List* l);
  @*/
 
 
-enum round_typ_B {FIRST_ROUND, SECOND_ROUND, THIRD_ROUND} ;
+enum round_typ_B {FIRST_ROUND, SECOND_ROUND, THIRD_ROUND, AUX_ROUND} ;
 
 // lastIndex and cmt_number are "global" variables, all processes executing broadcast have the same value.
 
@@ -206,7 +206,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
      @*/
         
     {
-        //@ assert (old_phase + 1 == i && round == FIRST_ROUND );
+        //@ assert (old_phase + 1 == i && round == AUX_ROUND );
         
         round = FIRST_ROUND;
         //@ old_round = round;
@@ -254,9 +254,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 //@ open lseg(mbox,0,?v);
                 //@ close eq_list(i, round)(m);
                 mbox_new = (list*) malloc(sizeof(list));
-                if(mbox_new==0) {
-                abort();
-                }
+                if(mbox_new==0) {abort(); }
                 mbox_new->message =m;
                 if(mbox!=0)
                     {mbox_new->size = mbox->size + 1;}
@@ -306,11 +304,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
         if (mbox != NULL && mbox->size >= 1) {
             //@open eq_list(i, round)(head(nv));
             if( mbox->message!=NULL && mbox->message->sender == leader){
-                
                 if(pid != leader){
-                    
-                    
-                    
                     ltype *logi = list_get(log,i);
                     
                     //@ foreach_remove(logi, newlog_data);
@@ -318,7 +312,6 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     if(logi != 0){
                         logi->op = mbox->message->op;
                         logi->commit = 0;
-                        
                     }
                     //@ close alloc_ctor()(logi);
                     //@ foreach_unremove(logi,newlog_data);
@@ -340,22 +333,17 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 list_dispose_no_data(mbox);
             	mbox = NULL;
                 break;
+                round = AUX_ROUND;
             }
-            
-            
             
             //@ old_round = round;
             round = SECOND_ROUND;
             
-            
             m = (msg *) malloc(sizeof(msg));
-            if(m==0) {
-            abort();
-            }
+            if(m==0) {abort();}
             m->i = i;
             m->round = round;
             m->sender = pid;
-            
             
             //@ assert ( m->i == i && m->round == round);
             
@@ -378,9 +366,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                         //@ close eq_list(i, round)(m);
                         
                         mbox_new = (list*) malloc(sizeof(list));
-                        if(mbox_new==0) {
-                        abort();
-                        }
+                        if(mbox_new==0) {abort();}
                         mbox_new->message =m;
                         if(mbox!=0){mbox_new->size = mbox->size + 1;}
                         else{mbox_new->size =1 ;}
@@ -435,6 +421,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     list_dispose_no_data(mbox);
                     mbox = NULL;
                     break;
+                    round = AUX_ROUND;
                 }
                 //@close lseg(mbox, 0, mnv);
                 //@ lemma_EQ_list_to_alloc_list(mbox, i, round);
@@ -506,7 +493,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     
                     //@ close lseg(mbox,0, cons(m,vb));
                     //@ close foreach(cons(m,vb), eq_list(i, round));
-                }else free(m);
+                }else {free(m);}
                 
                 //@open lseg(mbox, 0, ?nvb);
                 //@open foreach(nvb,eq_list(i, round));
@@ -544,9 +531,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 /// //@ assert  mbox_tag_EQ(mbox, i, round);
                 
                 if(pid != leader){
-                    
                     //@ assert arraylist(log, ?data) &*& foreach(data, alloc_ctor());
-                    
                     ltype *logi = list_get(log,i);
                     
                     //@ foreach_remove(logi, data);
@@ -572,9 +557,6 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     //@ close foreach(cons(newEntry, nil), alloc_ctor());
                     //@ foreach_append(newlog_data, cons(newEntry,nil));
                     
-                    
-                    
-                    
                 }else {
                     lastIndex++;
                     ltype * newEntry = create_ltype(-1,0);
@@ -594,7 +576,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 i = i + 1;
                 
                 //@ old_round = round;
-                round = FIRST_ROUND;
+                round = AUX_ROUND;
                 //@ close tag_strict_leq(old_phase,old_round,i,round);
                 //@ assert tag_strict_leq(old_phase,old_round, i,round);
                 //@ open tag_strict_leq(old_phase,old_round, i,round);
@@ -605,6 +587,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 list_dispose_no_data(mbox);
                 mbox = NULL;
                 break;
+                round = AUX_ROUND;
                 
             }
         }else{
@@ -615,7 +598,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
             list_dispose_no_data(mbox);
             mbox = NULL;
             break;
-            
+            round = AUX_ROUND;
         }
         
         
