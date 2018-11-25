@@ -86,7 +86,7 @@ The tool can be also runned on a given input file. The command has the following
 
 ./run-translation [option] /path/to/file /path/to/config_file.py
 
-If you want to run the translation on one of our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs_async>`_) you will find the associated configuration file `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/ctc-translation/examples/config_files>`_.
+If you want to run the translation on one of our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs-async/>`_) you will find the associated configuration file `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/config_files>`_.
 
 If you want to skip this verification phase, you should disable it by adding the flag::
 
@@ -117,6 +117,9 @@ examples/config_files:
 
 examples/outputs_sync:
   A directory with the synchronous versions of our examples produced by **ATHOS**.
+  
+paper.pdf:
+  Communication-closed asynchronous protocols paper.
 
 ctc-translation/:
   The **ATHOS** source code.
