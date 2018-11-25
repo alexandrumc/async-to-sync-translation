@@ -963,14 +963,14 @@ def identify_nested(ast_tree):
     identify_nested_algorithms_bodies(extern_while, list)
 
     labelname_inner = config.variables_2['round']
-    rounds_list_inner = config.rounds_list2
+    rounds_list_inner = config.rounds_list_2
     delete_round_phase_inner = config.delete_round_phase
     message_inner = config.msg_structure_fields_2
     variables_inner = config.variables_2
 
     if list:
         list.reverse()
-        labels = config.rounds_list2
+        labels = config.rounds_list_2
         labels.append('ERR_ROUND')
         code = None
         cop = duplicate_element(ast)

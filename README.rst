@@ -35,15 +35,14 @@ What class of algorithms can this tool translate?
 
 **ATHOS** computes the synchronous counterpart of known consensus and leader election protocols, such as, Paxos, and Chandra and Toueg’s consensus.
 
-Some other examples of protocols that we translated can be found here: `examples <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/TODO>`_.
+Some other examples of protocols that we translated can be found here: `examples <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs-async/>`_.
 
-Our output for the aforementioned list of examples can be found here: `outputs <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/Sync>`_.
+Our output for the aforementioned list of examples can be found here: `outputs <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/outputs-sync/>`_.
 
 -----------------------------------
 
 Using
 ==========
-
 Prerequisites
 -------------
 
@@ -72,11 +71,11 @@ Basic usage
 First, you have to replace  the ``verifast_path`` variable from `here <https://github.com/alexandrumc/async-to-sync-translation/blob/0485622bd67d351e83d251aab56d8f006f18779f/run-translation#L22>`_ with the one on your file system.
 
 Use the script located in the root of the project: ``run-translation``.
-If you want to run the translation on all our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/TODO>`_) you should run the following command::
+If you want to run the translation on all our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs-async/>`_) you should run the following command::
 
 ./run-translation -allExamples
 
-If you want to run the translation without Verifast(i.e., without checking that the protocol is communication-closed, according to the criteria specified in Section 5.) you should disable it by adding the following flag::
+If you want to run the translation without Verifast(i.e., without checking that the protocol is communication-closed, according to the criteria specified in `Section 5 <https://github.com/alexandrumc/async-to-sync-translation/blob/master/paper.pdf>`_.) you should disable it by adding the following flag::
 
 ./run-translation -allExamples -disableVerifast
 
@@ -87,7 +86,7 @@ The tool can be also runned on a given input file. The command has the following
 
 ./run-translation [option] /path/to/file /path/to/config_file.py
 
-If you want to run the translation on one of our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/TODO>`_) you will find the associated configuration file `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/ctc-translation/config_files>`_.
+If you want to run the translation on one of our examples (which are `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/inputs-async/>`_) you will find the associated configuration file `here <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/config_files>`_.
 
 If you want to skip this verification phase, you should disable it by adding the flag::
 
@@ -110,14 +109,17 @@ README.rst:
 run-translation:
   Running script.
 
-examples/c_files:
+examples/inputs_async:
   A directory with some examples on which we runned **ATHOS**
 
 examples/config_files:
   A directory with the configuration files for our examples.
 
-examples/sync:
+examples/outputs_sync:
   A directory with the synchronous versions of our examples produced by **ATHOS**.
+  
+paper.pdf:
+  Communication-closed asynchronous protocols paper.
 
 ctc-translation/:
   The **ATHOS** source code.

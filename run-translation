@@ -1,7 +1,7 @@
 #!/bin/bash
 python_interpretor="python"
 
-examples_folder="examples/c_files/TODO/"
+examples_folder="examples/inputs-async/"
 
 main_module="ctc-translation/translation.py"
 main_module_folder="ctc-translation/"
@@ -10,10 +10,10 @@ path_to_precomp="$main_module_folder$precompiled_ext"
 
 no_comments_ext="-clean.c"
 no_headers_ext="-noh.c"
-output_extension=".sync"
+output_extension=".sync.c"
 results_dir="results"
 
-config_folder="ctc-translation/config_files/"
+config_folder="examples/config_files/"
 config_base_name="config_"
 config_extension=".py"
 default_config="config.py"

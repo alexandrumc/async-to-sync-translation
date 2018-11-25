@@ -87,8 +87,9 @@ variables_1 = dict(
 
 # Modify with phase and round fields names in the message structure
 msg_structure_fields_1 = dict(
-    phase_field_1="phase",
-    round_field_1="round"
+    name="m",
+    phase_field="phase",
+    round_field="round"
 )
 
 # Modify with mailbox name
@@ -97,7 +98,7 @@ mailbox_1 = ["mbox", "m"]
 # Modify with clean mailbox function name
 clean_mailbox_1 = "list_dispose"
 
-rounds_list = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND', 'AUX_ROUND']
+rounds_list_1 = ['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND', 'AUX_ROUND']
 
 delete_round_phase = True
 

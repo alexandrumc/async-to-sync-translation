@@ -1,3 +1,8 @@
+
+
+Launched procedure for nested algorithms
+
+
 def round FIRST_ROUND:
   SEND():
 
@@ -8,8 +13,8 @@ def round FIRST_ROUND:
     {
       abort();
     }
-    mB->i = i;
     mB->round = bround;
+    mB->epoch = epoch;
     mB->lab = BCAST;
     mB->sender = leader;
     ltype *entry = list_get(log, lastIndex);
@@ -30,7 +35,7 @@ def round FIRST_ROUND:
   {
     if (((((mboxB != NULL) && (mboxB->size >= 1)) && (mboxB->message != NULL)) && (mboxB->message->sender == leader)))
     {
-      ltype *logi = list_get(log, i);
+      ltype *logi = list_get(log, PHASE);
       if ((logi != 0))
       {
         logi->op = mboxB->message->op;
@@ -55,8 +60,8 @@ def round SECOND_ROUND:
     {
       abort();
     }
-    mB->i = i;
     mB->round = bround;
+    mB->epoch = epoch;
     mB->lab = BCAST;
     mB->sender = pid;
     send_msgb(mB, leader);
@@ -68,8 +73,8 @@ def round SECOND_ROUND:
     {
       abort();
     }
-    mB->i = i;
     mB->round = bround;
+    mB->epoch = epoch;
     mB->lab = BCAST;
     mB->sender = pid;
     send_msgb(mB, leader);
@@ -81,7 +86,7 @@ def round SECOND_ROUND:
   {
     if (((mboxB != NULL) && (mboxB->size > (n / 2))))
     {
-      ltype *logi = list_get(log, i);
+      ltype *logi = list_get(log, PHASE);
       if ((logi != 0))
       {
         logi->commit = 1;
@@ -110,8 +115,8 @@ def round THIRD_ROUND:
     {
       abort();
     }
-    mB->i = i;
     mB->round = bround;
+    mB->epoch = epoch;
     mB->lab = BCAST;
     mB->sender = pid;
     send_msgb(mB, to_all);
@@ -130,7 +135,7 @@ def round THIRD_ROUND:
   {
     if (((mboxB != NULL) && (mboxB->size >= 1)))
     {
-      ltype *logi = list_get(log, i);
+      ltype *logi = list_get(log, PHASE);
       if ((logi != 0))
       {
         logi->commit = 1;
@@ -145,7 +150,7 @@ def round THIRD_ROUND:
   }
 
 
-Outer Algo code
+Outer Algo code 
 
 def round NewEpoch:
   SEND():
@@ -249,7 +254,7 @@ def round New_Leader:
     if ((((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
     {
       lastIndex = mbox->message->history_lenght;
-      log = longest_log(mbox, lastIndex);
+      log = mbox->message->history;
       round = BCAST;
     }
   }
@@ -301,3 +306,5 @@ def round BCAST:
     inner_algorithm();
     round = NewEpoch;
   }
+
+
