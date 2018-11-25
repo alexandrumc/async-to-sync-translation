@@ -75,7 +75,7 @@ If you want to run the translation on all our examples (which are `here <https:/
 
 ./run-translation -allExamples
 
-If you want to run the translation without Verifast(i.e., without checking that the protocol is communication-closed, according to the criteria specified in Section 5.) you should disable it by adding the following flag::
+If you want to run the translation without Verifast(i.e., without checking that the protocol is communication-closed, according to the criteria specified in `Section 5 <https://github.com/alexandrumc/async-to-sync-translation/blob/master/paper.pdf>`_.) you should disable it by adding the following flag::
 
 ./run-translation -allExamples -disableVerifast
 
