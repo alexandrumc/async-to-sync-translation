@@ -136,7 +136,7 @@ int all_agree(struct List* l);
  @*/
 
 
-enum round_typ_B {FIRST_ROUND, SECOND_ROUND, THIRD_ROUND, AUX_ROUND} ;
+enum round_typ_B {FIRST_ROUND, SECOND_ROUND, THIRD_ROUND} ;
 
 // lastIndex and cmt_number are "global" variables, all processes executing broadcast have the same value.
 
@@ -163,7 +163,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
     struct List *mbox_new;
     msg *m =NULL;
     
-    round = AUX_ROUND;
+    round = FIRST_ROUND;
     
     
     
@@ -199,14 +199,14 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
     
     
     while (true)
-    /*@ invariant (old_phase + 1 == i && round == AUX_ROUND ) &*&
+    /*@ invariant (old_phase + 1 == i && round == FIRST_ROUND ) &*&
      arraylist(log, ?newlog_data) &*&  i==lastIndex &*&
      0<= lastIndex &*& lastIndex == length(newlog_data)-1 &*&
      foreach(newlog_data, alloc_ctor());
      @*/
         
     {
-        //@ assert (old_phase + 1 == i && round == AUX_ROUND );
+        //@ assert (old_phase + 1 == i && round == FIRST_ROUND );
         
         round = FIRST_ROUND;
         //@ old_round = round;
@@ -340,7 +340,6 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 list_dispose_no_data(mbox);
             	mbox = NULL;
                 break;
-                 round = AUX_ROUND;
             }
             
             
@@ -436,7 +435,6 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                     list_dispose_no_data(mbox);
                     mbox = NULL;
                     break;
-                     round = AUX_ROUND;
                 }
                 //@close lseg(mbox, 0, mnv);
                 //@ lemma_EQ_list_to_alloc_list(mbox, i, round);
@@ -596,8 +594,7 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 i = i + 1;
                 
                 //@ old_round = round;
-                round = AUX_ROUND;
-                //round = FIRST_ROUND;
+                round = FIRST_ROUND;
                 //@ close tag_strict_leq(old_phase,old_round,i,round);
                 //@ assert tag_strict_leq(old_phase,old_round, i,round);
                 //@ open tag_strict_leq(old_phase,old_round, i,round);
@@ -608,7 +605,6 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
                 list_dispose_no_data(mbox);
                 mbox = NULL;
                 break;
-                round = AUX_ROUND;
                 
             }
         }else{
@@ -619,7 +615,6 @@ int main(int argc, int pid, struct arraylist * log,  int lastIndex, int cmt_numb
             list_dispose_no_data(mbox);
             mbox = NULL;
             break;
-             round = AUX_ROUND;
             
         }
         
