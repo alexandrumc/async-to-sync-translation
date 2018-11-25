@@ -1,9 +1,7 @@
 def round FIRST_ROUND:
   SEND():
 
-if(round == FIRST_ROUND)
-{
-  old_0_leader = leader;
+if(round == FIRST_ROUND){
   if ((pid == leader))
   {
     m = (msg *) malloc(sizeof(msg));
@@ -11,8 +9,6 @@ if(round == FIRST_ROUND)
     {
       abort();
     }
-    m->i = i;
-    m->round = round;
     m->epoch = epoch;
     m->lab = BCAST;
     m->sender = leader;
@@ -29,12 +25,15 @@ if(round == FIRST_ROUND)
 
 if(round == FIRST_ROUND)
 {
-  if ((pid == leader))
+  if (!(pid == leader))
   {
-    dispose(m);
-    round = SECOND_ROUND;
+    old_0_mbox = mbox;
+    if (!((mbox != NULL) && (mbox->size >= 1)))
+    {
+      out();
+    }
   }
-  old_0_leader = leader;
+
   if (!(pid == leader))
   {
     old_0_mbox = mbox;
@@ -44,7 +43,7 @@ if(round == FIRST_ROUND)
       {
         if ((pid != leader))
         {
-          ltype *logi = list_get(log, i);
+          ltype *logi = list_get(log, PHASE);
           if ((logi != 0))
           {
             logi->op = mbox->message->op;
@@ -56,16 +55,6 @@ if(round == FIRST_ROUND)
       {
         out();
       }
-      round = SECOND_ROUND;
-    }
-  }
-  old_0_leader = leader;
-  if (!(pid == leader))
-  {
-    old_0_mbox = mbox;
-    if (!((mbox != NULL) && (mbox->size >= 1)))
-    {
-      out();
     }
   }
 }
@@ -74,31 +63,26 @@ if(round == FIRST_ROUND)
 def round SECOND_ROUND:
   SEND():
 
-if(round == SECOND_ROUND)
-{
-  if (!(pid == old_0_leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+if(round == SECOND_ROUND){
+  if ((pid == leader))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
     {
       abort();
     }
-    m->i = i;
-    m->round = round;
     m->epoch = epoch;
     m->lab = BCAST;
     m->sender = pid;
     send(m, leader);
   }
-  if ((pid == old_0_leader))
+  if (!(pid == leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
     {
       abort();
     }
-    m->i = i;
-    m->round = round;
     m->epoch = epoch;
     m->lab = BCAST;
     m->sender = pid;
@@ -110,25 +94,18 @@ if(round == SECOND_ROUND)
 
 if(round == SECOND_ROUND)
 {
-  if (!(pid == old_0_leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  if ((pid == leader))
   {
-    dispose(m);
-    round = THIRD_ROUND;
+
   }
-  if ((pid == old_0_leader))
+
+
+
+  if ((pid == leader))
   {
-    dispose(m);
-    if (!((mbox != NULL) && (mbox->size > (n / 2))))
-    {
-      round = FIRST_ROUND;
-    }
-  }
-  if ((pid == old_0_leader))
-  {
-    dispose(m);
     if (((mbox != NULL) && (mbox->size > (n / 2))))
     {
-      ltype *logi = list_get(log, i);
+      ltype *logi = list_get(log, PHASE);
       if ((logi != 0))
       {
         logi->commit = true;
@@ -144,17 +121,14 @@ if(round == SECOND_ROUND)
 def round THIRD_ROUND:
   SEND():
 
-if(round == THIRD_ROUND)
-{
-  if ((pid == old_0_leader))
+if(round == THIRD_ROUND){
+  if ((pid == leader))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
     {
       abort();
     }
-    m->i = i;
-    m->round = round;
     m->epoch = epoch;
     m->lab = BCAST;
     m->sender = pid;
@@ -166,25 +140,17 @@ if(round == THIRD_ROUND)
 
 if(round == THIRD_ROUND)
 {
-  if ((pid == old_0_leader))
+  if ((pid == leader))
   {
-    dispose(m);
-    if ((mbox != NULL))
-    {
-    }
     lastIndex++;
     ltype *newEntry = create_ltype(in(), false);
     list_add(log, newEntry);
-    round = FIRST_ROUND;
   }
-  if (!(pid == old_0_leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  if (!(pid == leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
-    if ((mbox != NULL))
-    {
-    }
     if (((mbox != NULL) && (mbox->size >= 1)))
     {
-      ltype *logi = list_get(log, i);
+      ltype *logi = list_get(log, PHASE);
       if ((logi != 0))
       {
         logi->commit = true;
@@ -193,15 +159,11 @@ if(round == THIRD_ROUND)
       out(logi);
     }
   }
-  if (!(pid == old_0_leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
+  if (!(pid == leader) && ((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
-    if ((mbox != NULL))
-    {
-    }
     if (!((mbox != NULL) && (mbox->size >= 1)))
     {
       out();
     }
   }
 }
-

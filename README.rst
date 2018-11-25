@@ -33,7 +33,7 @@ Fault-tolerant distributed systems are implemented over asynchronous networks, s
 What class of algorithms can this tool translate?
 ------------------------------------------
 
-**ATHOS** can compute the synchronous counterpart of known consensus and leader election protocols, such as, Paxos, and Chandra and Toueg’s consensus.
+**ATHOS** computes the synchronous counterpart of known consensus and leader election protocols, such as, Paxos, and Chandra and Toueg’s consensus.
 
 Some other examples of protocols that we translated can be found here: `examples <https://github.com/alexandrumc/async-to-sync-translation/tree/master/examples/c_files/TODO>`_.
 

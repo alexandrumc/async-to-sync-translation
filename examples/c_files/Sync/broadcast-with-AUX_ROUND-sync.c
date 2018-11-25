@@ -8,8 +8,6 @@ def round FIRST_ROUND:
     {
       abort();
     }
-    m->i = i;
-    m->round = round;
     m->epoch = epoch;
     m->lab = BCAST;
     m->sender = leader;
@@ -20,12 +18,10 @@ def round FIRST_ROUND:
     }
     send(m, to_all);
   }
+
   UPDATE():
 
-  if ((pid == leader))
-  {
-    dispose(m);
-  }
+
   old_0_mbox = mbox;
   if (((mbox != NULL) && (mbox->size >= 1)))
   {
@@ -33,7 +29,7 @@ def round FIRST_ROUND:
     {
       if ((pid != leader))
       {
-        ltype *logi = list_get(log, i);
+        ltype *logi = list_get(log, PHASE);
         if ((logi != 0))
         {
           logi->op = mbox->message->op;
@@ -45,7 +41,6 @@ def round FIRST_ROUND:
     {
       out();
     }
-    round = SECOND_ROUND;
   }
 
 
@@ -59,24 +54,21 @@ def round SECOND_ROUND:
     {
       abort();
     }
-    m->i = i;
-    m->round = round;
     m->epoch = epoch;
     m->lab = BCAST;
     m->sender = pid;
     send(m, leader);
   }
+
   UPDATE():
 
   if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
-    dispose(m);
-    old_0_leader = leader;
     if ((pid == leader))
     {
       if (((mbox != NULL) && (mbox->size > (n / 2))))
       {
-        ltype *logi = list_get(log, i);
+        ltype *logi = list_get(log, PHASE);
         if ((logi != 0))
         {
           logi->commit = true;
@@ -89,17 +81,11 @@ def round SECOND_ROUND:
       {
         out();
       }
-      round = THIRD_ROUND;
     }
   }
   if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
-    dispose(m);
-    old_0_leader = leader;
-    if (!(pid == leader))
-    {
-      round = THIRD_ROUND;
-    }
+
   }
 
 
@@ -116,30 +102,23 @@ def round THIRD_ROUND:
       {
         abort();
       }
-      m->i = i;
-      m->round = round;
       m->epoch = epoch;
       m->lab = BCAST;
       m->sender = pid;
       send(m, to_all);
     }
   }
+
   UPDATE():
 
   if (((old_0_mbox != NULL) && (old_0_mbox->size >= 1)))
   {
-    if ((pid == leader))
-    {
-      dispose(m);
-    }
-    if ((mbox != NULL))
-    {
-    }
+
     if (((mbox != NULL) && (mbox->size >= 1)))
     {
       if ((pid != leader))
       {
-        ltype *logi = list_get(log, i);
+        ltype *logi = list_get(log, PHASE);
         if ((logi != 0))
         {
           logi->commit = true;
@@ -159,8 +138,5 @@ def round THIRD_ROUND:
         ltype *newEntry = create_ltype(-1, false);
         list_add(log, newEntry);
       }
-      i++;
-      round = FIRST_ROUND;
     }
   }
-
