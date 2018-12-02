@@ -21,7 +21,7 @@ typedef struct Msg {
     int sender;
 } msg;
 
-/*@ predicate tag_strict_leq(int p1, int r1, int p2, int r2) =  r2 == 4 ? true: (r1==4 ? false : ((p1+1 == p2) || (p1==p2 && r1<=r2)));
+/*@ predicate tag_strict_leq(int p1, int r1, int p2, int r2) =  r2 == 3 ? true: (r1==4 ? false : ((p1+1 == p2) || (p1==p2 && r1<=r2)));
  @*/
 
 typedef struct List {
@@ -134,9 +134,7 @@ int main(int argc, char**argv) //@ : main
     
     m = NULL;
     m = (msg *) malloc(sizeof(msg));
-    if (m == 0) {
-        abort();
-    }
+    if (m == 0) {abort();}
     
     m->phase = phase;
     m->round = round;
@@ -194,8 +192,8 @@ int main(int argc, char**argv) //@ : main
         
         //@ open mbox_CT_mbox(mbox, phase, round);
         
-        if(mbox!=0 && mbox->message!=NULL && mbox->message->round == FOURTH_ROUND){
-            if (mbox->message->round == FOURTH_ROUND){
+        if(mbox!=0 && mbox->message!=NULL)
+         if(mbox->message->round == FOURTH_ROUND){
                 //@old_round = round;
                 round = FOURTH_ROUND;
                 
@@ -205,7 +203,8 @@ int main(int argc, char**argv) //@ : main
                 
                 estimate = mbox->message->estimate;
                 state = 1;
-                
+                out(myid, estimate);
+
                 //@ close mbox_CT_mbox(mbox, phase, old_round);
                 //@ leak mbox_CT_mbox(mbox, phase, old_round);
                 
@@ -214,8 +213,8 @@ int main(int argc, char**argv) //@ : main
                 
                 break;
                 round = AUX_ROUND;
-            }else{
-                if (mbox!=0 && mbox->size >= (n + 1) / 2) {
+            }else {
+               if (mbox->size >= (n + 1) / 2) {
                     //@ assert eq_val_list_pred( phase, round,mbox);
                     m = max_timestamp(mbox);
                     estimate = m->estimate;
@@ -223,7 +222,7 @@ int main(int argc, char**argv) //@ : main
                     m=NULL;
                     
                 }
-            }
+            
         }
         //@ close mbox_CT_mbox(mbox, phase, round);
         //@leak mbox_CT_mbox(mbox, phase, round);
@@ -240,9 +239,7 @@ int main(int argc, char**argv) //@ : main
     
     if (myid == leader) {
         m = (msg *) malloc(sizeof(msg));
-        if(m==0) {
-            abort();
-        }
+        if(m==0) {abort();}
         m->sender = myid;
         m->phase = phase;
         m->round = round;
@@ -285,6 +282,7 @@ int main(int argc, char**argv) //@ : main
                 mbox = mbox_new;
             } else {free(m);}
         }
+        if(timeout()) {break; }
         if (mbox!=NULL && mbox->message != NULL && (mbox->message->sender ==leader || mbox->message->round ==FOURTH_ROUND )){
             
             break;
@@ -355,20 +353,19 @@ int main(int argc, char**argv) //@ : main
     send(m,leader);
     dispose(m);
     m = NULL;
-    
+    mbox = NULL;
     
     
     if (myid == leader) {
-        
-        mbox = NULL;
+
         //@ close list_pred(mbox);
-        
+
         while (1)
             //@ invariant eq_val_list_pred(phase,round,mbox);
         {
             //@open eq_val_list_pred(phase,round,mbox);
             m = recv();
-            if (m!= NULL && m->round == THIRD_ROUND && m->phase == phase) {
+            if (m!= NULL && m->round == round && m->phase == phase) {
                 mbox_new = (list*) malloc(sizeof(list));
                 if(mbox_new==0) {abort();}
                 mbox_new->message =m;
@@ -386,7 +383,7 @@ int main(int argc, char**argv) //@ : main
                 mbox = mbox_new;
             }else {free(m);}
             
-            if (mbox!=NULL && mbox->message != NULL &&mbox->message->round ==FOURTH_ROUND){break;}
+            if (mbox!=NULL && mbox->message != NULL && mbox->message->round ==FOURTH_ROUND){break;}
             if(mbox!=NULL && mbox->size >= (n + 1) / 2) {
                 //@ close eq_val_list_pred(phase,round,mbox);
                 break;
@@ -401,8 +398,7 @@ int main(int argc, char**argv) //@ : main
         
         //@ open mbox_CT_mbox(mbox, phase, round);
         
-        if(mbox!=0 && mbox->message!=NULL){
-            if (mbox->message->round == FOURTH_ROUND){
+        if(mbox!=0 && mbox->message!=NULL &&mbox->message->round == FOURTH_ROUND){
                 //@old_round = round;
                 round = FOURTH_ROUND;
                 
@@ -421,17 +417,12 @@ int main(int argc, char**argv) //@ : main
                 mbox = NULL;
                 break;
                 round = AUX_ROUND;
-            }else{
-                if (mbox!=0 && mbox->size >= (n + 1) / 2) {
-                    //@ assert eq_val_list_pred( phase, round,mbox);
-                    if(all_ack(mbox)) {
-                        ack =1;
-                    }
-                    else {
-                        ack = -1;
-                    }
-                }
-            }
+        }else{
+            //@ assume (round == THIRD_ROUND);
+            //@ assume (mbox->message->round == round); 
+            //@ assert eq_val_list_pred( phase, round,mbox);
+            if(all_ack(mbox)) { ack =1;}
+            else {ack = -1;}
         }
         //@ close mbox_CT_mbox(mbox, phase, round);
         //@leak mbox_CT_mbox(mbox, phase, round);
@@ -520,6 +511,8 @@ int main(int argc, char**argv) //@ : main
         break;
         round = AUX_ROUND;
         
+    }else{
+    //@ leak eq_max_val_list_pred(mbox);
     }
     
     
