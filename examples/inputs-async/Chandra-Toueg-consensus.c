@@ -192,7 +192,7 @@ int main(int argc, char**argv) //@ : main
         
         //@ open mbox_CT_mbox(mbox, phase, round);
         
-        if(mbox!=0 && mbox->message!=NULL)
+        if(mbox!=0 && mbox->message!=NULL) {
          if(mbox->message->round == FOURTH_ROUND){
                 //@old_round = round;
                 round = FOURTH_ROUND;
@@ -223,11 +223,12 @@ int main(int argc, char**argv) //@ : main
                     
                 }
             
-        }
+        	}
         //@ close mbox_CT_mbox(mbox, phase, round);
         //@leak mbox_CT_mbox(mbox, phase, round);
         // list_dispose(mbox);
         mbox = NULL;
+    	}
     }
     
     //@ old_round = round;
@@ -511,8 +512,6 @@ int main(int argc, char**argv) //@ : main
         break;
         round = AUX_ROUND;
         
-    }else{
-    //@ leak eq_max_val_list_pred(mbox);
     }
     
     
