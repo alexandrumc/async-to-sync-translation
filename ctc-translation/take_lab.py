@@ -625,6 +625,7 @@ def print_code(trees_dict, trees_paths_dict, labels):
 def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, first_round):
     labels.reverse()
     # print labels[:len(labels) - 1]
+    save_round = ""
     for label in labels[:len(labels) - 1]:
         if label == "AUX_ROUND":
             continue
@@ -644,10 +645,16 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         found_send_list = []
         history_of_strings = []
 
+
+
         for tree in trees_dict[label]:
             # print TreeGenerator().visit(get_extern_while_body(tree))
-            gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, first_round)
+            gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, first_round, save_round)
+
+
             result = gen.visit(get_extern_while_body(tree))
+            if gen.remember_round != "":
+                save_round = gen.remember_round
             result = os.linesep.join([s for s in result.splitlines() if s])
             if gen.send_reached:
                 if result not in history_of_strings:
@@ -662,8 +669,10 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
                 # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
-                gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, first_round, tuple_el[1])
+                gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, first_round, save_round, tuple_el[1])
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
+                if gen.remember_round != "":
+                    save_round = gen.remember_round
                 result = os.linesep.join([s for s in result.splitlines() if s])
                 if gen.send_reached:
                     if result not in history_of_strings:
@@ -691,10 +700,12 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         history_of_strings = []
         for i, tree in enumerate(trees_dict[label]):
             # print TreeGenerator().visit(get_extern_while_body(tree))
-            gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, first_round)
+            gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, first_round, save_round)
             if not found_send_list[i]:
                 gen.send_reached = True
             result = gen.visit(get_extern_while_body(tree))
+            if gen.remember_round != "":
+                save_round = gen.remember_round
             result = os.linesep.join([s for s in result.splitlines() if s])
             if result not in history_of_strings:
                 print result
@@ -704,10 +715,12 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
                 # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
-                gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, first_round, tuple_el[1])
+                gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, first_round, save_round, tuple_el[1])
                 if not found_send_list[i]:
                     gen.send_reached = True
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
+                if gen.remember_round != "":
+                    save_round = gen.remember_round
                 result = os.linesep.join([s for s in result.splitlines() if s])
                 if result not in history_of_strings:
                     print result

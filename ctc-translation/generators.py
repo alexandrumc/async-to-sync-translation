@@ -46,11 +46,13 @@ class CondVisitor(c_generator.CGenerator):
         c_generator.CGenerator.__init__(self)
         self.current_round = current_round
         self.inside_binop = False
+        self.save_round = ""
 
     def visit_ID(self, n):
         if self.inside_binop is False:
             if "==" in n.name and "_ROUND" in n.name and self.current_round not in n.name:
                 return 'jump == True'
+
             if "!=" in n.name and "_ROUND" in n.name and self.current_round not in n.name:
                 return 'jump != True'
         return n.name
@@ -65,6 +67,7 @@ class CondVisitor(c_generator.CGenerator):
             if n.right.name.endswith("_ROUND") and n.right.name != self.current_round:
                 if changed:
                     self.inside_binop = False
+                self.save_round = n.right.name
                 return '%s %s %s' % ('jump', n.op, 'True')
 
         lval_str = self._parenthesize_if(n.left,
@@ -491,7 +494,7 @@ class RoundGenerator(c_generator.CGenerator):
     The last case needs more complex computation.
     """
 
-    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, first_round, path=None):
+    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, first_round, save_round, path=None):
         c_generator.CGenerator.__init__(self)
         # a string that indicates send or update mode; "send" for send and "update" for update
         self.mode = mode
@@ -517,6 +520,7 @@ class RoundGenerator(c_generator.CGenerator):
         self.message = message
         self.variables = variables
         self.first_round = first_round
+        self.remember_round = save_round
 
     def visit_Break(self, n):
         return 'out();'
@@ -864,6 +868,9 @@ class RoundGenerator(c_generator.CGenerator):
                 # s += self.visit(n.cond)
                 s += ')'
 
+                if cond_visitor.save_round != "":
+                    self.remember_round = cond_visitor.save_round
+
                 node = n
                 if not node.iffalse or not node.iftrue:
                     while True:
@@ -892,8 +899,13 @@ class RoundGenerator(c_generator.CGenerator):
                         s += '('
                         s += cond_visitor.visit(node.cond)
                         s += ')'
+                        if cond_visitor.save_round != "":
+                            self.remember_round = cond_visitor.save_round
 
                 # s += self.visit(n.cond)
+                if self.current_round == self.remember_round:
+                    if self.remember_round in s:
+                        return ""
 
                 n = node
 
@@ -948,6 +960,10 @@ class RoundGenerator(c_generator.CGenerator):
                     cond_visitor = CondVisitor(self.current_round)
                     s += cond_visitor.visit(n.cond)
                     # s += self.visit(n.cond)
+
+                    if cond_visitor.save_round != "":
+                        self.remember_round = cond_visitor.save_round
+
                     self.visit_cond = False
                     if n.iffalse is not None and n.iffalse in self.path:
                         s += ')'
@@ -986,11 +1002,16 @@ class RoundGenerator(c_generator.CGenerator):
                         s += cond_visitor.visit(node.cond)
                         s += ')'
 
+                        if cond_visitor.save_round != "":
+                            self.remember_round = cond_visitor.save_round
+
                 # s += self.visit(n.cond)
+                if self.current_round == self.remember_round:
+                    if self.remember_round in s:
+                        return ""
 
                 n = node
                 s += ')\n'
-
 
                 if n.iftrue in self.path:
                     s_aux = self._generate_stmt(n.iftrue, add_indent=True)
@@ -1035,6 +1056,11 @@ class RoundGenerator(c_generator.CGenerator):
                     s += cond_visitor.visit(n.cond)
                     # s += self.visit(n.cond)
                     self.visit_cond = False
+
+
+                    if cond_visitor.save_round != "":
+                        self.remember_round = cond_visitor.save_round
+
                     s += ')'
                 else:
                     s = 'if ('
@@ -1045,6 +1071,10 @@ class RoundGenerator(c_generator.CGenerator):
                             s += '('
                         cond_visitor = CondVisitor(self.current_round)
                         s += cond_visitor.visit(n.cond)
+
+                        if cond_visitor.save_round != "":
+                            self.remember_round = cond_visitor.save_round
+
                         # s += self.visit(n.cond)
                         if n.iffalse is not None and n.iftrue is None:
                             s += ')'
@@ -1081,9 +1111,15 @@ class RoundGenerator(c_generator.CGenerator):
                             s += '('
                         cond_visitor = CondVisitor(self.current_round)
                         s += cond_visitor.visit(node.cond)
+
+                        if cond_visitor.save_round != "":
+                            self.remember_round = cond_visitor.save_round
                         s += ')'
 
                 # s += self.visit(n.cond)
+                if self.current_round == self.remember_round:
+                    if self.remember_round in s:
+                        return ""
 
                 n = node
 
@@ -1148,6 +1184,8 @@ class RoundGenerator(c_generator.CGenerator):
                 s += cond_visitor.visit(n.cond)
                 s += ')'
 
+                if cond_visitor.save_round != "":
+                    self.remember_round = cond_visitor.save_round
 
                 node = n
                 if not node.iffalse or not node.iftrue:
@@ -1177,8 +1215,15 @@ class RoundGenerator(c_generator.CGenerator):
                         s += '('
                         s += cond_visitor.visit(node.cond)
                         s += ')'
+                        if cond_visitor.save_round != "":
+                            self.remember_round = cond_visitor.save_round
+
 
                 # s += self.visit(n.cond)
+
+                if self.current_round == self.remember_round:
+                    if self.remember_round in s:
+                        return ""
 
                 n = node
 
@@ -1229,6 +1274,10 @@ class RoundGenerator(c_generator.CGenerator):
                     self.visit_cond = True
                     cond_visitor = CondVisitor(self.current_round)
                     s += cond_visitor.visit(n.cond)
+
+                    if cond_visitor.save_round != "":
+                        self.remember_round = cond_visitor.save_round
+
                     # s += self.visit(n.cond)
                     self.visit_cond = False
                     if n.iffalse is not None and n.iffalse in self.path:
@@ -1268,8 +1317,14 @@ class RoundGenerator(c_generator.CGenerator):
                         cond_visitor = CondVisitor(self.current_round)
                         s += cond_visitor.visit(node.cond)
                         s += ')'
+                        if cond_visitor.save_round != "":
+                            self.remember_round = cond_visitor.save_round
 
                 # s += self.visit(n.cond)
+
+                if self.current_round == self.remember_round:
+                    if self.remember_round in s:
+                        return ""
 
                 n = node
 
@@ -1323,6 +1378,10 @@ class RoundGenerator(c_generator.CGenerator):
                     self.visit_cond = True
                     cond_visitor = CondVisitor(self.current_round)
                     s += cond_visitor.visit(n.cond)
+
+                    if cond_visitor.save_round != "":
+                        self.remember_round = cond_visitor.save_round
+
                     # s += self.visit(n.cond)
                     self.visit_cond = False
                     s += ')'
@@ -1336,6 +1395,11 @@ class RoundGenerator(c_generator.CGenerator):
                         self.visit_cond = True
                         cond_visitor = CondVisitor(self.current_round)
                         s += cond_visitor.visit(n.cond)
+
+                        if cond_visitor.save_round != "":
+                            self.remember_round = cond_visitor.save_round
+
+
                         # s += self.visit(n.cond)
                         self.visit_cond = False
                         if n.iffalse is not None and n.iftrue is None:
@@ -1375,7 +1439,14 @@ class RoundGenerator(c_generator.CGenerator):
                         s += cond_visitor.visit(node.cond)
                         s += ')'
 
+                        if cond_visitor.save_round != "":
+                            self.remember_round = cond_visitor.save_round
+
                 # s += self.visit(n.cond)
+
+                if self.current_round == self.remember_round:
+                    if self.remember_round in s:
+                        return ""
 
                 n = node
 
