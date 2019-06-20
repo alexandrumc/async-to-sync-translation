@@ -106,8 +106,8 @@ int main(int argc, char **argv)//@ : main
     {
         round = ViewChange_ROUND;
         mbox = NULL;
-        view++;
-        	   
+        
+        view++;	   
 	    // A timeout has been detected
         m = (msg *) malloc(sizeof(msg));
         if(m==0) {
@@ -151,11 +151,10 @@ int main(int argc, char **argv)//@ : main
         
         if(mbox!=NULL && mbox->size > 2*n/3 && all_same(mbox,view) ) {
             view = mbox->message->view;  
+            round = NewView_ROUND;
+            list_dispose(mbox);
+            mbox=NULL;
         }
-        
-        round = NewView_ROUND;
-        list_dispose(mbox);
-        mbox=NULL;
         
         if(primary(n,view)==pid) {
             
@@ -194,7 +193,7 @@ int main(int argc, char **argv)//@ : main
             }else{ dispose(m); }
             
             // Received a valid confirmation of the NewView
-            if (m != NULL && mbox->size ==1 && mbox->next == NULL && m->round == NewView_ROUND && view == m->view){
+            if (m != NULL && mbox->size ==1 && mbox->next == NULL && mbox->message->round == NewView_ROUND && view == mbox->message->view){
                 break;
             }
 
@@ -202,10 +201,11 @@ int main(int argc, char **argv)//@ : main
 
         }   
 
-        if (m != NULL && mbox->size ==1 && mbox->next == NULL && m->round == NewView_ROUND && view == m->view){
+        if (m != NULL && mbox->size ==1 && mbox->next == NULL && mbox->message->round == NewView_ROUND && view == mbox->message->view){
             out(view);   
         }
-
+        
+        ballot++;
         round = ViewChange_ROUND;
         
 
