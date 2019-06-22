@@ -19,10 +19,13 @@ config_extension=".py"
 default_config="config.py"
 default_config_path=$main_module_folder$default_config
 
-verifast_path="/home/dr96/Desktop/Verifast/verifast-395797b/bin/verifast"
+verifast_path="../verifast/bin/verifast"
 verifast_options="-c -disable_overflow_check"
 
 export PYTHONPATH="$PYTHONPATH:$PWD"
+
+# Save old config.py file
+cp ctc-translation/config.py ./
 
 if [ $# == 0 ]; then
 	echo "./run-translation [option] /path/to/file /path/to/config_file.py"
@@ -250,7 +253,10 @@ elif [ $# == 3 ]; then
 
 		$call_clean_1
 		echo "Running translation..(verifast disabled)"
-		exit 1
+
+		# To stop after getting the noh file and start debugging, uncomment exit
+		#exit 1
+
 	    $call_tool > $output
 
 	    $call_clean_2
@@ -263,4 +269,9 @@ elif [ $# == 3 ]; then
 	fi
 
 fi
+
+# In case that config.pyc has been created, delete it, and restore previous 
+# config file
+rm -f ctc-translation/config.pyc
+mv ./config.py ctc-translation/
 
