@@ -5,6 +5,9 @@
 # First y/n: keep results or no after execution
 # second y/n: run with Verifast or no
 
+# Delete already existing results folder
+rm -rf results
+
 if [ $# -ne 2 ]; then
 	echo "Wrong number of parameters"
 	exit 1
@@ -47,11 +50,9 @@ FILES=./results/*.sync.c
 for f in $FILES
 do
 
-	IFS='/' read -ra NAMES <<<$f
-	filename=${NAMES[2]}
+	filename=$(echo $f | cut -d / -f 3)
 
-	IFS='.' read -ra NAMES <<<$filename
-	algo_name=${NAMES[0]} 
+	algo_name=$(echo $filename | cut -d . -f 1)
 	
 	diff "results/$filename" "examples/outputs-sync/$filename" >/dev/null 2>/dev/null
 	
