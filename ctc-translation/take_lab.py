@@ -1153,3 +1153,57 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
 
         # print generator.visit(cop)
         print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, rounds_list[0])
+
+
+def turn_nested_algo_func_call(x, conditions):
+    """
+    Found that we have nested algorithms from the config file
+    Iterate through every statement and check for non recv while loops
+    :return:
+    """
+
+    if not x:
+        return
+
+    # Use integer iterators as we have to modify in place
+    i = 0
+    length = len(x.block_items)
+
+    while i < length:
+        elem = x.block_items[i]
+
+        if isinstance(elem, If):
+            # TODO: exceptions here and list of current conditions
+            conditions.append(elem.cond)
+            turn_nested_algo_func_call(elem.iftrue, conditions)
+
+            del conditions[-1]
+            new_cond = UnaryOp('!', elem.cond)
+            conditions.append(new_cond)
+            turn_nested_algo_func_call(elem.iffalse, conditions)
+
+            del conditions[-1]
+            i += 1
+        elif isinstance(elem, While) and to_modify(elem):
+            # Consider that whiles with recvs cannot represent
+            # new algorithm
+            i += 1
+            continue
+        elif isinstance(elem, While):
+            # Iterate the while for nested algos
+            turn_nested_algo_func_call(elem.stmt, conditions)
+
+            # Check if this while is a nested algo - only while(true)
+            # are new algorithms
+            if elem.cond.name == "true":
+                # Get new condition
+                final_cond = None
+                for comp in conditions:
+                    final_cond = BinaryOp("&&", comp, final_cond)
+                del x.block_items[i]
+                
+                ifnode = If(final_cond, elem.stmt, None, elem.coord)
+                x.block_items[i].insert(i, ifnode)
+                i += 1
+        else:
+            i += 1
