@@ -1,8 +1,9 @@
 from pycparser import c_generator
 from pycparser.c_ast import *
 from pycparser.plyparser import Coord
-import config
 
+import config
+import string
 generator = c_generator.CGenerator()
 
 coord_aux = 0
@@ -10,42 +11,49 @@ coord_aux = 0
 
 def remove_mbox_assign_to_zero(extern_while_body, mbox_name):
     """
-    assign mbox = 0 will be removed from the tree
+    assign mbox = 0 or mess_name will be removed from the tree
     :param extern_while_body:
     :return:
     """
+
+    if (not extern_while_body) or (not extern_while_body.block_items):
+        return
+
     to_delete = []
-    if extern_while_body.block_items:
-        # print type(mbox_name)
-        for msg_name in mbox_name:
-            for elem in extern_while_body.block_items:
-                # print elem.coord
-                if isinstance(elem, Assignment) and msg_name == elem.lvalue.name:
-                    # print type(elem)
-                    if isinstance(elem.rvalue, ID):
-                        if elem.rvalue.name == "NULL":
-                            to_delete.append(elem)
+    for elem in extern_while_body.block_items:
 
-                if isinstance(elem, If):
-                    remove_mbox_assign_to_zero(elem.iftrue, mbox_name)
-                    if elem.iffalse:
-                        remove_mbox_assign_to_zero(elem.iffalse, mbox_name)
-                # print "aici e ok", elem.coord
+        if isinstance(elem, Assignment):
 
-            for x in to_delete:
-                # print generator.visit(x)
-                if x in extern_while_body.block_items:
-                    extern_while_body.block_items.remove(x)
+            if elem.lvalue.name in mbox_name:
+                if isinstance(elem.rvalue, ID) and elem.rvalue.name == "NULL":
+                    to_delete.append(elem)
+
+            elif (not isinstance(elem.lvalue.name, ID)) and ("mbox" in string.lower(elem.lvalue.name)):
+                if isinstance(elem.rvalue, ID) and elem.rvalue.name == "NULL":
+                    to_delete.append(elem)
+
+            elif (isinstance(elem.lvalue.name, ID)) and ("mbox" in string.lower(elem.lvalue.name.name)):
+                if isinstance(elem.rvalue, ID) and elem.rvalue.name == "NULL":
+                    to_delete.append(elem)
+
+        if isinstance(elem, If):
+            remove_mbox_assign_to_zero(elem.iftrue, mbox_name)
+            remove_mbox_assign_to_zero(elem.iffalse, mbox_name)
+
+    for x in to_delete:
+        extern_while_body.block_items.remove(x)
 
 
-
-
-def remove_list_dispose(extern_while_body, clean_mailbox_function):
+def remove_list_dispose(extern_while_body):
     to_delete = []
     if extern_while_body.block_items:
         for elem in extern_while_body.block_items:
-            if isinstance(elem, FuncCall) and clean_mailbox_function in elem.name.name:
-                to_delete.append(elem)
+            if isinstance(elem, FuncCall) and "clear" in elem.name.name:
+                if elem not in to_delete:
+                    to_delete.append(elem)
+            if isinstance(elem, FuncCall) and "clean" in elem.name.name:
+                if elem not in to_delete:
+                    to_delete.append(elem)
             if isinstance(elem, FuncCall) and "dispose" in elem.name.name:
                 if elem not in to_delete:
                     to_delete.append(elem)
@@ -56,9 +64,9 @@ def remove_list_dispose(extern_while_body, clean_mailbox_function):
                 if elem not in to_delete:
                     to_delete.append(elem)
             if isinstance(elem, If):
-                remove_list_dispose(elem.iftrue, clean_mailbox_function)
+                remove_list_dispose(elem.iftrue)
                 if elem.iffalse:
-                    remove_list_dispose(elem.iffalse, clean_mailbox_function)
+                    remove_list_dispose(elem.iffalse)
         for x in to_delete:
             extern_while_body.block_items.remove(x)
 
@@ -70,29 +78,26 @@ def remove_null_if(extern_while_body):
             if isinstance(elem, If):
                 if isinstance(elem.iftrue, Compound):
                     if len(elem.iftrue.block_items) == 0:
-                        # print generator.visit(elem), "aaaaaaa"
                         to_delete.append(elem)
                     else:
-                        # print generator.visit(elem), "AAAAAAA"
                         remove_null_if(elem.iftrue)
                 if isinstance(elem.iffalse, Compound):
                     if len(elem.iffalse.block_items) == 0:
                         elem.iffalse = None
-                        # print 5
                     else:
                         remove_null_if(elem.iffalse)
         for x in to_delete:
             extern_while_body.block_items.remove(x)
 
 
-def remove_mbox(extern_while_body, mbox_name, clean_mailbox_function):
+def remove_mbox(extern_while_body, mess_names):
     """
     removes mbox assigns to 0 and ifs where it is freed
     :param extern_while_body:
     :return:
     """
-    remove_mbox_assign_to_zero(extern_while_body, mbox_name)
-    remove_list_dispose(extern_while_body, clean_mailbox_function)
+    remove_mbox_assign_to_zero(extern_while_body, mess_names)
+    remove_list_dispose(extern_while_body)
     remove_null_if(extern_while_body)
 
 

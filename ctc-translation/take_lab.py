@@ -1155,7 +1155,7 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, rounds_list[0])
 
 
-def turn_nested_algo_func_call(x, conditions):
+def turn_nested_algo_if_stm(x, conditions):
     """
     Found that we have nested algorithms from the config file
     Iterate through every statement and check for non recv while loops
@@ -1175,12 +1175,12 @@ def turn_nested_algo_func_call(x, conditions):
         if isinstance(elem, If):
             # TODO: exceptions here and list of current conditions
             conditions.append(elem.cond)
-            turn_nested_algo_func_call(elem.iftrue, conditions)
+            turn_nested_algo_if_stm(elem.iftrue, conditions)
 
             del conditions[-1]
             new_cond = UnaryOp('!', elem.cond)
             conditions.append(new_cond)
-            turn_nested_algo_func_call(elem.iffalse, conditions)
+            turn_nested_algo_if_stm(elem.iffalse, conditions)
 
             del conditions[-1]
             i += 1
@@ -1191,7 +1191,7 @@ def turn_nested_algo_func_call(x, conditions):
             continue
         elif isinstance(elem, While):
             # Iterate the while for nested algos
-            turn_nested_algo_func_call(elem.stmt, conditions)
+            turn_nested_algo_if_stm(elem.stmt, conditions)
 
             # Check if this while is a nested algo - only while(true)
             # are new algorithms
@@ -1203,7 +1203,7 @@ def turn_nested_algo_func_call(x, conditions):
                 del x.block_items[i]
                 
                 ifnode = If(final_cond, elem.stmt, None, elem.coord)
-                x.block_items[i].insert(i, ifnode)
+                x.block_items.insert(i, ifnode)
                 i += 1
         else:
             i += 1
