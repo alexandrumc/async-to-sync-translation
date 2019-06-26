@@ -81,14 +81,14 @@ number_of_nested_algorithms = 1
 
 # Modify with phase and round variables names
 variables_1 = dict(
-    phase="ballot",
+    phase="view",
     round="round"
 )
 
 # Modify with phase and round fields names in the message structure
 msg_structure_fields_1 = dict(
     name="m",
-    phase_field="ballot",
+    phase_field="view",
     round_field="round"
 )
 
