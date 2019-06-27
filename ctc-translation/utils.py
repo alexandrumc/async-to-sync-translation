@@ -54,11 +54,11 @@ def find_parent(ast_tree, child_node):
     v.visit(ast_tree)
     return v.discovered_node
 
+
 def find_parentUpdated(ast_tree, child_node):
     v = LocateParentNodeUpdated(child_node)
     v.visit(ast_tree)
     return v.discovered_node
-
 
 
 def get_label_assign_num(ast_tree, label_name):
@@ -72,15 +72,18 @@ def get_label(ast_tree, label_name, label_value):
     v.visit(ast_tree)
     return v.label_item
 
+
 def get_epochs_assigns(ast_tree, epoch_name):
     v = EpochVisitor(epoch_name)
     v.visit(ast_tree)
     return v.epoch_list
 
+
 def get_send_usage(ast_tree):
     v = SendVisitor()
     v.visit(ast_tree)
     return v.list
+
 
 def get_recv_whiles(ast_tree):
     v = RecvWhileVisitor()
