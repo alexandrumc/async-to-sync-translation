@@ -1,6 +1,6 @@
 from take_lab import take_code_from_file, get_extern_while_body_from_func, get_paths_trees, turn_nested_algo_marked_compound, print_rounds
 from pycparser import parse_file
-from utils import duplicate_element
+from utils import duplicate_element, find_parent
 
 from modify_whiles import *
 import sys
@@ -35,11 +35,10 @@ if config.number_of_nested_algorithms == 1:
                         config.variables[0])
 else:
     # Turn all while algos into if (cond) loop_body
-    conditions = []
 
     nested_algos_details = []
 
-    turn_nested_algo_marked_compound(x, conditions, nested_algos_details, config.rounds_list)
+    turn_nested_algo_marked_compound(x, nested_algos_details, config.rounds_list)
 
     conditions = []
     whiles_to_if(x, conditions)
@@ -78,19 +77,19 @@ else:
 
         # Find this algo in code, delete markers
         # and update pointers for the whole deletion
-        del_reminder = []
-        for det in nested_algos_details:
-            if det[0] == i:
-                start_pos = det[3].block_items.index(det[1])
-                fin_pos = det[3].block_items.index(det[2])
+        #del_reminder = []
+        #for det in nested_algos_details:
+        #    if det[0] == i:
+        #        start_pos = det[3].block_items.index(det[1])
+        #        fin_pos = det[3].block_items.index(det[2])
 
-                print det[3].block_items[fin_pos-1].rvalue.name
+        #        print det[3].block_items[fin_pos-1].rvalue.name
 
-                del_reminder.append((det[3].block_items[start_pos + 1], det[3].block_items[fin_pos - 1], det[3],
-                                     det[2]))
+        #        del_reminder.append((det[3].block_items[start_pos + 1], det[3].block_items[fin_pos - 1], det[3],
+        #                            det[2]))
 
-                del det[3].block_items[start_pos]
-                del det[3].block_items[fin_pos - 1]
+        #        del det[3].block_items[start_pos]
+        #        del det[3].block_items[fin_pos - 1]
 
         cop = duplicate_element(ast)
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, config.variables[i]['round'])
@@ -99,18 +98,38 @@ else:
                      config.delete_round_phase[i], config.msg_structure_fields[i],
                      config.variables[i], config.rounds_list[i])
 
-        # Replace this algorithm with a function call
-        for tup in del_reminder:
-            ind = tup[2].block_items.index(tup[0])
-            while True:
-                elem = tup[2].block_items[ind]
-                del tup[2].block_items[ind]
+        for el in nested_algos_details:
+            if el[0] == i:
 
-                if elem == tup[1]:
-                    break
-            new_id = ID("inner_algorithm_" + letter, tup[3].coord)
-            func = FuncCall(new_id, None, tup[3].coord)
-            tup[2].block_items.insert(ind, func)
+                # Nested algo should be in a Compound
+                if isinstance(el[2], Compound):
+                    ind = el[2].block_items.index(el[1].block_items[0])
+
+                    while True:
+                        elem = el[2].block_items[ind]
+                        del el[2].block_items[ind]
+
+                        if isinstance(elem, FuncCall) and elem.name.name == "marker_stop":
+                            break
+                    new_id = ID("inner_algorithm_" + letter, el[1].block_items[0])
+                    func = FuncCall(new_id, None, el[1].block_items[0])
+                    el[2].block_items.insert(ind, func)
+
+
+
+
+        # Replace this algorithm with a function call
+        #for tup in del_reminder:
+        #    ind = tup[2].block_items.index(tup[0])
+        #    while True:
+        #        elem = tup[2].block_items[ind]
+        #        del tup[2].block_items[ind]
+
+        #        if elem == tup[1]:
+        #            break
+        #    new_id = ID("inner_algorithm_" + letter, tup[3].coord)
+        #    func = FuncCall(new_id, None, tup[3].coord)
+        #    tup[2].block_items.insert(ind, func)
 
         i -= 1
 

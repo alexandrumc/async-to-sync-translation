@@ -2,7 +2,7 @@ import copy
 import os
 from utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
     find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles
-from generators import TreeGenerator, RoundGenerator, CheckIfGenerator
+from generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor
 from compute_paths import find_all_paths_between_two_nodes, prune_tree
 from pycparser import c_generator, parse_file
 from pycparser.plyparser import Coord
@@ -1186,7 +1186,7 @@ def get_rank_of_algo(x, rounds_list):
     return -1
 
 
-def turn_nested_algo_marked_compound(x, conditions, nested_algos_details, rounds_list):
+def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, rounds_list):
     """
     Found that we have nested algorithms from the config file
     Iterate through every statement and check for non recv while loops
@@ -1194,6 +1194,7 @@ def turn_nested_algo_marked_compound(x, conditions, nested_algos_details, rounds
     For each non recv while loop, take the compound and add markers before
     and after it
     :return:
+    """
     """
     # Suppose every new algo starts with while (true) {Round Assignment ...}
 
@@ -1261,3 +1262,27 @@ def turn_nested_algo_marked_compound(x, conditions, nested_algos_details, rounds
                 nested_algos_details.append((r, func, func2, x))
         else:
             i += 1
+    """
+    v = WhileAlgoVisitor()
+    v.visit(extern_while_body)
+
+    for el in v.result_list:
+        p = find_parent(extern_while_body, el[0])
+
+        elem = el[0]
+
+        # Suppose that nested algos start only in compounds
+        if not isinstance(p, Compound):
+            continue
+        ind = p.block_items.index(elem)
+        r = get_rank_of_algo(elem.stmt, rounds_list)
+
+        del p.block_items[ind]
+
+        siz = len(elem.stmt.block_items)
+        j = 0
+        while j < siz:
+            p.block_items.insert(ind, elem.stmt.block_items[j])
+            ind += 1
+            j += 1
+        nested_algos_details.append((r, elem.stmt, p))

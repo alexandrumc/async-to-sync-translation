@@ -145,6 +145,56 @@ class EmptyInstrVisitor(c_ast.NodeVisitor):
             self.result_list.append(node)
 
 
+class WhileAlgoVisitor(c_ast.NodeVisitor):
+    """
+    With this visitor we return a list of whiles which represent
+    a nested algorithm
+    We also add markers for the beginning and ending of this algo
+
+    Every nested algo starts with a while(true)
+    """
+    def __init__(self):
+        self.result_list = []
+        self.conditions = []
+
+    def visit_While(self, node):
+        if node.stmt:
+            self.generic_visit(node.stmt)
+
+        if node.cond.name != "true":
+            return
+
+        if to_modify(node):
+            return
+        # Keep conditions although we don't add them
+        cop = copy.deepcopy(self.conditions)
+
+        new_id = ID("marker_start", node.coord)
+        func = FuncCall(new_id, None, node.coord)
+
+        node.stmt.block_items.insert(0, func)
+
+        new_id = ID("marker_stop", node.coord)
+        func = FuncCall(new_id, None, node.coord)
+
+        ind = len(node.stmt.block_items) - 1
+        node.stmt.block_items.insert(ind, func)
+        self.result_list.append((node, cop))
+
+    def visit_If(self, node):
+        self.conditions.append(node.cond)
+        if node.iftrue:
+            self.generic_visit(node.iftrue)
+
+        del self.conditions[-1]
+        new_cond = UnaryOp('!', node.cond)
+        self.conditions.append(new_cond)
+        if node.iffalse:
+            self.generic_visit(node.iffalse)
+
+        del self.conditions[-1]
+
+
 class CondVisitor(c_generator.CGenerator):
 
     def __init__(self, current_round):
