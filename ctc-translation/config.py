@@ -77,22 +77,14 @@
 
 
 # Number of nested algorithms
-number_of_nested_algorithms = 2
-
-# We will use list of elements to represent details about each
-# algorithm
+number_of_nested_algorithms = 1
 
 variables = []
 
 # Modify with phase and round variables names
 variables.append(dict(
-    phase="epoch",
+    phase="ballot",
     round="round"
-))
-
-variables.append(dict(
-    phase="i",
-    round="bround"
 ))
 
 msg_structure_fields = []
@@ -100,27 +92,29 @@ msg_structure_fields = []
 # Modify with phase and round fields names in the message structure
 msg_structure_fields.append(dict(
     name="m",
-    phase_field="epoch",
+    phase_field="ballot",
     round_field="round"
 ))
 
-msg_structure_fields.append(dict(
-    name="mB",
-    phase_field="i",
-    round_field="bround"
-))
+mailbox = []
+
+# Modify with mailbox name
+mailbox.append("mbox")
+
+clean_mailbox = []
+
+# Modify with clean mailbox function name
+clean_mailbox.append("list_dispose")
 
 rounds_list = []
 
-# Modify with labels for each algorithm
-rounds_list.append(['NewEpoch', 'Ack_E', 'New_Leader', 'BCAST', 'AUX_ROUND'])
-rounds_list.append(['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND'])
+rounds_list.append(['NewBallot_ROUND', 'AckBallot_ROUND', 'AUX_ROUND'])
 
 delete_round_phase = []
 
-delete_round_phase.append(False)
 delete_round_phase.append(True)
 
 # Add as many fields as you need
 
 ######################################################################################################################
+

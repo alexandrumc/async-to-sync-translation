@@ -40,6 +40,111 @@ class EpochVisitor(c_ast.NodeVisitor):
             self.epoch_list.append(node)
 
 
+class NullAssignVisitor(c_ast.NodeVisitor):
+    """
+    Takes the name of all message variables and mailbox variables and returns
+    a list with all NULL assignments
+    """
+
+    def __init__(self, name_list):
+        self.name_list = name_list
+        self.result_list = []
+
+    def visit_Assignment(self, node):
+        if node.lvalue.name not in self.name_list:
+            return
+
+        if isinstance(node.rvalue, ID) and node.rvalue.name == "NULL":
+            self.result_list.append(node)
+
+
+class UselessFuncVisitor(c_ast.NodeVisitor):
+    """
+    Takes all free type functions and creates a list with them
+    Also adds all functions which refer to a timeout, as these will
+    be useless after recv whiles turning into ifs
+    """
+
+    def __init__(self, dispose_funcs_names):
+        self.result_list = []
+        self.dispose_funcs_names = dispose_funcs_names
+
+    def visit_FuncCall(self, node):
+        stat = False
+        if node.name.name in self.dispose_funcs_names:
+            stat = True
+
+        if "clear" in node.name.name:
+            stat = True
+
+        if "clean" in node.name.name:
+            stat = True
+
+        if "free" in node.name.name:
+            stat = True
+
+        if "dispose" in node.name.name:
+            stat = True
+
+        if "delete" in node.name.name:
+            stat = True
+
+        if "erase" in node.name.name:
+            stat = True
+
+        if "timeout" in node.name.name:
+            stat = True
+
+        if stat:
+            self.result_list.append(node)
+
+
+class EmptyInstrVisitor(c_ast.NodeVisitor):
+    """
+    If there are instr with empty compounds,
+    add them in a list and then delete them
+    """
+
+    def __init__(self):
+        self.result_list = []
+
+    def visit_If(self, node):
+        if node.iffalse:
+            if isinstance(node.iffalse, Compound) and len(node.iffalse.block_items) != 0:
+                self.generic_visit(node.iffalse)
+
+        if node.iffalse:
+            if isinstance(node.iffalse, Compound) and len(node.iffalse.block_items) == 0:
+                node.iffalse = None
+
+        if node.iftrue:
+            if isinstance(node.iftrue, Compound) and len(node.iftrue.block_items) != 0:
+                self.generic_visit(node.iftrue)
+
+        if node.iftrue:
+            if isinstance(node.iftrue, Compound) and len(node.iftrue.block_items) == 0:
+                node.iftrue = None
+
+        if (not node.iftrue) and (not node.iffalse):
+            self.result_list.append(node)
+            return
+
+        if (not node.iftrue) and node.iffalse:
+            new_cond = UnaryOp("!", node.cond)
+            node.cond = new_cond
+            node.iftrue = node.iffalse
+            node.iffalse = None
+
+    def visit_While(self, node):
+        if node.stmt and len(node.stmt.block_items) != 0:
+            self.generic_visit(node.stmt)
+
+        if not node.stmt:
+            self.result_list.append(node)
+        elif node.stmt and len(node.stmt.block_items) == 0:
+            self.result_list.append(node)
+
+
 class CondVisitor(c_generator.CGenerator):
 
     def __init__(self, current_round):

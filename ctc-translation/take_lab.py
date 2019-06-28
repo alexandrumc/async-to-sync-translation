@@ -8,7 +8,8 @@ from pycparser import c_generator, parse_file
 from pycparser.plyparser import Coord
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
     For, Compound, Continue, FuncCall, FuncDecl, IdentifierType, Decl, TypeDecl
-from modify_whiles import coord_aux, to_modify, whiles_to_if, identify_recv_exits, remove_mbox
+from modify_whiles import coord_aux, to_modify, whiles_to_if, identify_recv_exits
+from mbox_removal import remove_mbox
 from cStringIO import StringIO
 import sys
 import config
@@ -1152,15 +1153,49 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
 
         # print generator.visit(cop)
-        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, rounds_list[0])
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, rounds_list)
 
 
-def turn_nested_algo_if_stm(x, conditions):
+def get_rank_of_algo(x, rounds_list):
+    # While loops will be either for receive either another algorithm
+    # We are interested only in assignments which contain a round label
+    # as right member
+
+    if not x or not x.block_items:
+        return -1
+
+    for elem in x.block_items:
+        if isinstance(elem, If):
+            res = get_rank_of_algo(elem.iftrue, rounds_list)
+            if res != -1:
+                return res
+            res = get_rank_of_algo(elem.iffalse, rounds_list)
+            if res != -1:
+                return res
+
+        elif isinstance(elem, Assignment):
+            for mround in rounds_list:
+                if elem.rvalue.name in mround:
+                    return rounds_list.index(mround)
+
+        elif isinstance(elem, While) and (not elem.cond.name == "true"):
+            res = get_rank_of_algo(elem.stmt, rounds_list)
+            if res != -1:
+                return res
+
+    return -1
+
+
+def turn_nested_algo_marked_compound(x, conditions, nested_algos_details, rounds_list):
     """
     Found that we have nested algorithms from the config file
     Iterate through every statement and check for non recv while loops
+
+    For each non recv while loop, take the compound and add markers before
+    and after it
     :return:
     """
+    # Suppose every new algo starts with while (true) {Round Assignment ...}
 
     if not x:
         return
@@ -1175,12 +1210,12 @@ def turn_nested_algo_if_stm(x, conditions):
         if isinstance(elem, If):
             # TODO: exceptions here and list of current conditions
             conditions.append(elem.cond)
-            turn_nested_algo_if_stm(elem.iftrue, conditions)
+            turn_nested_algo_marked_compound(elem.iftrue, conditions, nested_algos_details, rounds_list)
 
             del conditions[-1]
             new_cond = UnaryOp('!', elem.cond)
             conditions.append(new_cond)
-            turn_nested_algo_if_stm(elem.iffalse, conditions)
+            turn_nested_algo_marked_compound(elem.iffalse, conditions, nested_algos_details, rounds_list)
 
             del conditions[-1]
             i += 1
@@ -1191,19 +1226,38 @@ def turn_nested_algo_if_stm(x, conditions):
             continue
         elif isinstance(elem, While):
             # Iterate the while for nested algos
-            turn_nested_algo_if_stm(elem.stmt, conditions)
+            turn_nested_algo_marked_compound(elem.stmt, conditions, nested_algos_details, rounds_list)
 
             # Check if this while is a nested algo - only while(true)
             # are new algorithms
             if elem.cond.name == "true":
-                # Get new condition
+
+                # Get rank of algo
+                r = get_rank_of_algo(elem.stmt, rounds_list)
+
+                # Get new condition - unused as it interferes with older API
                 final_cond = None
                 for comp in conditions:
                     final_cond = BinaryOp("&&", comp, final_cond)
+
                 del x.block_items[i]
-                
                 ifnode = If(final_cond, elem.stmt, None, elem.coord)
-                x.block_items.insert(i, ifnode)
+                # x.block_items.insert(i, ifnode)
+
+                # Construct function calls which represent markers
+                new_id = ID("marker_start()", elem.coord)
+                func = FuncCall(new_id, None, elem.coord)
+                x.block_items.insert(i, func)
                 i += 1
+
+                for el in elem.stmt.block_items:
+                    x.block_items.insert(i, el)
+                    i += 1
+
+                new_id = ID("marker_end()", elem.coord)
+                func2 = FuncCall(new_id, None, elem.coord)
+                x.block_items.insert(i, func2)
+                i += 1
+                nested_algos_details.append((r, func, func2, x))
         else:
             i += 1
