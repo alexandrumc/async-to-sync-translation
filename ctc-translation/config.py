@@ -77,7 +77,7 @@
 
 
 # Number of nested algorithms
-number_of_nested_algorithms = 2
+number_of_nested_algorithms = 3
 
 # We will use list of elements to represent details about each
 # algorithm
@@ -126,6 +126,7 @@ mailbox = []
 # Modify with mailbox name
 mailbox.append("mbox")
 mailbox.append("mboxB")
+mailbox.append("mboxC")
 
 clean_mailbox = []
 
@@ -138,13 +139,13 @@ rounds_list = []
 # Modify with labels for each algorithm
 rounds_list.append(['NewEpoch', 'Ack_E', 'New_Leader', 'BCAST', 'AUX_ROUND'])
 rounds_list.append(['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND'])
-#rounds_list.append(['FIRST_ROUND_C', 'SECOND_ROUND_C', 'THIRD_ROUND_C', 'AUX_ROUND'])
+rounds_list.append(['FIRST_ROUND_C', 'SECOND_ROUND_C', 'THIRD_ROUND_C', 'AUX_ROUND'])
 
 delete_round_phase = []
 
 delete_round_phase.append(False)
 delete_round_phase.append(True)
-#delete_round_phase.append(True)
+delete_round_phase.append(True)
 
 # Add as many fields as you need
 

@@ -38,7 +38,7 @@ else:
 
     nested_algos_details = []
 
-    turn_nested_algo_marked_compound(x, nested_algos_details, config.rounds_list)
+    turn_nested_algo_marked_compound(x, nested_algos_details, config.rounds_list, config.msg_structure_fields)
 
     conditions = []
     whiles_to_if(x, conditions)
@@ -92,6 +92,7 @@ else:
         #        del det[3].block_items[fin_pos - 1]
 
         cop = duplicate_element(ast)
+        # TODO: Delete marker functions
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, config.variables[i]['round'])
 
         print_rounds(labs, trees_dict, trees_paths_dict, config.variables[i]['round'], is_job,
@@ -103,17 +104,18 @@ else:
 
                 # Nested algo should be in a Compound
                 if isinstance(el[2], Compound):
-                    ind = el[2].block_items.index(el[1].block_items[0])
+                    p = find_parent(x, el[1].block_items[0])
+                    ind = p.block_items.index(el[1].block_items[0])
 
                     while True:
-                        elem = el[2].block_items[ind]
-                        del el[2].block_items[ind]
+                        elem = p.block_items[ind]
+                        del p.block_items[ind]
 
                         if isinstance(elem, FuncCall) and elem.name.name == "marker_stop":
                             break
-                    new_id = ID("inner_algorithm_" + letter, el[1].block_items[0])
-                    func = FuncCall(new_id, None, el[1].block_items[0])
-                    el[2].block_items.insert(ind, func)
+                    new_id = ID("inner_algorithm_" + letter, p.block_items[0].coord)
+                    func = FuncCall(new_id, None, p.block_items[0].coord)
+                    p.block_items.insert(ind, func)
 
 
 

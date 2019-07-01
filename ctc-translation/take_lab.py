@@ -1156,7 +1156,7 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, rounds_list)
 
 
-def get_rank_of_algo(x, rounds_list):
+def get_rank_of_algo(x, rounds_list, msg_structure_fields):
     # While loops will be either for receive either another algorithm
     # We are interested only in assignments which contain a round label
     # as right member
@@ -1166,27 +1166,36 @@ def get_rank_of_algo(x, rounds_list):
 
     for elem in x.block_items:
         if isinstance(elem, If):
-            res = get_rank_of_algo(elem.iftrue, rounds_list)
+            res = get_rank_of_algo(elem.iftrue, rounds_list, msg_structure_fields)
             if res != -1:
                 return res
-            res = get_rank_of_algo(elem.iffalse, rounds_list)
+            res = get_rank_of_algo(elem.iffalse, rounds_list, msg_structure_fields)
             if res != -1:
                 return res
 
         elif isinstance(elem, Assignment):
+            # First search to see if this is a round assignment
+            found = False
+            for struc in msg_structure_fields:
+                if elem.lvalue.name == struc['round_field']:
+                    found = True
+                    break
+
+            if not found:
+                continue
             for mround in rounds_list:
-                if elem.rvalue.name in mround:
+                if isinstance(elem.rvalue, ID) and elem.rvalue.name in mround:
                     return rounds_list.index(mround)
 
         elif isinstance(elem, While) and (not elem.cond.name == "true"):
-            res = get_rank_of_algo(elem.stmt, rounds_list)
+            res = get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
             if res != -1:
                 return res
 
     return -1
 
 
-def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, rounds_list):
+def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, rounds_list, msg_structure_fields):
     """
     Found that we have nested algorithms from the config file
     Iterate through every statement and check for non recv while loops
@@ -1275,8 +1284,8 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
         if not isinstance(p, Compound):
             continue
         ind = p.block_items.index(elem)
-        r = get_rank_of_algo(elem.stmt, rounds_list)
-
+        r = get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
+        print r
         del p.block_items[ind]
 
         siz = len(elem.stmt.block_items)

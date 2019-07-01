@@ -141,7 +141,6 @@ int main(int argc, char **argv)
                 bround = FIRST_ROUND;
                 while (true)
                 {
-                    bround = FIRST_ROUND;
                     mboxB = NULL;
                     mB = (msgb *) malloc(sizeof(msgb));
                     if(mB==0) {
@@ -225,7 +224,7 @@ int main(int argc, char **argv)
                     cround = FIRST_ROUND_C;
                 while (true)
                 {
-                    cround = FIRST_ROUND_C;
+
                     mboxC = NULL;
                     mC = (msgb *) malloc(sizeof(msgb));
                     if(mC==0) {
