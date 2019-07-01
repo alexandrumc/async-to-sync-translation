@@ -1,9 +1,9 @@
 from pycparser import c_generator, parse_file
-from pycparser.c_ast import ID, If, Compound
+from pycparser.c_ast import ID, If, Compound, FuncCall
 from modify_whiles import whiles_to_if, identify_recv_exits
-from mbox_removal import remove_mbox
 from generators import CheckIfGenerator, TreeGenerator
 from utils import find_node, duplicate_element, get_label, get_extern_while_body, generate_c_code_from_paths_and_trees
+from mbox_removal import remove_mbox
 
 
 def prune_tree(current_node, lab_source, lab_dest, destination_reached, source_reached):
@@ -45,7 +45,13 @@ def prune_tree(current_node, lab_source, lab_dest, destination_reached, source_r
                     to_delete.append(child)
                 continue
         else:
+            # First check if child is marker start/stop function
+            # as this needs to be deleted, but only after source reached
             if not destination_reached:
+                if isinstance(child, FuncCall) and (
+                        child.name.name == "marker_start" or child.name.name == "marker_stop"):
+                    to_delete.append(child)
+                    continue
                 if isinstance(child, If) is False:
                     if child == lab_dest:
                         destination_reached.append(True)
