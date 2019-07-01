@@ -138,9 +138,9 @@ int main(int argc, char **argv)
                     newEntry = create_ltype(in(),0);
                     list_add(log,newEntry);
                 }
-                bround = FIRST_ROUND;
                 while (true)
                 {
+                    bround = FIRST_ROUND;
                     mboxB = NULL;
                     mB = (msgb *) malloc(sizeof(msgb));
                     if(mB==0) {
