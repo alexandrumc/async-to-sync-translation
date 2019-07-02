@@ -2,7 +2,8 @@ import copy
 import os
 from utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
     find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles
-from generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor
+from generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor, DeclAlgoVisitor, \
+    AllVarsAlgoVisitor
 from compute_paths import find_all_paths_between_two_nodes, prune_tree
 from pycparser import c_generator, parse_file
 from pycparser.plyparser import Coord
@@ -1227,3 +1228,24 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
             ind += 1
             j += 1
         nested_algos_details.append((r, elem.stmt, p))
+
+
+def add_to_param_list(ast, decl_vars, all_vars):
+    """
+    This function will use a visitor for each AST in trees_dict
+    :param ast:
+    :param decl_vars:
+    :param all_vars:
+    :return:
+    """
+    m_body = get_extern_while_body_from_func(ast, "main")
+
+    v = DeclAlgoVisitor()
+    v.visit(m_body)
+
+    decl_vars.extend(v.result_list)
+
+    v = AllVarsAlgoVisitor()
+    v.visit(m_body)
+
+    all_vars.extend(v.result_list)

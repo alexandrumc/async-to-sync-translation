@@ -1,6 +1,7 @@
-from take_lab import take_code_from_file, get_extern_while_body_from_func, get_paths_trees, turn_nested_algo_marked_compound, print_rounds
+from take_lab import take_code_from_file, get_extern_while_body_from_func, get_paths_trees, \
+    turn_nested_algo_marked_compound, print_rounds, add_to_param_list
 from pycparser import parse_file
-from utils import duplicate_element, find_parent
+from utils import duplicate_element, find_parent, get_global_vars
 
 from modify_whiles import *
 import sys
@@ -8,6 +9,13 @@ import config
 from mbox_removal import remove_mbox
 
 ast = parse_file(filename=sys.argv[1], use_cpp=False)
+
+global_vars = []
+
+# For determining the global variables I will not use a
+# visitor as I would have to jump over to many cases
+get_global_vars(ast, global_vars)
+
 x = get_extern_while_body_from_func(ast, "main")
 
 # If we have only one algorithm then process it directly
@@ -75,29 +83,23 @@ else:
         labs = duplicate_element(config.rounds_list[i])
         labs.append('ERR_ROUND')
 
-        # Find this algo in code, delete markers
-        # and update pointers for the whole deletion
-        #del_reminder = []
-        #for det in nested_algos_details:
-        #    if det[0] == i:
-        #        start_pos = det[3].block_items.index(det[1])
-        #        fin_pos = det[3].block_items.index(det[2])
-
-        #        print det[3].block_items[fin_pos-1].rvalue.name
-
-        #        del_reminder.append((det[3].block_items[start_pos + 1], det[3].block_items[fin_pos - 1], det[3],
-        #                            det[2]))
-
-        #        del det[3].block_items[start_pos]
-        #        del det[3].block_items[fin_pos - 1]
-
         cop = duplicate_element(ast)
-        # TODO: Delete marker functions
+
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, config.variables[i]['round'])
 
         print_rounds(labs, trees_dict, trees_paths_dict, config.variables[i]['round'], is_job,
                      config.delete_round_phase[i], config.msg_structure_fields[i],
                      config.variables[i], config.rounds_list[i])
+
+        # Construct the list of declared variables and of all used vars
+        decl_var = []
+        all_vars = []
+        for el in trees_dict.values():
+            add_to_param_list(el[0], decl_var, all_vars)
+
+        # Get unique elements
+        decl_var = list(set(decl_var))
+        all_vars = list(set(all_vars))
 
         for el in nested_algos_details:
             if el[0] == i:
@@ -114,24 +116,10 @@ else:
                         if isinstance(elem, FuncCall) and elem.name.name == "marker_stop":
                             break
                     new_id = ID("inner_algorithm_" + letter, p.block_items[0].coord)
+
+                    # TODO: Functional statement for getting the args list from strings
                     func = FuncCall(new_id, None, p.block_items[0].coord)
                     p.block_items.insert(ind, func)
-
-
-
-
-        # Replace this algorithm with a function call
-        #for tup in del_reminder:
-        #    ind = tup[2].block_items.index(tup[0])
-        #    while True:
-        #        elem = tup[2].block_items[ind]
-        #        del tup[2].block_items[ind]
-
-        #        if elem == tup[1]:
-        #            break
-        #    new_id = ID("inner_algorithm_" + letter, tup[3].coord)
-        #    func = FuncCall(new_id, None, tup[3].coord)
-        #    tup[2].block_items.insert(ind, func)
 
         i -= 1
 

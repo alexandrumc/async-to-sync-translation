@@ -1,5 +1,5 @@
 import copy
-from pycparser.c_ast import FileAST, FuncDef, While
+from pycparser.c_ast import FileAST, FuncDef, While, Decl, TypeDecl, PtrDecl
 from generators import PathGenerator, LabelVisitor, LocateNode, LocateParentNode, CheckLabelNumber,\
     EpochVisitor, LocateParentNodeUpdated, SendVisitor, RecvWhileVisitor
 
@@ -7,6 +7,17 @@ main_function_name = "main"
 new_code = "\n\n\n\n NEW CODE \n\n\n\n"
 new_path = "\n\n NEW PATH \n\n"
 new_element = "\n\nNEW ELEMENT\n\n"
+
+
+def get_global_vars(ast, result_list):
+    if not ast:
+        return
+    for elem in ast.ext:
+        if isinstance(elem, Decl) and len(elem.storage) == 0:
+            if isinstance(elem.type, TypeDecl):
+                result_list.append(elem.name)
+            elif isinstance(elem.type, PtrDecl):
+                result_list.append("*" + elem.name)
 
 
 def duplicate_element(element):

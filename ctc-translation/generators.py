@@ -1,5 +1,5 @@
 from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, \
-    Break, StructRef, BinaryOp
+    Break, StructRef, BinaryOp, TypeDecl, PtrDecl
 from pycparser import c_generator, c_ast
 from modify_whiles import to_modify
 import copy
@@ -233,6 +233,50 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
                 self.generic_visit(node.iffalse)
 
         del self.conditions[-1]
+
+
+class DeclAlgoVisitor(c_ast.NodeVisitor):
+    """
+    This visitor creates a list with all variables declared inside an algorithm
+    """
+
+    def __init__(self):
+        self.result_list = []
+
+    def visit_Decl(self, node):
+        if len(node.storage) != 0:
+            return
+
+        if isinstance(node.type, TypeDecl):
+            self.result_list.append(node.name)
+        elif isinstance(node.type, PtrDecl):
+            self.result_list.append("*" + node.name)
+
+
+class AllVarsAlgoVisitor(c_ast.NodeVisitor):
+    """
+    This visitor creates a list with all IDs met inside an algo
+    """
+
+    def __init__(self):
+        self.result_list = []
+
+    def visit_ID(self, node):
+        if node.name == "NULL":
+            return
+        if node.name == "to_all":
+            return
+
+        self.result_list.append(node.name)
+
+    def visit_FuncCall(self, node):
+        if node.args:
+            if node.args.exprs:
+                self.generic_visit(node.args.exprs)
+
+    def visit_StructRef(self, node):
+        if node.name:
+            self.result_list.append(node.name.name)
 
 
 class CondVisitor(c_generator.CGenerator):
