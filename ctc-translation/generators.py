@@ -117,6 +117,14 @@ class EmptyInstrVisitor(c_ast.NodeVisitor):
             if isinstance(node.iffalse, Compound) and len(node.iffalse.block_items) == 0:
                 node.iffalse = None
 
+        if node.iffalse:
+            if isinstance(node.iffalse, If):
+                self.visit_If(node.iffalse)
+            elif isinstance(node.iffalse, While):
+                self.visit_While(node.iffalse)
+            elif not isinstance(node.iffalse, Compound):
+                self.generic_visit(node.iffalse)
+
         if node.iftrue:
             if isinstance(node.iftrue, Compound) and len(node.iftrue.block_items) != 0:
                 self.generic_visit(node.iftrue)
@@ -124,6 +132,14 @@ class EmptyInstrVisitor(c_ast.NodeVisitor):
         if node.iftrue:
             if isinstance(node.iftrue, Compound) and len(node.iftrue.block_items) == 0:
                 node.iftrue = None
+
+        if node.iftrue:
+            if isinstance(node.iftrue, If):
+                self.visit_If(node.iftrue)
+            elif isinstance(node.iftrue, While):
+                self.visit_While(node.iftrue)
+            elif not isinstance(node.iftrue, Compound):
+                self.generic_visit(node.iftrue)
 
         if (not node.iftrue) and (not node.iffalse):
             self.result_list.append(node)
@@ -136,12 +152,21 @@ class EmptyInstrVisitor(c_ast.NodeVisitor):
             node.iffalse = None
 
     def visit_While(self, node):
-        if node.stmt and len(node.stmt.block_items) != 0:
-            self.generic_visit(node.stmt)
+        if node.stmt:
+            if isinstance(node.stmt, If):
+                self.visit_If(node.stmt)
+            elif isinstance(node.stmt, While):
+                self.visit_While(node.stmt)
+            elif not isinstance(node.stmt, Compound):
+                self.generic_visit(node.stmt)
+
+        if node.stmt:
+            if isinstance(node.stmt, Compound) and len(node.stmt.block_items) != 0:
+                self.generic_visit(node.stmt)
 
         if not node.stmt:
             self.result_list.append(node)
-        elif node.stmt and len(node.stmt.block_items) == 0:
+        elif isinstance(node.stmt, Compound) and len(node.stmt.block_items) == 0:
             self.result_list.append(node)
 
 
@@ -159,7 +184,12 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
     def visit_While(self, node):
         if node.stmt:
-            self.generic_visit(node.stmt)
+            if isinstance(node.stmt, If):
+                self.visit_If(node.stmt)
+            elif isinstance(node.stmt, While):
+                self.visit_While(node.stmt)
+            else:
+                self.generic_visit(node.stmt)
 
         if node.cond.name != "true":
             return
@@ -184,13 +214,23 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
     def visit_If(self, node):
         self.conditions.append(node.cond)
         if node.iftrue:
-            self.generic_visit(node.iftrue)
+            if isinstance(node.iftrue, If):
+                self.visit_If(node.iftrue)
+            elif isinstance(node.iftrue, While):
+                self.visit_While(node.iftrue)
+            else:
+                self.generic_visit(node.iftrue)
 
         del self.conditions[-1]
         new_cond = UnaryOp('!', node.cond)
         self.conditions.append(new_cond)
         if node.iffalse:
-            self.generic_visit(node.iffalse)
+            if isinstance(node.iffalse, If):
+                self.visit_If(node.iffalse)
+            elif isinstance(node.iffalse, While):
+                self.visit_While(node.iffalse)
+            else:
+                self.generic_visit(node.iffalse)
 
         del self.conditions[-1]
 

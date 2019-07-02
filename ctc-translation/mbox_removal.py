@@ -48,20 +48,28 @@ def remove_list_dispose(extern_while_body, func_names):
 
 
 def remove_null_if(extern_while_body):
-    v = EmptyInstrVisitor()
-    v.visit(extern_while_body)
 
-    for el in v.result_list:
-        p = utils.find_parent(extern_while_body, el)
+    keep_removing = True
 
-        if isinstance(p, Compound):
-            p.block_items.remove(el)
+    # Captures nested deletions
+    while keep_removing:
+        v = EmptyInstrVisitor()
+        v.visit(extern_while_body)
 
-        if isinstance(p, If):
-            if p.iftrue == el:
-                p.iftrue = None
-            elif p.iffalse == el:
-                p.iffalse = None
+        if len(v.result_list) == 0:
+            keep_removing = False
+
+        for el in v.result_list:
+            p = utils.find_parent(extern_while_body, el)
+
+            if isinstance(p, Compound):
+                p.block_items.remove(el)
+
+            if isinstance(p, If):
+                if p.iftrue == el:
+                    p.iftrue = None
+                elif p.iffalse == el:
+                    p.iffalse = None
 
 
 def remove_mbox(extern_while_body, mess_names, func_names):
