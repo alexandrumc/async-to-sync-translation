@@ -1,7 +1,7 @@
 from take_lab import take_code_from_file, get_extern_while_body_from_func, get_paths_trees, \
-    turn_nested_algo_marked_compound, print_rounds, add_to_param_list
+    turn_nested_algo_marked_compound, print_rounds, get_param_list
 from pycparser import parse_file
-from utils import duplicate_element, find_parent, get_global_vars
+from utils import duplicate_element, find_parent, get_global_vars, get_vars_table
 
 from modify_whiles import *
 import sys
@@ -16,7 +16,15 @@ global_vars = []
 # visitor as I would have to jump over to many cases
 get_global_vars(ast, global_vars)
 
+# Construct a variables table with name : type
+# used for determining the type of inferred for
+# nested algos
+vars_table = {}
+
 x = get_extern_while_body_from_func(ast, "main")
+get_vars_table(x, vars_table)
+print vars_table
+
 
 # If we have only one algorithm then process it directly
 if config.number_of_nested_algorithms == 1:
@@ -91,22 +99,16 @@ else:
                      config.delete_round_phase[i], config.msg_structure_fields[i],
                      config.variables[i], config.rounds_list[i])
 
-        # Construct the list of declared variables and of all used vars
-        decl_var = []
-        all_vars = []
-        for el in trees_dict.values():
-            add_to_param_list(el[0], decl_var, all_vars)
+        all_vars = get_param_list(trees_dict, i, global_vars, config.mailbox[i], vars_table)
+        all_vars = list(map(lambda x: ID(x, None), all_vars))
 
-        # Get unique elements
-        decl_var = list(set(decl_var))
-        all_vars = list(set(all_vars))
+        cop_all_vars = duplicate_element(all_vars)
 
         for el in nested_algos_details:
             if el[0] == i:
-
+                p = find_parent(x, el[1].block_items[0])
                 # Nested algo should be in a Compound
-                if isinstance(el[2], Compound):
-                    p = find_parent(x, el[1].block_items[0])
+                if isinstance(p, Compound):
                     ind = p.block_items.index(el[1].block_items[0])
 
                     while True:
@@ -116,18 +118,7 @@ else:
                         if isinstance(elem, FuncCall) and elem.name.name == "marker_stop":
                             break
                     new_id = ID("inner_algorithm_" + letter, p.block_items[0].coord)
-
-                    # TODO: Functional statement for getting the args list from strings
-                    func = FuncCall(new_id, None, p.block_items[0].coord)
+                    func = FuncCall(new_id, ExprList(cop_all_vars, p.block_items[0].coord), p.block_items[0].coord)
                     p.block_items.insert(ind, func)
 
         i -= 1
-
-#conditii = []
-#whiles_to_if(x, conditii)
-
-#identify_recv_exits(x, conditii)
-#remove_mbox(x, config.mailbox_1, config.clean_mailbox_1)
-
-#take_code_from_file(ast, sys.argv[1], config.variables_1['round'],
-#                    config.rounds_list_1, config.delete_round_phase, config.msg_structure_fields_1, config.variables_1)

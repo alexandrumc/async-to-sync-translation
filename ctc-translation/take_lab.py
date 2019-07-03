@@ -1218,7 +1218,7 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
             continue
         ind = p.block_items.index(elem)
         r = get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
-        print r
+
         del p.block_items[ind]
 
         siz = len(elem.stmt.block_items)
@@ -1230,22 +1230,61 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
         nested_algos_details.append((r, elem.stmt, p))
 
 
-def add_to_param_list(ast, decl_vars, all_vars):
+def add_to_param_list(ast, decl_vars, all_vars, mbox_name):
     """
     This function will use a visitor for each AST in trees_dict
     :param ast:
     :param decl_vars:
     :param all_vars:
+    :param mbox_name:
     :return:
     """
     m_body = get_extern_while_body_from_func(ast, "main")
 
-    v = DeclAlgoVisitor()
+    v = DeclAlgoVisitor(mbox_name)
     v.visit(m_body)
 
-    decl_vars.extend(v.result_list)
+    decl_vars.extend(list(map(lambda x: x[0], v.result_list)))
 
     v = AllVarsAlgoVisitor()
     v.visit(m_body)
 
     all_vars.extend(v.result_list)
+
+
+def get_param_list(trees_dict, i, global_vars, mbox_name, vars_table):
+
+    # Construct the list of declared variables and of all used vars
+    decl_var = []
+    all_vars = []
+    for elem in trees_dict.values():
+        for subel in elem:
+            add_to_param_list(subel, decl_var, all_vars, mbox_name)
+
+    # Get unique elements
+    decl_var = list(set(decl_var))
+    all_vars = list(set(all_vars))
+
+    # Keep elems which are not decl or global
+    all_vars = list(filter(lambda x: (x not in decl_var) and (x not in global_vars), all_vars))
+
+    all_vars = list(filter(lambda x: (x != "pid") and (x != "n") and (x != "ROUND") and (x != "PHASE"), all_vars))
+
+    # Eliminate own algo variables
+    all_vars = list(filter(lambda x: (x != config.mailbox[i]) and (x != config.msg_structure_fields[i]["name"]),
+                           all_vars))
+
+    # Consider known all phases and rounds
+    for el in config.msg_structure_fields:
+        all_vars = list(filter(lambda x: (x != el["phase_field"]) and (x != el["round_field"]), all_vars))
+
+    # Eliminate labels of algorithms
+    for j in config.rounds_list:
+        all_vars = list(filter(lambda x: (x not in j), all_vars))
+
+    final_list = []
+    for el in all_vars:
+        if el in vars_table:
+            final_list.append(vars_table[el][0] + el)
+
+    return all_vars

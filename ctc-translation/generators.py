@@ -1,5 +1,5 @@
 from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, \
-    Break, StructRef, BinaryOp, TypeDecl, PtrDecl
+    Break, StructRef, BinaryOp, TypeDecl, PtrDecl, Decl, Struct, Enum
 from pycparser import c_generator, c_ast
 from modify_whiles import to_modify
 import copy
@@ -240,17 +240,48 @@ class DeclAlgoVisitor(c_ast.NodeVisitor):
     This visitor creates a list with all variables declared inside an algorithm
     """
 
-    def __init__(self):
+    def __init__(self, mbox_name):
         self.result_list = []
+        self.mbox_name = mbox_name
 
     def visit_Decl(self, node):
         if len(node.storage) != 0:
             return
 
+        if (not isinstance(node.type, TypeDecl)) and (not isinstance(node.type, PtrDecl)):
+            return
+
         if isinstance(node.type, TypeDecl):
-            self.result_list.append(node.name)
+            inner_type = node.type.type
+
+            if isinstance(inner_type, Struct):
+                self.result_list.append((node.name, "struct " + inner_type.name))
+            else:
+                self.result_list.append((node.name, inner_type.names[0]))
         elif isinstance(node.type, PtrDecl):
-            self.result_list.append("*" + node.name)
+            inner_type = node.type.type.type
+            if isinstance(inner_type, Struct):
+                self.result_list.append((node.name, "struct " + inner_type.name + "*"))
+            else:
+                self.result_list.append((node.name, inner_type.names[0] + "*"))
+
+    def visit_Assignment(self, node):
+        # If we have an assignment old_0_mbox = ... then
+        # this is like a declared var
+        if isinstance(node.lvalue, ID):
+            if "old" in node.lvalue.name and self.mbox_name in node.lvalue.name:
+                self.result_list.append((node.lvalue.name, ""))
+        elif isinstance(node.lvalue, Decl):
+            self.visit_Decl(node.lvalue)
+        else:
+            self.generic_visit(node.lvalue)
+
+        if isinstance(node.rvalue, Decl):
+            self.visit_Decl(node.rvalue)
+        elif isinstance(node.rvalue, Assignment):
+            self.visit_Assignment(node.rvalue)
+        else:
+            self.generic_visit(node.rvalue)
 
 
 class AllVarsAlgoVisitor(c_ast.NodeVisitor):
@@ -276,7 +307,8 @@ class AllVarsAlgoVisitor(c_ast.NodeVisitor):
 
     def visit_StructRef(self, node):
         if node.name:
-            self.result_list.append(node.name.name)
+            if isinstance(node.name, ID):
+                self.result_list.append(node.name.name)
 
 
 class CondVisitor(c_generator.CGenerator):
