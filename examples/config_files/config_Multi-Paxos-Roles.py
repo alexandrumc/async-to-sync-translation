@@ -110,6 +110,19 @@ msg_structure_fields.append(dict(
     round_field="bround"
 ))
 
+mailbox = []
+
+# Modify with mailbox name
+mailbox.append("mbox")
+mailbox.append("mboxB")
+mailbox.append("mboxC")
+
+clean_mailbox = []
+
+# Modify with clean mailbox function name
+clean_mailbox.append("list_dispose")
+clean_mailbox.append("list_dispose2")
+
 rounds_list = []
 
 # Modify with labels for each algorithm
