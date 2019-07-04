@@ -1285,6 +1285,12 @@ def get_param_list(trees_dict, i, global_vars, mbox_name, vars_table):
     final_list = []
     for el in all_vars:
         if el in vars_table:
-            final_list.append(vars_table[el][0] + el)
+            final_list.append(vars_table[el][0] + " " + el)
+        elif "old_" in el:
+            for mbox in config.mailbox:
+                if mbox in el:
+                    if mbox in vars_table:
+                        final_list.append(vars_table[mbox][0] + " " + el)
+                        break
 
-    return all_vars
+    return final_list

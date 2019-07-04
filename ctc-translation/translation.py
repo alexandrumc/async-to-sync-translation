@@ -22,8 +22,7 @@ get_global_vars(ast, global_vars)
 vars_table = {}
 
 x = get_extern_while_body_from_func(ast, "main")
-get_vars_table(x, vars_table)
-print vars_table
+get_vars_table(ast, vars_table)
 
 
 # If we have only one algorithm then process it directly
@@ -99,6 +98,7 @@ else:
                      config.delete_round_phase[i], config.msg_structure_fields[i],
                      config.variables[i], config.rounds_list[i])
 
+        all_vars = []
         all_vars = get_param_list(trees_dict, i, global_vars, config.mailbox[i], vars_table)
         all_vars = list(map(lambda x: ID(x, None), all_vars))
 

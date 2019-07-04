@@ -23,16 +23,17 @@ def get_global_vars(ast, result_list):
 def get_vars_table(ast, vars_table):
     if not ast:
         return
+
     v = DeclAlgoVisitor("")
     v.visit(ast)
 
     for el in v.result_list:
         if el[1] != "":
             if el[0] in vars_table:
-                vars_table[el[0]].append(el[1])
+                if el[1] not in vars_table[el[0]]:
+                    vars_table[el[0]].append(el[1])
             else:
                 vars_table[el[0]] = [el[1]]
-
 
 
 def duplicate_element(element):

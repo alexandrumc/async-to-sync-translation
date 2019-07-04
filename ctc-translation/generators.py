@@ -244,6 +244,9 @@ class DeclAlgoVisitor(c_ast.NodeVisitor):
         self.result_list = []
         self.mbox_name = mbox_name
 
+    def visit_Typedef(self, node):
+        return
+
     def visit_Decl(self, node):
         if len(node.storage) != 0:
             return
@@ -256,6 +259,8 @@ class DeclAlgoVisitor(c_ast.NodeVisitor):
 
             if isinstance(inner_type, Struct):
                 self.result_list.append((node.name, "struct " + inner_type.name))
+            elif isinstance(inner_type, Enum):
+                self.result_list.append((node.name, "enum " + inner_type.name))
             else:
                 self.result_list.append((node.name, inner_type.names[0]))
         elif isinstance(node.type, PtrDecl):
@@ -295,12 +300,16 @@ class AllVarsAlgoVisitor(c_ast.NodeVisitor):
     def visit_ID(self, node):
         if node.name == "NULL":
             return
+
         if node.name == "to_all":
             return
 
         self.result_list.append(node.name)
 
     def visit_FuncCall(self, node):
+        if "inner_algorithm" in node.name.name:
+            return
+
         if node.args:
             if node.args.exprs:
                 self.generic_visit(node.args.exprs)
