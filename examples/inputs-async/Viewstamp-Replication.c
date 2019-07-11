@@ -4,11 +4,11 @@
 
 #define true 1
 
-enum NormalOperations {Prepare_ROUND, PrepareOk_ROUND, AUX_ROUND};
+enum NormalOperations {Prepare_ROUND, PrepareOk_ROUND};
 
-enum ViewChange {DoViewChange_ROUND, StartView_ROUND, AUX_ROUND};
+enum ViewChange {DoViewChange_ROUND, StartView_ROUND};
 
-enum Recovery {Recovery_ROUND, RecoveryResponse_ROUND, AUX_ROUND};
+enum Recovery {Recovery_ROUND, RecoveryResponse_ROUND};
 
 enum Status {normal, view_change, recovering};
 
@@ -57,6 +57,11 @@ typedef struct {
 
     log_str **array;
 } arraylist;
+
+typedef struct comm {
+    int op_number, count;
+    comm *next;
+} commit_list;
 
 void abort() {
     exit(1);
@@ -160,7 +165,7 @@ void add_entry_log(log_str *entry, arraylist *log) {
     log->size++;
 }
 
-void timeout() {}
+int timeout() { return 0; }
 
 void reset_timeout() {}
 
@@ -243,7 +248,11 @@ int main(int argc, char **argv)
             msgA = NULL;
 
             round = PrepareOk_ROUND;
+            commit_list l = NULL;
 
+            //while (true) {
+
+            //}
             round = Prepare_ROUND;
         } else {
             mboxA = NULL;
@@ -252,8 +261,8 @@ int main(int argc, char **argv)
             while (true) {
                 msgA = (msg_NormalOp*)recv();
 
-                if (msgA != NULL && strcmp(msgA->message) != "ping") {
-                    msg_NormalOp *new_mboxA = malloc(sizeof(msg_NormalOp));
+                if (msgA != NULL && strcmp(msgA->message, "ping") != 0) {
+                    listA *new_mboxA = malloc(sizeof(msg_NormalOp));
 
                     if (new_mboxA == NULL) {
                         abort();
@@ -329,7 +338,7 @@ int main(int argc, char **argv)
                         /* Added a new entry, check if we can put other entries
                             from the aux buffer */
                         while (sw == 1) {
-                            i = 0
+                            i = 0;
                             while (i < aux_log->size) {
                                 if (aux_log->array[i]->op_number == log->size + 1) {
                                     break;
@@ -354,9 +363,9 @@ int main(int argc, char **argv)
                                 }
 
                                 strcpy(mess_node->info->message, aux_log->array[i]->message);
-                                mess_node->info->view_nr = aux_log->array[i]->info->view_nr;
+                                mess_node->info->view_nr = aux_log->array[i]->view_nr;
                                 mess_node->info->replica_id = pid;
-                                mess_node->info->request_nr = aux_log->array[i]->info->request_nr;
+                                mess_node->info->request_nr = aux_log->array[i]->op_number;
 
                                 if (mess_list) {
                                     mess_node->size = mess_list->size + 1;
@@ -373,13 +382,22 @@ int main(int argc, char **argv)
                     } else {
                         add_entry_log(create_log_entry(mboxA->info->view_nr,
                                     mboxA->info->request_nr,
-                                    mboxA->info->message), aux_log));
+                                    mboxA->info->message), aux_log);
                     }
 
                 }
                 listA *it = mess_list;
                 while (it) {
                     /* PrepOk message and send to primary */
+                    msgA = malloc(sizeof(msg_NormalOp));
+                    if (!msgA)
+                        abort();
+
+                    msgA->view_nr = it->info->view_nr;
+                    msgA->request_nr = it->info->request_nr;
+                    msgA->replica_id = pid;
+                    strcpy(msgA->message, it->info->message);
+                    send((void*)msgA, get_primary(view_nr, n));
                     it = it->next;
                 }
             }
