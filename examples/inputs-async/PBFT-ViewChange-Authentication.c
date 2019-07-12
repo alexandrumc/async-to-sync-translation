@@ -131,14 +131,14 @@ int main(int argc, char **argv)//@ : main
         if(mbox!=NULL && mbox->size > 2*n/3 && all_same(mbox,view) ) {  
             view = mbox->message->view;  
             round = ViewChangeAck_ROUND;
-            
-            while(true)
-            { 
-                mviewchange = mbox->message;
+
+            mviewchange = mbox->message;
+            while(mviewchange)
+            {
                 // Send the ViewChangeAck to the new primary
                 m = (msg *) malloc(sizeof(msg));
                 if(m==0) {
-                abort();
+                    abort();
                 }
                 m->view = view;
                 m->pid = pid;
@@ -149,16 +149,12 @@ int main(int argc, char **argv)//@ : main
                 dispose(m);
                 
                 mviewchange = mbox->next;
-                
-                if(mviewchange == NULL) {
-                    break;
-                }
             }
                 
             list_dispose(mbox);
         }
         
-        round = ViewChange_ROUND;
+        round = NewView_ROUND;
         
         if(primary(n,view)==pid){
             

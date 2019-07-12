@@ -10,7 +10,7 @@ from pycparser.plyparser import Coord
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
     For, Compound, Continue, FuncCall, FuncDecl, IdentifierType, Decl, TypeDecl
 from modify_whiles import coord_aux, to_modify, whiles_to_if, identify_recv_exits
-from mbox_removal import remove_mbox
+from mbox_removal import remove_mbox, remove_null_if
 from cStringIO import StringIO
 import sys
 import config
@@ -242,6 +242,7 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
                         dest_list = []
                         source_list = []
                         prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
+                        #remove_null_if(get_extern_while_body(cop))
 
                         if dest_list and source_list:
                             context = []
@@ -624,7 +625,7 @@ def print_code(trees_dict, trees_paths_dict, labels):
     print_code_from_trees_paths(trees_paths_dict, labels)
 
 
-def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, first_round):
+def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables):
     labels.reverse()
     # print labels[:len(labels) - 1]
     save_round = ""
@@ -651,7 +652,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
 
         for tree in trees_dict[label]:
             # print TreeGenerator().visit(get_extern_while_body(tree))
-            gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, first_round, save_round)
+            gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, save_round)
 
 
             result = gen.visit(get_extern_while_body(tree))
@@ -671,7 +672,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
                 # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
-                gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, first_round, save_round, tuple_el[1])
+                gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, save_round, tuple_el[1])
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
                 if gen.remember_round != "":
                     save_round = gen.remember_round
@@ -702,7 +703,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         history_of_strings = []
         for i, tree in enumerate(trees_dict[label]):
             # print TreeGenerator().visit(get_extern_while_body(tree))
-            gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, first_round, save_round)
+            gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, save_round)
             if not found_send_list[i]:
                 gen.send_reached = True
             result = gen.visit(get_extern_while_body(tree))
@@ -717,7 +718,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
                 # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
-                gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, first_round, save_round, tuple_el[1])
+                gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, save_round, tuple_el[1])
                 if not found_send_list[i]:
                     gen.send_reached = True
                 result = gen.visit(get_extern_while_body(tuple_el[0]))

@@ -774,7 +774,7 @@ class RoundGenerator(c_generator.CGenerator):
     The last case needs more complex computation.
     """
 
-    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, first_round, save_round, path=None):
+    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, save_round, path=None):
         c_generator.CGenerator.__init__(self)
         # a string that indicates send or update mode; "send" for send and "update" for update
         self.mode = mode
@@ -799,7 +799,6 @@ class RoundGenerator(c_generator.CGenerator):
         self.delete = delete_round_phase
         self.message = message
         self.variables = variables
-        self.first_round = first_round
         self.remember_round = save_round
 
     def visit_Break(self, n):
@@ -1067,7 +1066,7 @@ class RoundGenerator(c_generator.CGenerator):
                     if self.mode == "update" and self.send_reached:
                         if n.lvalue.name == self.labelname and isinstance(n.rvalue, ID) \
                                 and n.rvalue.name == "AUX_ROUND":
-                            n.rvalue.name = self.first_round
+                            n.rvalue.name = "ERR_ROUND"
 
                     if self.delete:
                         if isinstance(n.rvalue, ID):
