@@ -60,7 +60,7 @@ typedef struct {
 
 typedef struct comm {
     int op_number, count;
-    comm *next;
+    struct comm *next;
 } commit_list;
 
 void abort() {
@@ -89,6 +89,10 @@ char *prepare_ping() {
 }
 
 void send(void *mess, int n) {
+
+}
+
+void out_external(char *mess) {
 
 }
 
@@ -146,6 +150,7 @@ void dispose_log(arraylist **log) {
     free(log);
 }
 
+/* Adds an entry to a log, and resizes log if necessary */
 void add_entry_log(log_str *entry, arraylist *log) {
     log_str **aux;
     if (log->size == log->current) {
@@ -175,7 +180,7 @@ void *recv() {
 
 int main(int argc, char **argv)
 {
-    /* Check for IP, replica_id and total nr of nodes as command line args */
+    /* Check for replica_id, IP and total nr of nodes as command line args */
     if (argc < 4) {
         printf("Not enough arguments!\n");
         return 0;
@@ -190,6 +195,7 @@ int main(int argc, char **argv)
     msg_NormalOp *msgA = NULL;
     listA *mboxA = NULL;
 
+    /* aux_log is used so that client requests are solved in order */
     arraylist *log = init_log(), *aux_log = init_log();
 
     char *client_req = NULL;
@@ -214,6 +220,7 @@ int main(int argc, char **argv)
                 abort();
             }
 
+            /* Check if a request has been received form client */
             client_req = in();
 
             if (!client_req) {
@@ -248,11 +255,69 @@ int main(int argc, char **argv)
             msgA = NULL;
 
             round = PrepareOk_ROUND;
-            commit_list l = NULL;
+            commit_list *l = NULL;
 
-            //while (true) {
+            /* This recv loop will atomic modify the commit_list
+               Because responses can come out-of-order, and we output in-order,
+               waiting for > f PrepareOk messages in an mbox, might not be
+               alright
+            */
+            while (true) {
+                msgA = (msg_NormalOp*) recv();
 
-            //}
+                /* Says if insertion of a new node to be commited is necessary */
+                int chk = 0;
+                commit_list *aux = l, *prev = NULL;
+
+                while (aux) {
+                    if (aux->op_number == msgA->request_nr && aux->count != -1) {
+                        aux->count++;
+                        break;
+                    } else if (aux->op_number > msgA->request_nr) {
+                        chk = 1;
+                        break;
+                    }
+                    prev = aux;
+                    aux = aux->next;
+                }
+
+                /* If insertion necessary, decide if at begining of list, or
+                   somewhere in the middle */
+                if (!l || chk == 1) {
+                    commit_list *l_new = malloc(sizeof(commit_list));
+                    if (!l_new) {
+                        abort();
+                    }
+
+                    l_new->op_number = msgA->request_nr;
+                    l_new->count = 1;
+
+                    if (prev == NULL) {
+                        l_new->next = l;
+                        l = l_new;
+                    } else {
+                        l_new->next = prev->next;
+                        prev->next = l_new;
+                    }
+                }
+
+                if (timeout())
+                    break;
+            }
+
+            /* Check the new commit list and if to send answer to client */
+            commit_list *aux2 = l;
+            while (aux2) {
+                if (aux2->count != -1 && aux2->count <= n/2)
+                    break;
+
+                if (aux2->count != -1 && aux2->count > n/2) {
+                    aux2->count = -1;
+                    log->array[aux2->op_number]->commited = 1;
+                    out_external(log->array[aux2->op_number]->message);
+                }
+                aux2 = aux2->next;
+            }
             round = Prepare_ROUND;
         } else {
             mboxA = NULL;
@@ -302,6 +367,8 @@ int main(int argc, char **argv)
                 }
 
                 listA *mess_list = NULL, *mess_node = NULL;
+                /* If received view_nr is less, do nothing and wait for wrong
+                    leader to recover */
                 if (mboxA->info->view_nr == view_nr){
                     if (log->size + 1 == mboxA->info->request_nr) {
                         add_entry_log(create_log_entry(mboxA->info->view_nr,
@@ -379,7 +446,7 @@ int main(int argc, char **argv)
                                 sw = 0;
                             }
                         }
-                    } else {
+                    } else if (log->size + 1 < mboxA->info->request_nr) {
                         add_entry_log(create_log_entry(mboxA->info->view_nr,
                                     mboxA->info->request_nr,
                                     mboxA->info->message), aux_log);
