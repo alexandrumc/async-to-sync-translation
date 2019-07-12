@@ -1,19 +1,20 @@
-
-
 Launched procedure for nested algorithms
+
+
+Algorithm B
 
 
 def round FIRST_ROUND:
   SEND():
 
-  if ((pid == coord(n)))
+  if ((pid == coord(n)) && ((old_0_mbox != NULL) && (old_0_mbox->size > (n / 2))))
   {
     mB = (msgb *) malloc(sizeof(msgb));
     if ((mB == 0))
     {
       abort();
     }
-    mB->round = bround;
+    mB->round = ROUND;
     mB->epoch = epoch;
     mB->lab = BCAST;
     mB->sender = leader;
@@ -27,11 +28,8 @@ def round FIRST_ROUND:
 
   UPDATE():
 
-  if ((pid == coord(n)))
-  {
-    bround = SECOND_ROUND;
-  }
-  if (!(pid == coord(n)))
+  
+  if (!(pid == coord(n)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)) && (((old_2_mbox != NULL) && (old_2_mbox->size == 1)) && (old_2_mbox->next == NULL)))
   {
     if (((((mboxB != NULL) && (mboxB->size >= 1)) && (mboxB->message != NULL)) && (mboxB->message->sender == leader)))
     {
@@ -46,34 +44,33 @@ def round FIRST_ROUND:
     {
       out();
     }
-    bround = SECOND_ROUND;
   }
 
 
 def round SECOND_ROUND:
   SEND():
 
-  if ((pid == coord(n)))
+  if ((pid == coord(n)) && ((old_0_mbox != NULL) && (old_0_mbox->size > (n / 2))))
   {
     mB = (msgb *) malloc(sizeof(msgb));
     if ((mB == 0))
     {
       abort();
     }
-    mB->round = bround;
+    mB->round = ROUND;
     mB->epoch = epoch;
     mB->lab = BCAST;
     mB->sender = pid;
     send_msgb(mB, leader);
   }
-  if (!(pid == coord(n)))
+  if (!(pid == coord(n)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)) && (((old_2_mbox != NULL) && (old_2_mbox->size == 1)) && (old_2_mbox->next == NULL)))
   {
     mB = (msgb *) malloc(sizeof(msgb));
     if ((mB == 0))
     {
       abort();
     }
-    mB->round = bround;
+    mB->round = ROUND;
     mB->epoch = epoch;
     mB->lab = BCAST;
     mB->sender = pid;
@@ -82,7 +79,7 @@ def round SECOND_ROUND:
 
   UPDATE():
 
-  if ((pid == coord(n)))
+  if ((pid == coord(n)) && ((old_0_mbox != NULL) && (old_0_mbox->size > (n / 2))))
   {
     if (((mboxB != NULL) && (mboxB->size > (n / 2))))
     {
@@ -97,25 +94,21 @@ def round SECOND_ROUND:
     {
       out();
     }
-    bround = THIRD_ROUND;
   }
-  if (!(pid == coord(n)))
-  {
-    bround = THIRD_ROUND;
-  }
+  
 
 
 def round THIRD_ROUND:
   SEND():
 
-  if ((pid == coord(n)))
+  if ((pid == coord(n)) && ((old_0_mbox != NULL) && (old_0_mbox->size > (n / 2))))
   {
     mB = (msgb *) malloc(sizeof(msgb));
     if ((mB == 0))
     {
       abort();
     }
-    mB->round = bround;
+    mB->round = ROUND;
     mB->epoch = epoch;
     mB->lab = BCAST;
     mB->sender = pid;
@@ -124,14 +117,13 @@ def round THIRD_ROUND:
 
   UPDATE():
 
-  if ((pid == coord(n)))
+  if ((pid == coord(n)) && ((old_0_mbox != NULL) && (old_0_mbox->size > (n / 2))))
   {
     lastIndex++;
     ltype *newEntry = create_ltype(in(), 0);
     list_add(log, newEntry);
-    bround = FIRST_ROUND;
   }
-  if (!(pid == coord(n)))
+  if (!(pid == coord(n)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)) && (((old_2_mbox != NULL) && (old_2_mbox->size == 1)) && (old_2_mbox->next == NULL)))
   {
     if (((mboxB != NULL) && (mboxB->size >= 1)))
     {
@@ -146,11 +138,11 @@ def round THIRD_ROUND:
     {
       out();
     }
-    bround = FIRST_ROUND;
   }
 
 
-Outer Algo code 
+Algorithm A
+
 
 def round NewEpoch:
   SEND():
@@ -287,7 +279,7 @@ def round BCAST:
       list_add(log, newEntry);
     }
     bround = FIRST_ROUND;
-    inner_algorithm();
+    inner_algorithm_B(struct arraylist* log, int lastIndex, int leader, list* old_0_mbox, list* old_1_mbox, list* old_2_mbox);
     round = NewEpoch;
   }
   if (!(pid == coord(n)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)) && (((old_2_mbox != NULL) && (old_2_mbox->size == 1)) && (old_2_mbox->next == NULL)))
@@ -303,7 +295,8 @@ def round BCAST:
       list_add(log, newEntry);
     }
     bround = FIRST_ROUND;
-    inner_algorithm();
+    inner_algorithm_B(struct arraylist* log, int lastIndex, int leader, list* old_0_mbox, list* old_1_mbox, list* old_2_mbox);
+    i++;
     round = NewEpoch;
   }
 

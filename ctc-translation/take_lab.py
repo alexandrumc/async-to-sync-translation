@@ -1108,12 +1108,12 @@ def check_inner_algo(ast_tree):
         return False
 
 
-def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phase, message, variables):
+def take_code_from_file(ast, filename, labelname, round_list, delete_round_phase, message, variables):
     cop = copy.deepcopy(ast)
     # labels_sorted = get_labels_order(filename, labelname)
     # labels = get_labels(filename, labelname)
     # labels.append('ERR_ROUND')
-    labels_sorted = rounds_list
+    labels_sorted = round_list
 
     test = get_recv_whiles(cop)
     # print len(test)
@@ -1131,7 +1131,7 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
 
         print "\n\nLaunched procedure for nested algorithms\n\n"
         # outer algo rounds
-        labs = config.rounds_list_1
+        labs = round_list
         labs.append('ERR_ROUND')
         cop, code = identify_nested(cop)
         if code:
@@ -1143,18 +1143,18 @@ def take_code_from_file(ast, filename, labelname, rounds_list, delete_round_phas
         # print generator.visit(cop)
         print "Outer Algo code \n"
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
-        print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, rounds_list[0])
+        print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, round_list)
         # print generator.visit(ast)
     else:
         print "No inner algorithm detected\n"
 
-        labels = rounds_list
+        labels = round_list
         labels.append('ERR_ROUND')
 
         trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
 
         # print generator.visit(cop)
-        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, rounds_list)
+        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, round_list)
 
 
 def get_rank_of_algo(x, rounds_list, msg_structure_fields):
