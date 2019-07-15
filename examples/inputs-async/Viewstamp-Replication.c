@@ -16,6 +16,30 @@ enum Labels {Prepare, PrepareOk, DoViewChange, StartView, Recovery,
                 RecoveryResponse};
 
 typedef struct {
+    int view_nr, op_number, commited;
+
+    /* This message includes client_id and client req nr */
+    char *message;
+} log_str;
+
+typedef struct {
+    /* Consider piggy backed in message */
+    char *message;
+    int request_nr, view_nr;
+    int replica_id;
+    enum Labels label;
+    /* Data for piggy-backing */
+    int commiting;
+    int op_number;
+} msg_NormalOp;
+
+typedef struct {
+    int view_nr, replica_id, log_size;
+    enum Labels label;
+    log_str **log;
+} msg_ViewChange;
+
+typedef struct {
     int aux;
 } msg_Recovery;
 
@@ -37,13 +61,6 @@ typedef struct listc {
     struct listb *next;
 } listC;
 
-typedef struct {
-    int view_nr, op_number, commited;
-
-    /* This message includes client_id and client req nr */
-    char *message;
-} log_str;
-
 /* size - actual length; current - max buffer length */
 typedef struct {
     int size, current;
@@ -55,20 +72,6 @@ typedef struct comm {
     int op_number, count;
     struct comm *next;
 } commit_list;
-
-typedef struct {
-    /* Consider piggy backed in message */
-    char *message;
-    int request_nr, view_nr;
-    int replica_id;
-    enum Labels label;
-} msg_NormalOp;
-
-typedef struct {
-    int view_nr, replica_id, log_size;
-    enum Labels label;
-    log_str **log;
-} msg_ViewChange;
 
 void abort() {
     exit(1);
@@ -190,6 +193,43 @@ void *recv() {
     return NULL;
 }
 
+msg_NormalOp *check_maj(listA *mbox, int op_number) {
+    listA *it = mbox;
+    msg_NormalOp *res;
+    int nr = 0;
+    while (it) {
+        if (it->info->request_nr == op_number) {
+            nr++;
+            res = it->info;
+        }
+        it = it->next;
+    }
+
+    if (nr == mbox->size)
+        return res;
+
+    return NULL;
+}
+
+void update_commit(arraylist *log, int op_number) {
+    int i;
+    for (i = 0; i < log->size; i++)
+        if (log->array[i]->op_number == op_number) {
+            log->array[i]->commited = 1;
+            break;
+        }
+}
+
+int nr_commited(int size, log_str **array) {
+    int nr = 0, i;
+    for (i = 0; i < size; i++) {
+        if (array[i]->commited == 1)
+            nr++;
+    }
+
+    return nr;
+}
+
 int main(int argc, char **argv)
 {
     /* Check for replica_id, IP and total nr of nodes as command line args */
@@ -253,9 +293,9 @@ int main(int argc, char **argv)
 
                     mboxB_new->next = mboxB;
                     mboxB = mboxB_new;
-                    /* Get max log */
-                    if (Max < msgB->log_size) {
-                        Max = msgB->log_size;
+                    /* Get log with most commited operations*/
+                    if (Max < nr_commited(msgB->log_size, msgB->log)) {
+                        Max = nr_commited(msgB->log_size, msgB->log);
                         mess_log = msgB->log;
                     }
                 }
@@ -265,18 +305,17 @@ int main(int argc, char **argv)
                 }
 
                 if (mboxB != NULL && mboxB->size >= n / 2) {
+                    log->array = mess_log;
+                    log->size = log->current = Max;
                     break;
                 }
             }
 
-            if (mboxB != NULL && mboxB->size > n / 2) {
-
-                log->array = mess_log;
-                log->size = log->current = Max;
+            if (mboxB != NULL && mboxB->size >= n / 2) {
 
                 bround = StartView_ROUND;
 
-                msgB = malloc(sizeof(msg_ViewChange*));
+                msgB = malloc(sizeof(msg_ViewChange));
                 if (!msgB)
                     abort();
 
@@ -289,14 +328,100 @@ int main(int argc, char **argv)
 
                 /* Start Normal Op algo */
                 while (true) {
+                    round = Prepare_ROUND;
+                    msgA = malloc(sizeof(msg_NormalOp));
+                    if (!msgA) {
+                        abort();
+                    }
 
+                    /* Check if a request has been received form client */
+                    client_req = in();
+
+                    if (!client_req) {
+                        msgA->message = prepare_ping();
+                    } else {
+                        msgA->message = malloc(strlen(client_req) * sizeof(char));
+                        if (!msgA->message) {
+                            abort();
+                        }
+
+                        strcpy(msgA->message, client_req);
+                    }
+
+                    msgA->commiting = 0;
+                    if (log->size > 0 && log->array[log->size - 1]->commited == 1) {
+                        msgA->commiting = 1;
+                        msgA->op_number = log->array[log->size - 1]->op_number;
+                    }
+
+                    msgA->view_nr = view_nr;
+                    msgA->request_nr = op_number;
+                    msgA->replica_id = -1;
+                    msgA->label = Prepare;
+
+                    if (client_req) {
+
+                        add_entry_log(create_log_entry(view_nr, op_number, client_req),
+                                        log);
+                        op_number++;
+                    }
+
+
+                    send((void*)msgA, to_all);
+
+                    free(msgA->message);
+                    msgA->message = NULL;
+
+                    free(msgA);
+                    msgA = NULL;
+
+                    round = PrepareOk_ROUND;
+
+                    while (true) {
+                        msgA = (msg_NormalOp*) recv();
+
+                        if (msgA != NULL && msgA->view_nr == view_nr && msgA->label == PrepareOk) {
+                            listA* mboxA_new = malloc(sizeof(listA));
+                            if (!mboxA_new) {
+                                abort();
+                            }
+
+                            mboxA_new->info = msgA;
+                            if (mboxA) {
+                                mboxA_new->size = mboxA->size + 1;
+                            } else {
+                                mboxA_new->size = 1;
+                            }
+
+                            mboxA_new->next = mboxA;
+                            mboxA = mboxA_new;
+                        }
+
+                        if (timeout()) {
+                            out_internal();
+                        }
+
+                        /* Check if I have a majority */
+                        if (mboxA != NULL && mboxA->size >= n / 2) {
+                            break;
+                        }
+                    }
+
+                    if (mboxA != NULL && mboxA->size >= n / 2 && check_maj(mboxA, op_number) != NULL) {
+                        log->array[log->size - 1]->commited = 1;
+                    } else {
+                        log->size--;
+                    }
+
+                    round = Prepare_ROUND;
                 }
             }
 
         } else {
-            msgB = malloc(sizeof(msg_ViewChange*));
-            if (!msgB)
-                return;
+            msgB = malloc(sizeof(msg_ViewChange));
+            if (!msgB) {
+                abort();
+            }
 
             msgB->view_nr = view_nr;
             msgB->replica_id = pid;
@@ -332,281 +457,83 @@ int main(int argc, char **argv)
                 }
 
                 if (mboxB != NULL && mboxB->size == 1 && mboxB->next == NULL) {
+                    log->size = mboxB->info->log_size;
+                    log->array = mboxB->info->log;
                     break;
                 }
             }
 
             if (mboxB != NULL && mboxB->size == 1 && mboxB->next == NULL) {
-                log->size = mboxB->info->log_size;
-                log->array = mboxB->info->log;
                 /* Launch Normal Op algo */
                 while (true) {
+                    round = Prepare_ROUND;
 
+                    while (true) {
+                        msgA = (msg_NormalOp*)recv();
+
+                        if (msgA != NULL && msgA->view_nr == view_nr &&
+                            msgA->label == Prepare &&
+                            strcmp(msgA->message, "ping") != 0) {
+                            listA *new_mboxA = malloc(sizeof(msg_NormalOp));
+
+                            if (new_mboxA == NULL) {
+                                abort();
+                            }
+
+                            new_mboxA->next = NULL;
+                            if (mboxA) {
+                                new_mboxA->size = mboxA->size + 1;
+                            } else {
+                                new_mboxA->size = 1;
+                            }
+                            new_mboxA->info = msgA;
+                            new_mboxA->next = mboxA;
+                            mboxA = new_mboxA;
+
+                            if (msgA->commiting == 1)
+                                update_commit(log, msgA->op_number);
+                        } else {
+                            reset_timeout();
+
+                            if (msgA->commiting == 1)
+                                update_commit(log, msgA->op_number);
+
+                            free(msgA->message);
+                            free(msgA);
+                        }
+
+                        if (timeout()) {
+                            out_internal();
+                        }
+
+                        if (mboxA != NULL && mboxA->size == 1 && mboxA->next == NULL) {
+                            /* Update my log */
+                            add_entry_log(create_log_entry(mboxA->info->view_nr,
+                                        mboxA->info->request_nr,
+                                        mboxA->info->message), log);
+                            break;
+                        }
+                    }
+
+                    if (mboxA != NULL && mboxA->size == 1 && mboxA->next == NULL) {
+                        round = PrepareOk_ROUND;
+
+                        msgA = malloc(sizeof(msg_NormalOp));
+
+                        msgA->label = PrepareOk;
+                        msgA->view_nr = view_nr;
+                        msgA->replica_id = pid;
+                        msgA->request_nr = mboxA->info->request_nr;
+
+                        send(msgA, get_primary(view_nr, n));
+                    }
+
+                    round = Prepare_ROUND;
                 }
             }
         }
 
         bround = DoViewChange_ROUND;
-    }
-    /* Start normal operation */
-    while (true) {
-        round = Prepare_ROUND;
-        if (pid == get_primary(view_nr, n)) {
-            msgA = malloc(sizeof(msg_NormalOp));
-            if (!msgA) {
-                abort();
-            }
-
-            /* Check if a request has been received form client */
-            client_req = in();
-
-            if (!client_req) {
-                msgA->message = prepare_ping();
-            } else {
-                msgA->message = malloc(strlen(client_req) * sizeof(char));
-                if (!msgA->message) {
-                    abort();
-                }
-
-                strcpy(msgA->message, client_req);
-            }
-
-            msgA->view_nr = view_nr;
-            msgA->request_nr = op_number;
-            msgA->replica_id = -1;
-
-            if (client_req) {
-
-                add_entry_log(create_log_entry(view_nr, op_number, client_req),
-                                log);
-                op_number++;
-            }
-
-
-            send((void*)msgA, to_all);
-
-            free(msgA->message);
-            msgA->message = NULL;
-
-            free(msgA);
-            msgA = NULL;
-
-            round = PrepareOk_ROUND;
-            commit_list *l = NULL;
-
-            /* This recv loop will atomic modify the commit_list
-               Because responses can come out-of-order, and we output in-order,
-               waiting for > f PrepareOk messages in an mbox, might not be
-               alright
-            */
-            while (true) {
-                msgA = (msg_NormalOp*) recv();
-
-                /* Says if insertion of a new node to be commited is necessary */
-                int chk = 0;
-                commit_list *aux = l, *prev = NULL;
-
-                while (aux) {
-                    if (aux->op_number == msgA->request_nr && aux->count != -1) {
-                        aux->count++;
-                        break;
-                    } else if (aux->op_number > msgA->request_nr) {
-                        chk = 1;
-                        break;
-                    }
-                    prev = aux;
-                    aux = aux->next;
-                }
-
-                /* If insertion necessary, decide if at begining of list, or
-                   somewhere in the middle */
-                if (!l || chk == 1) {
-                    commit_list *l_new = malloc(sizeof(commit_list));
-                    if (!l_new) {
-                        abort();
-                    }
-
-                    l_new->op_number = msgA->request_nr;
-                    l_new->count = 1;
-
-                    if (prev == NULL) {
-                        l_new->next = l;
-                        l = l_new;
-                    } else {
-                        l_new->next = prev->next;
-                        prev->next = l_new;
-                    }
-                }
-
-                if (timeout())
-                    break;
-            }
-
-            /* Check the new commit list and if to send answer to client */
-            commit_list *aux2 = l;
-            while (aux2) {
-                if (aux2->count != -1 && aux2->count <= n/2)
-                    break;
-
-                if (aux2->count != -1 && aux2->count > n/2) {
-                    aux2->count = -1;
-                    log->array[aux2->op_number]->commited = 1;
-                    out_external(log->array[aux2->op_number]->message);
-                }
-                aux2 = aux2->next;
-            }
-            round = Prepare_ROUND;
-        } else {
-            mboxA = NULL;
-            reset_timeout();
-            /* Wait for Prepare message from primary */
-            while (true) {
-                msgA = (msg_NormalOp*)recv();
-
-                if (msgA != NULL && strcmp(msgA->message, "ping") != 0) {
-                    listA *new_mboxA = malloc(sizeof(msg_NormalOp));
-
-                    if (new_mboxA == NULL) {
-                        abort();
-                    }
-
-                    new_mboxA->next = NULL;
-                    if (mboxA) {
-                        new_mboxA->size = mboxA->size + 1;
-                    } else {
-                        new_mboxA->size = 1;
-                    }
-                    new_mboxA->info = msgA;
-                    new_mboxA->next = mboxA;
-                    mboxA = new_mboxA;
-                } else {
-                    free(msgA->message);
-                    free(msgA);
-                }
-
-                if (timeout()) {
-                    break;
-                }
-
-                if (mboxA != NULL && mboxA->size == 1 && mboxA->next == NULL) {
-                    break;
-                }
-            }
-
-            if (timeout()) {
-                /* Launch ViewChange algo */
-            }
-
-            if (mboxA != NULL && mboxA->size == 1 && mboxA->next == NULL) {
-                round = PrepareOk_ROUND;
-                if (mboxA->info->view_nr > view_nr) {
-                    /* Launch recovery algo */
-                }
-
-                listA *mess_list = NULL, *mess_node = NULL;
-                /* If received view_nr is less, do nothing and wait for wrong
-                    leader to recover */
-                if (mboxA->info->view_nr == view_nr){
-                    if (log->size + 1 == mboxA->info->request_nr) {
-                        add_entry_log(create_log_entry(mboxA->info->view_nr,
-                                    mboxA->info->request_nr,
-                                    mboxA->info->message), log);
-
-                        /* Create PrepareOk message for this entry */
-                        mess_node = malloc(sizeof(listA));
-                        if (!mess_node) {
-                            abort();
-                        }
-
-                        mess_node->info->message = malloc(strlen(mboxA->info->message) * sizeof(char));
-                        if (!mess_node->info->message) {
-                            abort();
-                        }
-
-                        strcpy(mess_node->info->message, mboxA->info->message);
-                        mess_node->info->view_nr = mboxA->info->view_nr;
-                        mess_node->info->replica_id = pid;
-                        mess_node->info->request_nr = mboxA->info->request_nr;
-
-                        if (mess_list) {
-                            mess_node->size = mess_list->size + 1;
-                        } else {
-                            mess_node->size = 1;
-                        }
-
-                        mess_node->next = mess_list;
-                        mess_list = mess_node;
-
-                        int sw = 1;
-                        int i;
-                        /* Added a new entry, check if we can put other entries
-                            from the aux buffer */
-                        while (sw == 1) {
-                            i = 0;
-                            while (i < aux_log->size) {
-                                if (aux_log->array[i]->op_number == log->size + 1) {
-                                    break;
-                                }
-                                i++;
-                            }
-
-                            if (i < aux_log->size) {
-                                add_entry_log(create_log_entry(aux_log->array[i]->view_nr,
-                                            aux_log->array[i]->op_number,
-                                            aux_log->array[i]->message), log);
-
-                                /* Create a PrepareOk message for this entry */
-                                mess_node = malloc(sizeof(listA));
-                                if (!mess_node) {
-                                    abort();
-                                }
-
-                                mess_node->info->message = malloc(strlen(aux_log->array[i]->message) * sizeof(char));
-                                if (!mess_node->info->message) {
-                                    abort();
-                                }
-
-                                strcpy(mess_node->info->message, aux_log->array[i]->message);
-                                mess_node->info->view_nr = aux_log->array[i]->view_nr;
-                                mess_node->info->replica_id = pid;
-                                mess_node->info->request_nr = aux_log->array[i]->op_number;
-
-                                if (mess_list) {
-                                    mess_node->size = mess_list->size + 1;
-                                } else {
-                                    mess_node->size = 1;
-                                }
-
-                                mess_node->next = mess_list;
-                                mess_list = mess_node;
-                            } else {
-                                sw = 0;
-                            }
-                        }
-                    } else if (log->size + 1 < mboxA->info->request_nr) {
-                        add_entry_log(create_log_entry(mboxA->info->view_nr,
-                                    mboxA->info->request_nr,
-                                    mboxA->info->message), aux_log);
-                    }
-
-                }
-                listA *it = mess_list;
-                while (it) {
-                    /* PrepOk message and send to primary */
-                    msgA = malloc(sizeof(msg_NormalOp));
-                    if (!msgA)
-                        abort();
-
-                    msgA->view_nr = it->info->view_nr;
-                    msgA->request_nr = it->info->request_nr;
-                    msgA->replica_id = pid;
-                    strcpy(msgA->message, it->info->message);
-                    send((void*)msgA, get_primary(view_nr, n));
-                    it = it->next;
-                }
-            }
-            round = Prepare_ROUND;
-        }
     }
 
     if (client_req) {
