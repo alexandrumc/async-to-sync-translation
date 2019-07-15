@@ -12,8 +12,16 @@ enum Recovery {Recovery_ROUND, RecoveryResponse_ROUND};
 
 enum Status {normal, view_change, recovering};
 
-enum Labels {Prepare, PrepareOk, DoViewChange, StartView, Recovery,
-                RecoveryResponse};
+typedef struct {
+    /* Consider piggy backed in message */
+    char *message;
+    int request_nr, view_nr;
+    int replica_id;
+} msg_NormalOp;
+
+typedef struct {
+    int aux;
+} msg_ViewChange;
 
 typedef struct {
     int aux;
@@ -44,7 +52,6 @@ typedef struct {
     char *message;
 } log_str;
 
-/* size - actual length; current - max buffer length */
 typedef struct {
     int size, current;
 
@@ -55,20 +62,6 @@ typedef struct comm {
     int op_number, count;
     struct comm *next;
 } commit_list;
-
-typedef struct {
-    /* Consider piggy backed in message */
-    char *message;
-    int request_nr, view_nr;
-    int replica_id;
-    enum Labels label;
-} msg_NormalOp;
-
-typedef struct {
-    int view_nr, replica_id, log_size;
-    enum Labels label;
-    log_str **log;
-} msg_ViewChange;
 
 void abort() {
     exit(1);
@@ -96,11 +89,6 @@ char *prepare_ping() {
 }
 
 void send(void *mess, int n) {
-
-}
-
-/* Return from algorithm function */
-void out_internal() {
 
 }
 
@@ -198,14 +186,14 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    enum Status status = normal;
+
     enum NormalOperations round;
     enum ViewChange bround;
     enum Recovery cround;
 
     msg_NormalOp *msgA = NULL;
-    msg_ViewChange *msgB = NULL;
     listA *mboxA = NULL;
-    listB *mboxB = NULL;
 
     /* aux_log is used so that client requests are solved in order */
     arraylist *log = init_log(), *aux_log = init_log();
@@ -213,7 +201,7 @@ int main(int argc, char **argv)
     char *client_req = NULL;
 
     /* view_nr - current view, op_number - most recent received request */
-    int view_nr = -1, op_number = 0;
+    int view_nr = 0, op_number = 0;
 
     /* pid it is actually replica id */
     int pid = atoi(argv[1]);
@@ -223,131 +211,6 @@ int main(int argc, char **argv)
 
     int to_all = n+1;
 
-    /* Start ViewChange algorithm for primary election */
-    enum Status status = view_change;
-    while (true) {
-        /* Used by primary to get the log with max size */
-        log_str **mess_log;
-        int Max = -1;
-
-        bround = DoViewChange_ROUND;
-        view_nr++;
-
-        if (pid == get_primary(view_nr, n)) {
-            mboxB = NULL;
-            while (true) {
-                msgB = (msg_ViewChange*)recv();
-
-                if (msgB != NULL && msgB->view_nr == view_nr && msgB->label == DoViewChange) {
-                    listB* mboxB_new = malloc(sizeof(listB));
-                    if (!mboxB_new) {
-                        abort();
-                    }
-
-                    mboxB_new->info = msgB;
-                    if (mboxB) {
-                        mboxB_new->size = mboxB->size + 1;
-                    } else {
-                        mboxB_new->size = 1;
-                    }
-
-                    mboxB_new->next = mboxB;
-                    mboxB = mboxB_new;
-                    /* Get max log */
-                    if (Max < msgB->log_size) {
-                        Max = msgB->log_size;
-                        mess_log = msgB->log;
-                    }
-                }
-
-                if (timeout()) {
-                    break;
-                }
-
-                if (mboxB != NULL && mboxB->size >= n / 2) {
-                    break;
-                }
-            }
-
-            if (mboxB != NULL && mboxB->size > n / 2) {
-
-                log->array = mess_log;
-                log->size = log->current = Max;
-
-                bround = StartView_ROUND;
-
-                msgB = malloc(sizeof(msg_ViewChange*));
-                if (!msgB)
-                    abort();
-
-                msgB->view_nr = view_nr;
-                msgB->label = StartView;
-                msgB->log_size = log->size;
-                msgB->log = log->array;
-
-                send((void*)msgB, to_all);
-
-                /* Start Normal Op algo */
-                while (true) {
-
-                }
-            }
-
-        } else {
-            msgB = malloc(sizeof(msg_ViewChange*));
-            if (!msgB)
-                return;
-
-            msgB->view_nr = view_nr;
-            msgB->replica_id = pid;
-            msgB->label = StartView;
-            msgB->log_size = log->size;
-            msgB->log = log->array;
-
-            send(msgB, get_primary(view_nr, pid));
-
-            bround = StartView_ROUND;
-            while (true) {
-                msgB = (msg_ViewChange*) recv();
-
-                if (msgB != NULL && msgB->view_nr == view_nr && msgB->label == StartView) {
-                    listB* mboxB_new = malloc(sizeof(listB));
-                    if (!mboxB_new) {
-                        abort();
-                    }
-
-                    mboxB_new->info = msgB;
-                    if (mboxB) {
-                        mboxB_new->size = mboxB->size + 1;
-                    } else {
-                        mboxB_new->size = 1;
-                    }
-
-                    mboxB_new->next = mboxB;
-                    mboxB = mboxB_new;
-                }
-
-                if (timeout()) {
-                    break;
-                }
-
-                if (mboxB != NULL && mboxB->size == 1 && mboxB->next == NULL) {
-                    break;
-                }
-            }
-
-            if (mboxB != NULL && mboxB->size == 1 && mboxB->next == NULL) {
-                log->size = mboxB->info->log_size;
-                log->array = mboxB->info->log;
-                /* Launch Normal Op algo */
-                while (true) {
-
-                }
-            }
-        }
-
-        bround = DoViewChange_ROUND;
-    }
     /* Start normal operation */
     while (true) {
         round = Prepare_ROUND;
@@ -613,10 +476,6 @@ int main(int argc, char **argv)
         free(client_req);
     }
 
-    if (log) {
-        dispose_log(&log);
-    }
-
     if (msgA) {
         if (msgA->message) {
             free(msgA->message);
@@ -624,8 +483,8 @@ int main(int argc, char **argv)
         free(msgA);
     }
 
-    if (msgB) {
-        free(msgB);
+    if (log) {
+        dispose_log(&log);
     }
     return 0;
 }
