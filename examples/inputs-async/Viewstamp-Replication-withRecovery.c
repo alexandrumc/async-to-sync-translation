@@ -22,45 +22,6 @@ typedef struct {
     char *message;
 } log_str;
 
-typedef struct {
-    /* Consider piggy backed in message */
-    char *message;
-    int request_nr, view_nr;
-    int replica_id;
-    enum Labels label;
-    /* Data for piggy-backing */
-    int commiting;
-    int op_number;
-} msg_NormalOp;
-
-typedef struct {
-    int view_nr, replica_id, log_size;
-    enum Labels label;
-    log_str **log;
-} msg_ViewChange;
-
-typedef struct {
-    int aux;
-} msg_Recovery;
-
-typedef struct lista {
-    int size;
-    msg_NormalOp *info;
-    struct lista *next;
-} listA;
-
-typedef struct listb {
-    int size;
-    msg_ViewChange *info;
-    struct listb *next;
-} listB;
-
-typedef struct listc {
-    int size;
-    msg_Recovery *info;
-    struct listb *next;
-} listC;
-
 /* size - actual length; current - max buffer length */
 typedef struct {
     int size, current;
@@ -68,10 +29,36 @@ typedef struct {
     log_str **array;
 } arraylist;
 
-typedef struct comm {
-    int op_number, count;
-    struct comm *next;
-} commit_list;
+typedef struct {
+    char *message;
+    int request_nr;
+    /* Data for piggy-backing */
+    int commiting;
+    int op_number;
+} msg_NormalOp;
+
+typedef struct {
+    int log_size;
+    log_str **log;
+} msg_ViewChange;
+
+typedef struct {
+    int size;
+    log_str **array;
+} msg_Recovery;
+
+typedef struct {
+    int view_nr, replica_id;
+    enum Labels label;
+
+    void *content;
+} abstract_message;
+
+typedef struct lista {
+    int size;
+    abstract_message *info;
+    struct lista *next;
+} listA;
 
 void abort() {
     exit(1);
@@ -98,7 +85,7 @@ char *prepare_ping() {
     return m;
 }
 
-void send(void *mess, int n) {
+void send(abstract_message *mess, int n) {
 
 }
 
@@ -189,18 +176,19 @@ int timeout() { return 0; }
 
 void reset_timeout() {}
 
-void *recv() {
+abstract_message *recv() {
     return NULL;
 }
 
 msg_NormalOp *check_maj(listA *mbox, int op_number) {
     listA *it = mbox;
-    msg_NormalOp *res;
+    msg_NormalOp *res, *aux;
     int nr = 0;
     while (it) {
-        if (it->info->request_nr == op_number) {
+        aux = (msg_NormalOp*)(it->info->content);
+        if (aux->request_nr == op_number) {
             nr++;
-            res = it->info;
+            res = aux;
         }
         it = it->next;
     }
@@ -230,6 +218,14 @@ int nr_commited(int size, log_str **array) {
     return nr;
 }
 
+void write_to_disk(int v) {
+
+}
+
+int read_from_disk() {
+
+}
+
 int main(int argc, char **argv)
 {
     /* Check for replica_id, IP and total nr of nodes as command line args */
@@ -244,8 +240,10 @@ int main(int argc, char **argv)
 
     msg_NormalOp *msgA = NULL;
     msg_ViewChange *msgB = NULL;
+    msg_Recovery *msgC = NULL;
     listA *mboxA = NULL;
-    listB *mboxB = NULL;
+    listA *mboxB = NULL;
+    listA *mboxC = NULL;
 
     arraylist *log = init_log();
 
@@ -275,15 +273,15 @@ int main(int argc, char **argv)
         if (pid == get_primary(view_nr, n)) {
             mboxB = NULL;
             while (true) {
-                msgB = (msg_ViewChange*)recv();
+                abstract_message *abs_m = recv();
 
-                if (msgB != NULL && msgB->view_nr == view_nr && msgB->label == DoViewChange) {
-                    listB* mboxB_new = malloc(sizeof(listB));
+                if (abs_m != NULL && abs_m->view_nr == view_nr && abs_m->label == DoViewChange) {
+                    listA* mboxB_new = malloc(sizeof(listA));
                     if (!mboxB_new) {
                         abort();
                     }
 
-                    mboxB_new->info = msgB;
+                    mboxB_new->info = abs_m;
                     if (mboxB) {
                         mboxB_new->size = mboxB->size + 1;
                     } else {
@@ -292,11 +290,44 @@ int main(int argc, char **argv)
 
                     mboxB_new->next = mboxB;
                     mboxB = mboxB_new;
+                    msgB = (msg_ViewChange *)(abs_m->content);
                     /* Get log with most commited operations*/
                     if (Max < nr_commited(msgB->log_size, msgB->log)) {
                         Max = nr_commited(msgB->log_size, msgB->log);
                         mess_log = msgB->log;
                     }
+                } else if (abs_m != NULL && abs_m->view_nr > view_nr && label_algo(abs_m->label)) {
+
+                    while (true) {
+                        status = recovering;
+                        cround = Recovery_ROUND;
+                        view_nr = read_from_disk() + 1;
+
+                        abs_m = malloc(sizeof(abstract_message));
+                        if (!abs_m) {
+                            abort();
+                        }
+                        abs_m->view_nr = view_nr;
+                        abs_m->replica_id = pid;
+                        send(abs_m, to_all);
+
+                        cround = RecoveryResponse_ROUND;
+                        while (true) {
+                            abs_m = recv();
+
+                            if (abs_m != NULL && abs_m->view_nr > view_nr && abs_m->label == RecoveryResponse) {
+                                log->array = ((msg_Recovery*)(abs_m->content))->array;
+                                log->size = log->current = ((msg_Recovery*)(abs_m->content))->size;
+                            }
+
+                            if (timeout()) {
+                                out_internal();
+                            }
+                        }
+
+                        cround = Recovery_ROUND;
+                    }
+
                 }
 
                 if (timeout()) {
@@ -314,20 +345,33 @@ int main(int argc, char **argv)
 
                 bround = StartView_ROUND;
 
+                abstract_message *abs_m = malloc(sizeof(abstract_message));
+                if (!abs_m) {
+                    abort();
+                }
+
                 msgB = malloc(sizeof(msg_ViewChange));
                 if (!msgB)
                     abort();
 
-                msgB->view_nr = view_nr;
-                msgB->label = StartView;
+                abs_m->view_nr = view_nr;
+                abs_m->label = StartView;
                 msgB->log_size = log->size;
                 msgB->log = log->array;
-
-                send((void*)msgB, to_all);
+                abs_m->content = (void*)msgB;
+                write_to_disk(view_nr);
+                send(abs_m, to_all);
 
                 /* Start Normal Op algo */
                 while (true) {
+                    status = normal;
                     round = Prepare_ROUND;
+
+                    abstract_message *abs_m = malloc(sizeof(abstract_message));
+                    if (!abs_m) {
+                        abort();
+                    }
+
                     msgA = malloc(sizeof(msg_NormalOp));
                     if (!msgA) {
                         abort();
@@ -353,10 +397,11 @@ int main(int argc, char **argv)
                         msgA->op_number = log->array[log->size - 1]->op_number;
                     }
 
-                    msgA->view_nr = view_nr;
+                    abs_m->view_nr = view_nr;
                     msgA->request_nr = op_number;
-                    msgA->replica_id = -1;
-                    msgA->label = Prepare;
+                    abs_m->replica_id = -1;
+                    abs_m->label = Prepare;
+                    abs_m->content = (void*)msgA;
 
                     if (client_req) {
 
@@ -366,7 +411,7 @@ int main(int argc, char **argv)
                     }
 
 
-                    send((void*)msgA, to_all);
+                    send(abs_m, to_all);
 
                     free(msgA->message);
                     msgA->message = NULL;
@@ -374,18 +419,21 @@ int main(int argc, char **argv)
                     free(msgA);
                     msgA = NULL;
 
+                    free(abs_m);
+                    abs_m = NULL;
+
                     round = PrepareOk_ROUND;
 
                     while (true) {
-                        msgA = (msg_NormalOp*) recv();
+                        abstract_message *abs_m = recv();
 
-                        if (msgA != NULL && msgA->view_nr == view_nr && msgA->label == PrepareOk) {
+                        if (abs_m != NULL && abs_m->view_nr == view_nr && abs_m->label == PrepareOk) {
                             listA* mboxA_new = malloc(sizeof(listA));
                             if (!mboxA_new) {
                                 abort();
                             }
 
-                            mboxA_new->info = msgA;
+                            mboxA_new->info = abs_m;
                             if (mboxA) {
                                 mboxA_new->size = mboxA->size + 1;
                             } else {
@@ -415,30 +463,41 @@ int main(int argc, char **argv)
             }
 
         } else {
+            abstract_message *abs_m = malloc(sizeof(abstract_message));
+            if (!abs_m) {
+                abort();
+            }
+
             msgB = malloc(sizeof(msg_ViewChange));
             if (!msgB) {
                 abort();
             }
 
-            msgB->view_nr = view_nr;
-            msgB->replica_id = pid;
-            msgB->label = StartView;
+            abs_m->view_nr = view_nr;
+            abs_m->replica_id = pid;
+            abs_m->label = StartView;
             msgB->log_size = log->size;
             msgB->log = log->array;
+            abs_m->content = msgB;
+            write_to_disk(view_nr);
+            send(abs_m, get_primary(view_nr, pid));
 
-            send(msgB, get_primary(view_nr, pid));
+            free(msgB);
+            msgB = NULL;
+            free(abs_m);
+            abs_m = NULL;
 
             bround = StartView_ROUND;
             while (true) {
-                msgB = (msg_ViewChange*) recv();
+                abs_m = recv();
 
-                if (msgB != NULL && msgB->view_nr == view_nr && msgB->label == StartView) {
-                    listB* mboxB_new = malloc(sizeof(listB));
+                if (abs_m != NULL && abs_m->view_nr == view_nr && abs_m->label == StartView) {
+                    listA* mboxB_new = malloc(sizeof(listA));
                     if (!mboxB_new) {
                         abort();
                     }
 
-                    mboxB_new->info = msgB;
+                    mboxB_new->info = abs_m;
                     if (mboxB) {
                         mboxB_new->size = mboxB->size + 1;
                     } else {
@@ -454,8 +513,8 @@ int main(int argc, char **argv)
                 }
 
                 if (mboxB != NULL && mboxB->size == 1 && mboxB->next == NULL) {
-                    log->size = mboxB->info->log_size;
-                    log->array = mboxB->info->log;
+                    log->size = ((msg_ViewChange*)(mboxB->info->content))->log_size;
+                    log->array = ((msg_ViewChange*)(mboxB->info->content))->log;
                     break;
                 }
             }
@@ -463,15 +522,16 @@ int main(int argc, char **argv)
             if (mboxB != NULL && mboxB->size == 1 && mboxB->next == NULL) {
                 /* Launch Normal Op algo */
                 while (true) {
+                    status = normal;
                     round = Prepare_ROUND;
 
                     while (true) {
-                        msgA = (msg_NormalOp*)recv();
+                        abs_m = recv();
 
-                        if (msgA != NULL && msgA->view_nr == view_nr &&
-                            msgA->label == Prepare &&
-                            strcmp(msgA->message, "ping") != 0) {
-                            listA *new_mboxA = malloc(sizeof(msg_NormalOp));
+                        if (abs_m != NULL && abs_m->view_nr == view_nr &&
+                            abs_m->label == Prepare &&
+                            strcmp(((msg_NormalOp*)(abs_m->content))->message, "ping") != 0) {
+                            listA *new_mboxA = malloc(sizeof(listA));
 
                             if (new_mboxA == NULL) {
                                 abort();
@@ -483,10 +543,10 @@ int main(int argc, char **argv)
                             } else {
                                 new_mboxA->size = 1;
                             }
-                            new_mboxA->info = msgA;
+                            new_mboxA->info = abs_m;
                             new_mboxA->next = mboxA;
                             mboxA = new_mboxA;
-
+                            msgA = (msg_NormalOp*)abs_m->content;
                             if (msgA->commiting == 1)
                                 update_commit(log, msgA->op_number);
                         } else {
@@ -497,6 +557,8 @@ int main(int argc, char **argv)
 
                             free(msgA->message);
                             free(msgA);
+
+                            free(abs_m);
                         }
 
                         if (timeout()) {
@@ -506,23 +568,23 @@ int main(int argc, char **argv)
                         if (mboxA != NULL && mboxA->size == 1 && mboxA->next == NULL) {
                             /* Update my log */
                             add_entry_log(create_log_entry(mboxA->info->view_nr,
-                                        mboxA->info->request_nr,
-                                        mboxA->info->message), log);
+                                        ((msg_NormalOp*)(mboxA->info->content))->request_nr,
+                                        ((msg_NormalOp*)(mboxA->info->content))->message), log);
                             break;
                         }
                     }
 
                     if (mboxA != NULL && mboxA->size == 1 && mboxA->next == NULL) {
                         round = PrepareOk_ROUND;
-
+                        abs_m = malloc(sizeof(abstract_message));
                         msgA = malloc(sizeof(msg_NormalOp));
 
-                        msgA->label = PrepareOk;
-                        msgA->view_nr = view_nr;
-                        msgA->replica_id = pid;
-                        msgA->request_nr = mboxA->info->request_nr;
-
-                        send(msgA, get_primary(view_nr, n));
+                        abs_m->label = PrepareOk;
+                        abs_m->view_nr = view_nr;
+                        abs_m->replica_id = pid;
+                        msgA->request_nr = ((msg_NormalOp*)(mboxA->info->content))->request_nr;
+                        abs_m->content = msgA;
+                        send(abs_m, get_primary(view_nr, n));
                     }
 
                     round = Prepare_ROUND;
