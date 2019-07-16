@@ -40,7 +40,8 @@ typedef struct {
 } msg_ViewChange;
 
 typedef struct {
-    int aux;
+    int op_number, commited;
+    char *message;
 } msg_Recovery;
 
 typedef struct lista {
@@ -69,8 +70,8 @@ typedef struct {
 } arraylist;
 
 typedef struct comm {
-    int op_number, count;
-    struct comm *next;
+    int replica_id, op_number, view_nr;
+    comm *next;
 } commit_list;
 
 void abort() {
@@ -244,8 +245,11 @@ int main(int argc, char **argv)
 
     msg_NormalOp *msgA = NULL;
     msg_ViewChange *msgB = NULL;
+    msg_Recovery *msgC = NULL;
     listA *mboxA = NULL;
     listB *mboxB = NULL;
+
+    commit_list *recovery_buffer = NULL;
 
     arraylist *log = init_log();
 
@@ -328,6 +332,7 @@ int main(int argc, char **argv)
                 /* Start Normal Op algo */
                 while (true) {
                     round = Prepare_ROUND;
+                    recovery_buffer = NULL;
                     msgA = malloc(sizeof(msg_NormalOp));
                     if (!msgA) {
                         abort();
@@ -379,7 +384,8 @@ int main(int argc, char **argv)
                     while (true) {
                         msgA = (msg_NormalOp*) recv();
 
-                        if (msgA != NULL && msgA->view_nr == view_nr && msgA->label == PrepareOk) {
+                        if (msgA != NULL && msgA->view_nr == view_nr && msgA->label == PrepareOk
+                            && msgA->request_nr == op_number) {
                             listA* mboxA_new = malloc(sizeof(listA));
                             if (!mboxA_new) {
                                 abort();
@@ -394,6 +400,66 @@ int main(int argc, char **argv)
 
                             mboxA_new->next = mboxA;
                             mboxA = mboxA_new;
+
+                            /* Update the commit list */
+                            commit_list *it = recovery_buffer;
+                            while (it) {
+                                if (it->replica_id == msgA->replica_id) {
+                                    it->view_nr = msgA->view_nr;
+                                    it->op_number = msgA->request_nr;
+                                    break;
+                                }
+                                it = it->next;
+                            }
+
+                            if (!it) {
+                                it = malloc(commit_list);
+                                if (!it) {
+                                    abort();
+                                }
+
+                                it->replica_id = msgA->replica_id;
+                                it->view_nr = msgA->view_nr;
+                                it->op_number = msgA->request_nr;
+                                it->next = recovery_buffer;
+                                recovery_buffer = it;
+                            }
+                        } else if (msgA != NULL && msgA->view_nr == view_nr && msgA->label == PrepareOk
+                            && msgA->request_nr < op_number) {
+
+                            commit_list *it = recovery_buffer;
+                            while (it) {
+                                if (it->replica_id == msgA->replica_id) {
+                                    break;
+                                }
+                                it = it->next;
+                            }
+
+                            /* Late receiver indeed */
+                            if (it && it->op_number <= msgA->request_nr) {
+                                int index, i;
+                                if (!it) {
+                                    index = 0;
+                                } else {
+                                    index = it->op_number + 1;
+                                }
+
+                                i = index;
+                                while (i < log->size) {
+                                    msgC = malloc(sizeof(msg_Recovery));
+                                    if (!msgC) {
+                                        abort();
+                                    }
+
+                                    msgC->op_number = log->array[index]->op_number;
+                                    msgC->commited = log->array[index]->commited;
+                                    strcpy(msgC->message, log->array[index]->message);
+
+                                    send((void*) msgC, msgA->replica_id);
+                                    i++;
+                                }
+                            }
+
                         }
 
                         if (timeout()) {
@@ -406,7 +472,7 @@ int main(int argc, char **argv)
                         }
                     }
 
-                    if (mboxA != NULL && mboxA->size >= n / 2 && check_maj(mboxA, op_number) != NULL) {
+                    if (mboxA != NULL && mboxA->size >= n / 2) {
                         log->array[log->size - 1]->commited = 1;
                     }
 
@@ -469,7 +535,7 @@ int main(int argc, char **argv)
                         msgA = (msg_NormalOp*)recv();
 
                         if (msgA != NULL && msgA->view_nr == view_nr &&
-                            msgA->label == Prepare &&
+                            msgA->label == Prepare && msgA->request_nr == op_number &&
                             strcmp(msgA->message, "ping") != 0) {
                             listA *new_mboxA = malloc(sizeof(msg_NormalOp));
 
@@ -487,9 +553,13 @@ int main(int argc, char **argv)
                             new_mboxA->next = mboxA;
                             mboxA = new_mboxA;
 
-                            if (msgA->commiting == 1)
+                            if (msgA->commiting == 1) {
                                 update_commit(log, msgA->op_number);
-                        } else {
+                            }
+
+                        } else if (msgA != NULL && msgA->view_nr == view_nr &&
+                                msgA->label == Prepare && msgA->request_nr == op_number &&
+                                strcmp(msgA->message, "ping") == 0) {
                             reset_timeout();
 
                             if (msgA->commiting == 1)
@@ -497,6 +567,25 @@ int main(int argc, char **argv)
 
                             free(msgA->message);
                             free(msgA);
+
+                        } else if (msgA != NULL && msgA->view_nr == view_nr &&
+                                msgA->label == Prepare && msgA->request_nr > op_number) {
+
+                            /* Inner receive for recovery */
+                            while (true) {
+                                msgC = (msg_Recovery *)recv();
+
+                                if (msgC) {
+                                    add_entry_log(create_log_entry(msgA->view_nr,
+                                            msgC->request_nr,
+                                            msgC->message), log);
+                                    log->array[log->size - 1]->commited = msgC->commited;
+                                }
+
+                                if (timeout()) {
+                                    break;
+                                }
+                            }
                         }
 
                         if (timeout()) {
@@ -504,10 +593,10 @@ int main(int argc, char **argv)
                         }
 
                         if (mboxA != NULL && mboxA->size == 1 && mboxA->next == NULL) {
-                            /* Update my log */
                             add_entry_log(create_log_entry(mboxA->info->view_nr,
                                         mboxA->info->request_nr,
                                         mboxA->info->message), log);
+                            op_number++;
                             break;
                         }
                     }
@@ -520,6 +609,7 @@ int main(int argc, char **argv)
                         msgA->label = PrepareOk;
                         msgA->view_nr = view_nr;
                         msgA->replica_id = pid;
+
                         msgA->request_nr = mboxA->info->request_nr;
 
                         send(msgA, get_primary(view_nr, n));
