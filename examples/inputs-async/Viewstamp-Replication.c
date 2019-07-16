@@ -71,7 +71,7 @@ typedef struct {
 
 typedef struct comm {
     int replica_id, op_number, view_nr;
-    comm *next;
+    struct comm *next;
 } commit_list;
 
 void abort() {
@@ -413,7 +413,7 @@ int main(int argc, char **argv)
                             }
 
                             if (!it) {
-                                it = malloc(commit_list);
+                                it = malloc(sizeof(commit_list));
                                 if (!it) {
                                     abort();
                                 }
@@ -577,7 +577,7 @@ int main(int argc, char **argv)
 
                                 if (msgC) {
                                     add_entry_log(create_log_entry(msgA->view_nr,
-                                            msgC->request_nr,
+                                            msgC->op_number,
                                             msgC->message), log);
                                     log->array[log->size - 1]->commited = msgC->commited;
                                 }
