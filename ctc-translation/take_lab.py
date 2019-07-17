@@ -1163,7 +1163,7 @@ def get_rank_of_algo(x, rounds_list, msg_structure_fields):
     # We are interested only in assignments which contain a round label
     # as right member
 
-    if not x or not x.block_items:
+    if not x or (not isinstance(x, Compound)) or not x.block_items:
         return -1
 
     for elem in x.block_items:

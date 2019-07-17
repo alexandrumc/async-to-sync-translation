@@ -191,7 +191,7 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
             else:
                 self.generic_visit(node.stmt)
 
-        if node.cond.name != "true":
+        if not (isinstance(node.cond, ID) and node.cond.name == "true"):
             return
 
         if to_modify(node):
@@ -247,6 +247,12 @@ class DeclAlgoVisitor(c_ast.NodeVisitor):
     def visit_Typedef(self, node):
         return
 
+    def visit_FuncDef(self, node):
+        if node.decl.name != "main":
+            return
+
+        self.generic_visit(node.body)
+
     def visit_Decl(self, node):
         if len(node.storage) != 0:
             return
@@ -264,7 +270,11 @@ class DeclAlgoVisitor(c_ast.NodeVisitor):
             else:
                 self.result_list.append((node.name, inner_type.names[0]))
         elif isinstance(node.type, PtrDecl):
-            inner_type = node.type.type.type
+            inner_type = node.type
+            while isinstance(inner_type, PtrDecl):
+                inner_type = inner_type.type
+            inner_type = inner_type.type
+
             if isinstance(inner_type, Struct):
                 self.result_list.append((node.name, "struct " + inner_type.name + "*"))
             else:

@@ -17,7 +17,7 @@ def test(op):
     """
     if isinstance(op, UnaryOp):
         for i in op:
-            if i.name.name == "timeout":
+            if isinstance(i, FuncCall) and i.name.name == "timeout":
                 return True
     if isinstance(op, FuncCall):
         if op.name.name == "timeout":

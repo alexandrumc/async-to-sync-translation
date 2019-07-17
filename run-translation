@@ -255,7 +255,7 @@ elif [ $# == 3 ]; then
 		echo "Running translation..(verifast disabled)"
 
 		# To stop after getting the noh file and start debugging, uncomment exit
-		#exit 1
+		exit 1
 
 	    $call_tool > $output
 
