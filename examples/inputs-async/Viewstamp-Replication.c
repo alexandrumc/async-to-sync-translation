@@ -188,6 +188,8 @@ void add_entry_log(log_str *entry, arraylist *log) {
 
 int timeout() { return 0; }
 
+int timeout2() { return 0; }
+
 void reset_timeout() {}
 
 void *recv() {
@@ -580,9 +582,11 @@ int main(int argc, char **argv)
                                             msgC->op_number,
                                             msgC->message), log);
                                     log->array[log->size - 1]->commited = msgC->commited;
+                                    op_number = msgC->op_number;
                                 }
 
-                                if (timeout()) {
+                                /* Shorter than timeout */
+                                if (timeout2()) {
                                     break;
                                 }
                             }
