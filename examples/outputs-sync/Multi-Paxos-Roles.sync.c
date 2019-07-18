@@ -296,7 +296,6 @@ def round BCAST:
     }
     bround = FIRST_ROUND;
     inner_algorithm_B(struct arraylist* log, int lastIndex, int leader, list* old_0_mbox, list* old_1_mbox, list* old_2_mbox);
-    i++;
     round = NewEpoch;
   }
 

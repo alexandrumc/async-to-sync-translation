@@ -1,7 +1,6 @@
 from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, \
     Break, StructRef, BinaryOp, TypeDecl, PtrDecl, Decl, Struct, Enum
 from pycparser import c_generator, c_ast
-from modify_whiles import to_modify
 import copy
 
 
@@ -170,6 +169,34 @@ class EmptyInstrVisitor(c_ast.NodeVisitor):
             self.result_list.append(node)
 
 
+class RecvCallVisitor(c_ast.NodeVisitor):
+    """
+    With this visitor we can identify the number of recv type function
+    calls from a certain while(true) block
+    Used to decide whether a while loop is a receiving one, or a new
+    algorithm
+    """
+    def __init__(self):
+        self.nr = 0
+
+    def visit_FuncCall(self, node):
+        if ("recv" in str.lower(node.name.name)) or ("receive" in str.lower(node.name.name)):
+            self.nr += 1
+
+        if isinstance(node.args, FuncCall):
+            self.visit_FuncCall(node.args)
+        elif node.args:
+            self.generic_visit(node.args)
+
+    def visit_While(self, node):
+        # If we find a while loop, this is either a new algo, or another recv loop
+        # so we skip its content
+        if isinstance(node.cond, ID) and node.cond.name == "true":
+            return
+
+        self.generic_visit(node.stmt)
+
+
 class WhileAlgoVisitor(c_ast.NodeVisitor):
     """
     With this visitor we return a list of whiles which represent
@@ -181,6 +208,15 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
     def __init__(self):
         self.result_list = []
         self.conditions = []
+
+    @staticmethod
+    def check_if_recv_loop(node):
+        v = RecvCallVisitor()
+        v.visit(node)
+        if v.nr > 0:
+            return True
+
+        return False
 
     def visit_While(self, node):
         if node.stmt:
@@ -194,8 +230,9 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
         if not (isinstance(node.cond, ID) and node.cond.name == "true"):
             return
 
-        if to_modify(node):
+        if WhileAlgoVisitor.check_if_recv_loop(node.stmt):
             return
+        #print node.coord.line
         # Keep conditions although we don't add them
         cop = copy.deepcopy(self.conditions)
 
@@ -207,8 +244,7 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
         new_id = ID("marker_stop", node.coord)
         func = FuncCall(new_id, None, node.coord)
 
-        ind = len(node.stmt.block_items) - 1
-        node.stmt.block_items.insert(ind, func)
+        node.stmt.block_items.append(func)
         self.result_list.append((node, cop))
 
     def visit_If(self, node):
@@ -392,7 +428,7 @@ class RecvWhileVisitor(c_generator.CGenerator):
         self.list = []
 
     def visit_While(self, n):
-        if to_modify(n):
+        if WhileAlgoVisitor.check_if_recv_loop(n):
             self.list.append(n)
         s = ""
         if n.cond:

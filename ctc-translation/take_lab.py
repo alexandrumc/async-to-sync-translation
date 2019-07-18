@@ -9,8 +9,8 @@ from pycparser import c_generator, parse_file
 from pycparser.plyparser import Coord
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
     For, Compound, Continue, FuncCall, FuncDecl, IdentifierType, Decl, TypeDecl
-from modify_whiles import coord_aux, to_modify, whiles_to_if, identify_recv_exits
-from mbox_removal import remove_mbox, remove_null_if
+from modify_whiles import coord_aux, whiles_to_if, identify_recv_exits
+from mbox_removal import remove_mbox
 from cStringIO import StringIO
 import sys
 import config
@@ -504,19 +504,6 @@ def create_new_assign(old_cond, new_cond, coord):
     return assign
 
 
-# def create_aux_assign(labelname, coord):
-#     global coord_aux
-#
-#     coord_aux -= 1
-#     # coord = old_cond.coord
-#     new_coord = Coord(coord.file, coord.line, coord.column)
-#     new_coord.line = coord_aux
-#     new_coord.column = coord_aux
-#
-#     assign = Assignment('=', ID(labelname), ID('AUX_ROUND'), new_coord)
-#     return assign
-
-
 def add_ghost_assign_in_tree(tree, context, used_old_vars, added_ifs_assignment, aux_dict):
     global added_vars
     """
@@ -959,7 +946,7 @@ def async_to_async(ast, epoch_name):
 def identify_nested_algorithms_bodies(extern_body, list):
     if extern_body.block_items:
         for elem in extern_body.block_items:
-            if isinstance(elem, While) and (not to_modify(elem)):
+            if isinstance(elem, While) and (not WhileAlgoVisitor.check_if_recv_loop(elem)):
                 list.append(elem)
                 identify_nested_algorithms_bodies(elem.stmt, list)
             if isinstance(elem, If):

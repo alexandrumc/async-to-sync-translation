@@ -86,12 +86,12 @@ variables = []
 
 # Modify with phase and round variables names
 variables.append(dict(
-    phase="epoch",
+    phase="view_nr",
     round="round"
 ))
 
 variables.append(dict(
-    phase="i",
+    phase="op_number",
     round="bround"
 ))
 
@@ -99,23 +99,22 @@ msg_structure_fields = []
 
 # Modify with phase and round fields names in the message structure
 msg_structure_fields.append(dict(
-    name="m",
-    phase_field="epoch",
+    name="msgA",
+    phase_field="view_nr",
     round_field="round"
 ))
 
 msg_structure_fields.append(dict(
-    name="mB",
-    phase_field="i",
+    name="msgB",
+    phase_field="op_number",
     round_field="bround"
 ))
 
 mailbox = []
 
 # Modify with mailbox name
-mailbox.append("mbox")
+mailbox.append("mboxA")
 mailbox.append("mboxB")
-mailbox.append("mboxC")
 
 clean_mailbox = []
 
@@ -126,12 +125,12 @@ clean_mailbox.append("list_dispose2")
 rounds_list = []
 
 # Modify with labels for each algorithm
-rounds_list.append(['NewEpoch', 'Ack_E', 'New_Leader', 'BCAST', 'AUX_ROUND'])
-rounds_list.append(['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND'])
+rounds_list.append(['DoViewChange_ROUND', 'StartView_ROUND', 'AUX_ROUND'])
+rounds_list.append(['Prepare_ROUND', 'PrepareOk_ROUND', 'AUX_ROUND'])
 
 delete_round_phase = []
 
-delete_round_phase.append(False)
+delete_round_phase.append(True)
 delete_round_phase.append(True)
 
 # Add as many fields as you need

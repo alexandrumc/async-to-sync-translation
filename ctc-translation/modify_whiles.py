@@ -2,8 +2,8 @@ from pycparser import c_generator
 from pycparser.c_ast import *
 from pycparser.plyparser import Coord
 
-import config
-import string
+from generators import WhileAlgoVisitor
+
 generator = c_generator.CGenerator()
 
 coord_aux = 0
@@ -232,7 +232,7 @@ def whiles_to_if(extern_while_body, conditii=None):
         aux = extern_while_body
         element = aux.block_items[i]
 
-        if isinstance(element, While) and to_modify(element):
+        if isinstance(element, While) and WhileAlgoVisitor.check_if_recv_loop(element.stmt):
 
             coord = element.stmt.coord
 
@@ -293,7 +293,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                                 whiles_to_if(item.iftrue, conditii)  # nu stiu inca de ce trb sa pun asta aici
                             if item.iffalse:
                                 whiles_to_if(item.iffalse, conditii)
-                    elif to_modify(item):
+                    elif WhileAlgoVisitor.check_if_recv_loop(item.stmt):
                         # print item.coord, 'aaaa'
                         coord = item.stmt.coord
 
@@ -351,7 +351,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                                 whiles_to_if(item.iftrue, conditii)
                                 if item.iffalse:
                                     whiles_to_if(item.iffalse, conditii)
-                        elif to_modify(item):
+                        elif WhileAlgoVisitor.check_if_recv_loop(item.stmt):
                             # print item.coord,"bbb"
                             coord = item.stmt.coord
                             new_if = modify_while(item)
