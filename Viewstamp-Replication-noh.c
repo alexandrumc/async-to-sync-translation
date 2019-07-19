@@ -327,7 +327,10 @@ int main(int argc, char **argv)
                                     index = it->op_number + 1;
                                 }
                                 i = index;
-                                while (i < log->size) {
+                                while (true) {
+                                    if (i == log->size) {
+                                        break;
+                                    }
                                     msgC = malloc(sizeof(msg_Recovery));
                                     if (!msgC) {
                                         abort();

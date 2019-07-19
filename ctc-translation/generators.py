@@ -197,6 +197,22 @@ class RecvCallVisitor(c_ast.NodeVisitor):
         self.generic_visit(node.stmt)
 
 
+class SendLoopsVisitor(c_ast.NodeVisitor):
+    """
+
+    """
+    def __init__(self, rounds_list):
+        self.status = True
+        self.rounds_list = rounds_list
+
+    def visit_Assignment(self, node):
+        if node.rvalue and isinstance(node.rvalue, ID):
+            for my_list in self.rounds_list:
+                if node.rvalue.name in my_list:
+                    self.status = False
+                    break
+
+
 class WhileAlgoVisitor(c_ast.NodeVisitor):
     """
     With this visitor we return a list of whiles which represent
@@ -205,9 +221,11 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
     Every nested algo starts with a while(true)
     """
-    def __init__(self):
+    def __init__(self, rounds_list):
         self.result_list = []
+        self.send_loops_list = []
         self.conditions = []
+        self.rounds_list = rounds_list
 
     @staticmethod
     def check_if_recv_loop(node):
@@ -232,7 +250,14 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
         if WhileAlgoVisitor.check_if_recv_loop(node.stmt):
             return
-        #print node.coord.line
+
+        v = SendLoopsVisitor(self.rounds_list)
+        v.visit(node)
+
+        if v.status:
+            self.send_loops_list.append(node)
+            return
+        # print node.coord.line
         # Keep conditions although we don't add them
         cop = copy.deepcopy(self.conditions)
 
@@ -405,7 +430,7 @@ class CondVisitor(c_generator.CGenerator):
         return '%s %s %s' % (lval_str, n.op, rval_str)
 
 
-class SendVisitor(c_ast.NodeVisitor):
+class SendWhileVisitor(c_ast.NodeVisitor):
     """
     Returns a list with all occurences of send function
     """
@@ -418,7 +443,7 @@ class SendVisitor(c_ast.NodeVisitor):
             self.list.append(node)
 
 
-class RecvWhileVisitor(c_generator.CGenerator):
+class RecvWhileVisitor(c_ast.NodeVisitor):
     """
     Identifies the recv whiles, used for asserts
     """
@@ -428,13 +453,17 @@ class RecvWhileVisitor(c_generator.CGenerator):
         self.list = []
 
     def visit_While(self, n):
-        if WhileAlgoVisitor.check_if_recv_loop(n):
+        if n.stmt:
+            if isinstance(n.stmt, While):
+                self.visit_While(n.stmt)
+            else:
+                self.generic_visit(n.stmt)
+
+        if not (isinstance(n.cond, ID) and n.cond.name == "true"):
+            return
+
+        if WhileAlgoVisitor.check_if_recv_loop(n.stmt):
             self.list.append(n)
-        s = ""
-        if n.cond:
-            self.visit(n.cond)
-        self._generate_stmt(n.stmt, add_indent=True)
-        return s
 
 
 class CheckLabelNumber(c_ast.NodeVisitor):

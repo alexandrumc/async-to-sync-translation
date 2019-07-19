@@ -270,10 +270,14 @@ def whiles_to_if(extern_while_body, conditii=None):
                 if new_if.iftrue:
                     whiles_to_if(new_if.iftrue, conditii)
 
+                # TODO: Get marker_stop() out of a newly created if
+
                 break
             else:
                 delete.append(aux.block_items[i])  # daca are timeout, sterg bucla cu totull
                 conditii.append((new_if, coord))
+        elif isinstance(element, While) and (not WhileAlgoVisitor.check_if_recv_loop(element.stmt)):
+            whiles_to_if(element.stmt, conditii)
                 # aux.block_items[i] = None
         # elif isinstance(element, While) and (not to_modify(element)):
         #         whiles_to_if(element.stmt, conditii)
@@ -331,11 +335,15 @@ def whiles_to_if(extern_while_body, conditii=None):
                             if new_if.iftrue:
                                 whiles_to_if(new_if.iftrue, conditii)
 
+                            # TODO: Get marker_stop out of the newly created if
+
                             break
                         else:
                             to_delete.append(element.iftrue.block_items[index])
                             conditii.append((new_if, coord))
                             # element.iftrue.block_items[index] = None
+                    elif not WhileAlgoVisitor.check_if_recv_loop(item.stmt):
+                        whiles_to_if(item.stmt, conditii)
                 for x in to_delete:
                     element.iftrue.block_items.remove(x)
             if element.iffalse is not None:
@@ -365,10 +373,14 @@ def whiles_to_if(extern_while_body, conditii=None):
                                 if new_if.iffalse:
                                     whiles_to_if(new_if.iffalse, conditii)
 
+                                # TODO: Get marker_stop out of the newly created if
+
                                 break
                             else:
                                 to_delete.append(element.iffalse.block_items[index])
                                 # element.iffalse.block_items[index] = None
+                        elif not WhileAlgoVisitor.check_if_recv_loop(item.stmt):
+                            whiles_to_if(item.stmt, conditii)
                     for x in to_delete:
                         element.iffalse.block_items.remove(x)
 

@@ -1,5 +1,5 @@
 from take_lab import take_code_from_file, get_extern_while_body_from_func, get_paths_trees, \
-    turn_nested_algo_marked_compound, print_rounds, get_param_list
+    turn_nested_algo_marked_compound, print_rounds, get_param_list, extract_recv_loops, turn_send_loops_funcs
 from pycparser import parse_file
 from utils import duplicate_element, find_parent, get_global_vars, get_vars_table
 
@@ -24,18 +24,23 @@ vars_table = {}
 x = get_extern_while_body_from_func(ast, "main")
 get_vars_table(ast, vars_table)
 
-
-# Turn all while algos into if (cond) loop_body
-
-nested_algos_details = []
-
-if config.number_of_nested_algorithms > 1:
-    turn_nested_algo_marked_compound(x, nested_algos_details, config.rounds_list, config.msg_structure_fields)
+recv_loops = extract_recv_loops(x)
 
 conditions = []
 whiles_to_if(x, conditions)
 
 identify_recv_exits(x, conditions)
+
+# Turn all while algos into marked compounds
+
+nested_algos_details = []
+
+potential_send_loops = []
+
+if config.number_of_nested_algorithms > 1:
+    potential_send_loops = turn_nested_algo_marked_compound(x, nested_algos_details, config.rounds_list, config.msg_structure_fields)
+
+turn_send_loops_funcs(x, potential_send_loops)
 
 # Delete unnecessary operations, like disposes and timeouts from code
 # First, get a list of all messages names
@@ -98,8 +103,8 @@ while i >= 0:
 
                     if isinstance(elem, FuncCall) and elem.name.name == "marker_stop":
                         break
-                new_id = ID("inner_algorithm_" + letter, p.block_items[0].coord)
-                func = FuncCall(new_id, ExprList(cop_all_vars, p.block_items[0].coord), p.block_items[0].coord)
+                new_id = ID("inner_algorithm_" + letter, p.coord)
+                func = FuncCall(new_id, ExprList(cop_all_vars, p.coord), p.coord)
                 p.block_items.insert(ind, func)
 
     i -= 1

@@ -14,7 +14,7 @@ typedef struct Msg {
 	// ViewChangeAck data
 	int pid_ack;
 	// NewView data
-	struct List * viewchange_certificate_set;  
+	struct List * viewchange_certificate_set;
 	struct List * preprepared_set;
 } msg;
 
@@ -74,7 +74,7 @@ int main(int argc, char **argv)//@ : main
 {
     int pid;
     int to_all = n+1;
-      
+
     enum round_typ round;
     int view;
 
@@ -82,12 +82,12 @@ int main(int argc, char **argv)//@ : main
     list* mbox_new = NULL;
     msg* m = NULL;
     view = 0;
-    
+
     while(true)
     {
         round = ViewChange_ROUND;
         mbox = NULL;
-         
+
 	    // A timeout has been detected
         m = (msg *) malloc(sizeof(msg));
         if(m==0) {
@@ -100,11 +100,11 @@ int main(int argc, char **argv)//@ : main
         dispose(m);
         m = NULL;
         mbox = NULL;
-        
+
         while(true)
-        {   
+        {
             m = recv();
-            
+
             // Received a valid message
             if (m != NULL && m->view>=view && m->round == ViewChange_ROUND){
                 mbox_new = (list*) malloc(sizeof(list));
@@ -119,22 +119,25 @@ int main(int argc, char **argv)//@ : main
                 mbox = mbox_new;
 
             }else{ dispose(m); }
-            
+
             if (timeout()){ break; }
-            
+
             if(mbox!=NULL && mbox->size > 2*n/3 && all_same(mbox,view) ) {
                 break;
             }
 
         }
-        
-        if(mbox!=NULL && mbox->size > 2*n/3 && all_same(mbox,view) ) {  
-            view = mbox->message->view;  
+
+        if(mbox!=NULL && mbox->size > 2*n/3 && all_same(mbox,view) ) {
+            view = mbox->message->view;
             round = ViewChangeAck_ROUND;
 
             mviewchange = mbox->message;
-            while(mviewchange)
+            while(true)
             {
+				if (mviewchange == NULL) {
+					break;
+				}
                 // Send the ViewChangeAck to the new primary
                 m = (msg *) malloc(sizeof(msg));
                 if(m==0) {
@@ -144,38 +147,38 @@ int main(int argc, char **argv)//@ : main
                 m->pid = pid;
                 m->pid_ack = mviewchange->pid;
                 m->round = ViewChangeAck_ROUND;
-        
+
                 send(m, primary(n,view));
                 dispose(m);
-                
+
                 mviewchange = mbox->next;
             }
-                
+
             list_dispose(mbox);
         }
-        
+
         round = NewView_ROUND;
-        
+
         if(primary(n,view)==pid){
-            
+
             m = (msg *) malloc(sizeof(msg));
             if(m==0) {
             abort();
             }
             m->view = view;
             m->round = NewView_ROUND;
-            
+
             send(m, to_all);
             dispose(m);
             m = NULL;
-            
+
             out(view);
-        
+
         }else{
 
             while(true)
             {
-    
+
                 m = recv();
                 // Received a valid message
                 if (m != NULL && m->view>=view){
@@ -187,32 +190,32 @@ int main(int argc, char **argv)//@ : main
                     if(mbox!=0){mbox_new->size = mbox->size + 1;}
                     else { mbox_new->size =1 ;}
                     mbox_new->next = mbox;
-    
+
                     mbox = mbox_new;
-    
+
                 }else{ dispose(m); }
-                
+
                 // Received a valid confirmation of the NewView
                 if (m != NULL && mbox->size ==1 && mbox->next == NULL && mbox->message->round == NewView_ROUND && view == mbox->message->view && certified_newview(m)){
                     break;
                 }
-    
+
                 if (timeout()){ break; }
-    
-            }   
+
+            }
 
             if (m != NULL && mbox->size ==1 && mbox->next == NULL && mbox->message->round == NewView_ROUND && view == mbox->message->view && certified_newview(m)){
-                out(view);   
+                out(view);
             }
-        
+
         }
-        
+
         view++;
         round = ViewChange_ROUND;
-    
-    
-        
 
-    }   
+
+
+
+    }
     return 1;
 }

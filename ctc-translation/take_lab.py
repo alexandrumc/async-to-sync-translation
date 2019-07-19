@@ -3,7 +3,7 @@ import os
 from utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
     find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles
 from generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor, DeclAlgoVisitor, \
-    AllVarsAlgoVisitor
+    AllVarsAlgoVisitor, RecvWhileVisitor, SendWhileVisitor
 from compute_paths import find_all_paths_between_two_nodes, prune_tree
 from pycparser import c_generator, parse_file
 from pycparser.plyparser import Coord
@@ -1191,9 +1191,12 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
 
     For each non recv while loop, take the compound and add markers before
     and after it
+
+    As another effect, this function also returns the list of potential send
+    type loops, as they are considered to not have a round assignment in them
     :return:
     """
-    v = WhileAlgoVisitor()
+    v = WhileAlgoVisitor(rounds_list)
     v.visit(extern_while_body)
 
     for el in v.result_list:
@@ -1207,6 +1210,9 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
         ind = p.block_items.index(elem)
         r = get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
 
+        if r == -1:
+            continue
+
         del p.block_items[ind]
 
         siz = len(elem.stmt.block_items)
@@ -1216,6 +1222,8 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
             ind += 1
             j += 1
         nested_algos_details.append((r, elem.stmt, p))
+
+    return v.send_loops_list
 
 
 def add_to_param_list(ast, decl_vars, all_vars, mbox_name):
@@ -1282,3 +1290,34 @@ def get_param_list(trees_dict, i, global_vars, mbox_name, vars_table):
                         break
 
     return final_list
+
+
+def extract_recv_loops(x):
+    v = RecvWhileVisitor()
+    v.visit(x)
+
+    return v.list
+
+
+def turn_send_loops_funcs(x, potential_send_loops):
+    v = SendWhileVisitor()
+
+    res = []
+
+    for loop in potential_send_loops:
+        v.visit(loop)
+
+        if len(v.list) > 0:
+            res.append(loop)
+        v.list = []
+
+    for el in res:
+        p = find_parent(x, el)
+
+        if p and isinstance(p, Compound):
+            ind = p.block_items.index(el)
+
+            del p.block_items[ind]
+            new_id = ID("send_mbox", p.coord)
+            func = FuncCall(new_id, None, p.coord)
+            p.block_items.insert(ind, func)
