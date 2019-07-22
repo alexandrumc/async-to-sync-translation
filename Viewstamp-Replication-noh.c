@@ -291,7 +291,10 @@ int main(int argc, char **argv)
                             mboxA_new->next = mboxA;
                             mboxA = mboxA_new;
                             commit_list *it = recovery_buffer;
-                            while (it) {
+                            while (true) {
+                                if (it == NULL) {
+                                    break;
+                                }
                                 if (it->replica_id == msgA->replica_id) {
                                     it->view_nr = msgA->view_nr;
                                     it->op_number = msgA->request_nr;
@@ -313,7 +316,10 @@ int main(int argc, char **argv)
                         } else if (msgA != NULL && msgA->view_nr == view_nr && msgA->label == PrepareOk
                             && msgA->request_nr < op_number) {
                             commit_list *it = recovery_buffer;
-                            while (it) {
+                            while (true) {
+                                if (it == NULL) {
+                                    break;
+                                }
                                 if (it->replica_id == msgA->replica_id) {
                                     break;
                                 }

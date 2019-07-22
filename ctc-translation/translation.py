@@ -24,7 +24,12 @@ vars_table = {}
 x = get_extern_while_body_from_func(ast, "main")
 get_vars_table(ast, vars_table)
 
+# Identify recv loops
 recv_loops = extract_recv_loops(x)
+
+# Identify and already modify send loops, as recv loops
+# may contain send loops - recovery case, for example
+turn_send_loops_funcs(x, config.rounds_list, config.msg_structure_fields)
 
 conditions = []
 whiles_to_if(x, conditions)
@@ -35,12 +40,8 @@ identify_recv_exits(x, conditions)
 
 nested_algos_details = []
 
-potential_send_loops = []
-
 if config.number_of_nested_algorithms > 1:
-    potential_send_loops = turn_nested_algo_marked_compound(x, nested_algos_details, config.rounds_list, config.msg_structure_fields)
-
-turn_send_loops_funcs(x, potential_send_loops)
+    turn_nested_algo_marked_compound(x, nested_algos_details, config.rounds_list, config.msg_structure_fields)
 
 # Delete unnecessary operations, like disposes and timeouts from code
 # First, get a list of all messages names

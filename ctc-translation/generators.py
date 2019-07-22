@@ -197,15 +197,29 @@ class RecvCallVisitor(c_ast.NodeVisitor):
         self.generic_visit(node.stmt)
 
 
-class SendLoopsVisitor(c_ast.NodeVisitor):
+class AssigRoundVisitor(c_ast.NodeVisitor):
     """
-
+    This visitor checks if a block contains a round assignment
+    If it contains and the block is a while (true)m then it's
+    considered to be a nested algo
     """
-    def __init__(self, rounds_list):
+    def __init__(self, rounds_list, msg_fields):
         self.status = True
         self.rounds_list = rounds_list
+        self.msg_fields = msg_fields
 
     def visit_Assignment(self, node):
+
+        check1 = False
+        if isinstance(node.lvalue, ID):
+            for el in self.msg_fields:
+                if node.lvalue.name == el["round_field"]:
+                    check1 = True
+                    break
+
+        if not check1:
+            return
+
         if node.rvalue and isinstance(node.rvalue, ID):
             for my_list in self.rounds_list:
                 if node.rvalue.name in my_list:
@@ -221,11 +235,11 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
     Every nested algo starts with a while(true)
     """
-    def __init__(self, rounds_list):
+    def __init__(self, rounds_list, msg_fields):
         self.result_list = []
-        self.send_loops_list = []
         self.conditions = []
         self.rounds_list = rounds_list
+        self.msg_fields = msg_fields
 
     @staticmethod
     def check_if_recv_loop(node):
@@ -251,11 +265,10 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
         if WhileAlgoVisitor.check_if_recv_loop(node.stmt):
             return
 
-        v = SendLoopsVisitor(self.rounds_list)
+        v = AssigRoundVisitor(self.rounds_list, self.msg_fields)
         v.visit(node)
 
         if v.status:
-            self.send_loops_list.append(node)
             return
         # print node.coord.line
         # Keep conditions although we don't add them
@@ -441,6 +454,43 @@ class SendWhileVisitor(c_ast.NodeVisitor):
     def visit_FuncCall(self, node):
         if node.name.name == 'send':
             self.list.append(node)
+
+
+class SendLoopsVisitor(c_ast.NodeVisitor):
+    """
+    All while(true) send loops identified and returned
+    as a list
+    """
+
+    def __init__(self, rounds_list, msg_fields):
+        self.result_list = []
+        self.rounds_list = rounds_list
+        self.msg_fields = msg_fields
+
+    def visit_While(self, node):
+        if node.stmt:
+            if isinstance(node.stmt, While):
+                self.visit_While(node.stmt)
+            else:
+                self.generic_visit(node.stmt)
+
+        if not (isinstance(node.cond, ID) and node.cond.name == "true"):
+            return
+
+        if WhileAlgoVisitor.check_if_recv_loop(node.stmt):
+            return
+
+        v = AssigRoundVisitor(self.rounds_list, self.msg_fields)
+        v.visit(node)
+
+        if not v.status:
+            return
+
+        v = SendWhileVisitor()
+        v.visit(node)
+
+        if len(v.list) > 0:
+            self.result_list.append(node)
 
 
 class RecvWhileVisitor(c_ast.NodeVisitor):
