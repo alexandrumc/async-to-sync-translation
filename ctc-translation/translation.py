@@ -81,7 +81,7 @@ while i >= 0:
     cop = duplicate_element(ast)
 
     trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, config.variables[i]['round'])
-
+    #is_job = False
     print_rounds(labs, trees_dict, trees_paths_dict, config.variables[i]['round'], is_job,
                  config.delete_round_phase[i], config.msg_structure_fields[i], config.variables[i])
 

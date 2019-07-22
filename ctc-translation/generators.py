@@ -1327,9 +1327,9 @@ class RoundGenerator(c_generator.CGenerator):
                     return ""
                 s += s_aux
                 if n.iffalse:
-                    if n.iftrue is not None:
-                        s += self._make_indent() + 'else\n'
                     s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                    if (n.iftrue is not None) and (len(s_aux) > 0):
+                        s += self._make_indent() + 'else\n'
                     aux = copy.copy(s_aux)
                     aux = aux.replace(" ", "")
                     # print s_aux
@@ -1540,10 +1540,10 @@ class RoundGenerator(c_generator.CGenerator):
                         return ""
                     s += s_aux
                 if n.iffalse:
-                    if n.iftrue is not None:
+                    s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                    if (n.iftrue is not None) and (len(s_aux) > 0):
                         s += self._make_indent() + 'else\n'
 
-                    s_aux = self._generate_stmt(n.iffalse, add_indent=True)
                     aux = copy.copy(s_aux)
                     aux = aux.replace(" ", "")
                     # print s_aux
@@ -1872,9 +1872,9 @@ class RoundGenerator(c_generator.CGenerator):
                         ok1 = True
                         self.send_last_instr = False
                 if n.iffalse:
-                    if n.iftrue is not None:
-                        s += self._make_indent() + 'else\n'
                     s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                    if n.iftrue is not None and len(s_aux) > 0:
+                        s += self._make_indent() + 'else\n'
                     aux = copy.copy(s_aux)
                     aux = aux.replace(" ", "")
 
@@ -2019,8 +2019,8 @@ class CheckIfGenerator(c_generator.CGenerator):
     This generator inspects the AST/a node and detects
     if it contains jumps of rounds or blocking loops.
     It takes as arguments the source node and the destination node.
-    If the node doesn't containt any jumps or blocking loops,
-    then the algoritm doesn't inspect it at all. This wouldn't be
+    If the node doesn't contain any jumps or blocking loops,
+    then the algorithm doesn't inspect it at all. This wouldn't be
     a good situation if inside the node is the source node or the
     destination node but no jumps or blocking loops because in this situation the node
     would remain unvisited and the source/dest node would never be

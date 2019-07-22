@@ -104,7 +104,7 @@ def find_all_paths_util(current_node, source_node, dest_node, path, parent_list,
     paths that will be find from those higher levels won't contain his right side brothers
     and this is not logical correct.
     :param is_job: is (j)ump (o)r (b)locking - if in the process of computing the paths the algorithm discovers a jump
-    of rounds or a blocking while loop this argument is set to True and is used later in Round Generathing phase to
+    of rounds or a blocking while loop this argument is set to True and is used later in Round Generating phase to
     wrap the rounds with the required if condition
     :return: nothing. at the end of the algorithm, the paths_list list given as an argument will be filled with tuples
     of (tree, path). is_job will also say if we need a wrapping
