@@ -1,99 +1,12 @@
 from pycparser import c_generator
 from pycparser.c_ast import *
 from pycparser.plyparser import Coord
-import config
+
+from generators import WhileAlgoVisitor
 
 generator = c_generator.CGenerator()
 
 coord_aux = 0
-
-
-def remove_mbox_assign_to_zero(extern_while_body, mbox_name):
-    """
-    assign mbox = 0 will be removed from the tree
-    :param extern_while_body:
-    :return:
-    """
-    to_delete = []
-    if extern_while_body.block_items:
-        # print type(mbox_name)
-        for msg_name in mbox_name:
-            for elem in extern_while_body.block_items:
-                # print elem.coord
-                if isinstance(elem, Assignment) and msg_name == elem.lvalue.name:
-                    # print type(elem)
-                    if isinstance(elem.rvalue, ID):
-                        if elem.rvalue.name == "NULL":
-                            to_delete.append(elem)
-
-                if isinstance(elem, If):
-                    remove_mbox_assign_to_zero(elem.iftrue, mbox_name)
-                    if elem.iffalse:
-                        remove_mbox_assign_to_zero(elem.iffalse, mbox_name)
-                # print "aici e ok", elem.coord
-
-            for x in to_delete:
-                # print generator.visit(x)
-                if x in extern_while_body.block_items:
-                    extern_while_body.block_items.remove(x)
-
-
-
-
-def remove_list_dispose(extern_while_body, clean_mailbox_function):
-    to_delete = []
-    if extern_while_body.block_items:
-        for elem in extern_while_body.block_items:
-            if isinstance(elem, FuncCall) and clean_mailbox_function in elem.name.name:
-                to_delete.append(elem)
-            if isinstance(elem, FuncCall) and "dispose" in elem.name.name:
-                if elem not in to_delete:
-                    to_delete.append(elem)
-            if isinstance(elem, FuncCall) and "free" in elem.name.name:
-                if elem not in to_delete:
-                    to_delete.append(elem)
-            if isinstance(elem, FuncCall) and "timeout" in elem.name.name:
-                if elem not in to_delete:
-                    to_delete.append(elem)
-            if isinstance(elem, If):
-                remove_list_dispose(elem.iftrue, clean_mailbox_function)
-                if elem.iffalse:
-                    remove_list_dispose(elem.iffalse, clean_mailbox_function)
-        for x in to_delete:
-            extern_while_body.block_items.remove(x)
-
-
-def remove_null_if(extern_while_body):
-    to_delete = []
-    if extern_while_body.block_items:
-        for elem in extern_while_body.block_items:
-            if isinstance(elem, If):
-                if isinstance(elem.iftrue, Compound):
-                    if len(elem.iftrue.block_items) == 0:
-                        # print generator.visit(elem), "aaaaaaa"
-                        to_delete.append(elem)
-                    else:
-                        # print generator.visit(elem), "AAAAAAA"
-                        remove_null_if(elem.iftrue)
-                if isinstance(elem.iffalse, Compound):
-                    if len(elem.iffalse.block_items) == 0:
-                        elem.iffalse = None
-                        # print 5
-                    else:
-                        remove_null_if(elem.iffalse)
-        for x in to_delete:
-            extern_while_body.block_items.remove(x)
-
-
-def remove_mbox(extern_while_body, mbox_name, clean_mailbox_function):
-    """
-    removes mbox assigns to 0 and ifs where it is freed
-    :param extern_while_body:
-    :return:
-    """
-    remove_mbox_assign_to_zero(extern_while_body, mbox_name)
-    remove_list_dispose(extern_while_body, clean_mailbox_function)
-    remove_null_if(extern_while_body)
 
 
 def test(op):
@@ -104,7 +17,7 @@ def test(op):
     """
     if isinstance(op, UnaryOp):
         for i in op:
-            if i.name.name == "timeout":
+            if isinstance(i, FuncCall) and i.name.name == "timeout":
                 return True
     if isinstance(op, FuncCall):
         if op.name.name == "timeout":
@@ -319,7 +232,7 @@ def whiles_to_if(extern_while_body, conditii=None):
         aux = extern_while_body
         element = aux.block_items[i]
 
-        if isinstance(element, While) and to_modify(element):
+        if isinstance(element, While) and WhileAlgoVisitor.check_if_recv_loop(element.stmt):
 
             coord = element.stmt.coord
 
@@ -357,10 +270,14 @@ def whiles_to_if(extern_while_body, conditii=None):
                 if new_if.iftrue:
                     whiles_to_if(new_if.iftrue, conditii)
 
+                # TODO: Get marker_stop() out of a newly created if
+
                 break
             else:
                 delete.append(aux.block_items[i])  # daca are timeout, sterg bucla cu totull
                 conditii.append((new_if, coord))
+        elif isinstance(element, While) and (not WhileAlgoVisitor.check_if_recv_loop(element.stmt)):
+            whiles_to_if(element.stmt, conditii)
                 # aux.block_items[i] = None
         # elif isinstance(element, While) and (not to_modify(element)):
         #         whiles_to_if(element.stmt, conditii)
@@ -380,7 +297,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                                 whiles_to_if(item.iftrue, conditii)  # nu stiu inca de ce trb sa pun asta aici
                             if item.iffalse:
                                 whiles_to_if(item.iffalse, conditii)
-                    elif to_modify(item):
+                    elif WhileAlgoVisitor.check_if_recv_loop(item.stmt):
                         # print item.coord, 'aaaa'
                         coord = item.stmt.coord
 
@@ -418,11 +335,15 @@ def whiles_to_if(extern_while_body, conditii=None):
                             if new_if.iftrue:
                                 whiles_to_if(new_if.iftrue, conditii)
 
+                            # TODO: Get marker_stop out of the newly created if
+
                             break
                         else:
                             to_delete.append(element.iftrue.block_items[index])
                             conditii.append((new_if, coord))
                             # element.iftrue.block_items[index] = None
+                    elif not WhileAlgoVisitor.check_if_recv_loop(item.stmt):
+                        whiles_to_if(item.stmt, conditii)
                 for x in to_delete:
                     element.iftrue.block_items.remove(x)
             if element.iffalse is not None:
@@ -438,7 +359,7 @@ def whiles_to_if(extern_while_body, conditii=None):
                                 whiles_to_if(item.iftrue, conditii)
                                 if item.iffalse:
                                     whiles_to_if(item.iffalse, conditii)
-                        elif to_modify(item):
+                        elif WhileAlgoVisitor.check_if_recv_loop(item.stmt):
                             # print item.coord,"bbb"
                             coord = item.stmt.coord
                             new_if = modify_while(item)
@@ -452,10 +373,14 @@ def whiles_to_if(extern_while_body, conditii=None):
                                 if new_if.iffalse:
                                     whiles_to_if(new_if.iffalse, conditii)
 
+                                # TODO: Get marker_stop out of the newly created if
+
                                 break
                             else:
                                 to_delete.append(element.iffalse.block_items[index])
                                 # element.iffalse.block_items[index] = None
+                        elif not WhileAlgoVisitor.check_if_recv_loop(item.stmt):
+                            whiles_to_if(item.stmt, conditii)
                     for x in to_delete:
                         element.iffalse.block_items.remove(x)
 

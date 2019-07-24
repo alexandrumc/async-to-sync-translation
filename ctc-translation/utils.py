@@ -1,12 +1,39 @@
 import copy
-from pycparser.c_ast import FileAST, FuncDef, While
+from pycparser.c_ast import FileAST, FuncDef, While, Decl, TypeDecl, PtrDecl
 from generators import PathGenerator, LabelVisitor, LocateNode, LocateParentNode, CheckLabelNumber,\
-    EpochVisitor, LocateParentNodeUpdated, SendVisitor, RecvWhileVisitor
+    EpochVisitor, LocateParentNodeUpdated, SendWhileVisitor, RecvWhileVisitor, DeclAlgoVisitor
 
 main_function_name = "main"
 new_code = "\n\n\n\n NEW CODE \n\n\n\n"
 new_path = "\n\n NEW PATH \n\n"
 new_element = "\n\nNEW ELEMENT\n\n"
+
+
+def get_global_vars(ast, result_list):
+    if not ast:
+        return
+    for elem in ast.ext:
+        if isinstance(elem, Decl) and len(elem.storage) == 0:
+            if isinstance(elem.type, TypeDecl):
+                result_list.append(elem.name)
+            elif isinstance(elem.type, PtrDecl):
+                result_list.append("*" + elem.name)
+
+
+def get_vars_table(ast, vars_table):
+    if not ast:
+        return
+
+    v = DeclAlgoVisitor("")
+    v.visit(ast)
+
+    for el in v.result_list:
+        if el[1] != "":
+            if el[0] in vars_table:
+                if el[1] not in vars_table[el[0]]:
+                    vars_table[el[0]].append(el[1])
+            else:
+                vars_table[el[0]] = [el[1]]
 
 
 def duplicate_element(element):
@@ -54,11 +81,11 @@ def find_parent(ast_tree, child_node):
     v.visit(ast_tree)
     return v.discovered_node
 
+
 def find_parentUpdated(ast_tree, child_node):
     v = LocateParentNodeUpdated(child_node)
     v.visit(ast_tree)
     return v.discovered_node
-
 
 
 def get_label_assign_num(ast_tree, label_name):
@@ -72,15 +99,18 @@ def get_label(ast_tree, label_name, label_value):
     v.visit(ast_tree)
     return v.label_item
 
+
 def get_epochs_assigns(ast_tree, epoch_name):
     v = EpochVisitor(epoch_name)
     v.visit(ast_tree)
     return v.epoch_list
 
+
 def get_send_usage(ast_tree):
-    v = SendVisitor()
+    v = SendWhileVisitor()
     v.visit(ast_tree)
     return v.list
+
 
 def get_recv_whiles(ast_tree):
     v = RecvWhileVisitor()

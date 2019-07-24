@@ -24,6 +24,9 @@ verifast_options="-c -disable_overflow_check"
 
 export PYTHONPATH="$PYTHONPATH:$PWD"
 
+# Save old config.py file
+cp ctc-translation/config.py ./
+
 if [ $# == 0 ]; then
 	echo "./run-translation [option] /path/to/file /path/to/config_file.py"
 elif [ $# == 1 ]; then
@@ -37,7 +40,7 @@ elif [ $# == 1 ]; then
 		for entry in $examples_folder*.c;
 		do
 			if [ -f $entry ]; then
-				
+
 				file_name=${entry//$examples_folder}
 				echo "Running algorithm on file: $file_name"
 				file_name=${file_name//".c"/}
@@ -225,8 +228,9 @@ elif [ $# == 3 ]; then
 		call_remove_headers="sed -e "/^#include/d" $entry_no_comments"
 
 		output="$output_file$output_extension"
-
+        echo $entry_no_headers
 		call_tool="$python_interpretor $main_module $entry_no_headers"
+		echo $call_tool
 		
 		config_path=$(dirname $3)
 		config_copy="$config_path/$default_config"
@@ -249,6 +253,10 @@ elif [ $# == 3 ]; then
 
 		$call_clean_1
 		echo "Running translation..(verifast disabled)"
+
+		# To stop after getting the noh file and start debugging, uncomment exit
+		exit 1
+
 	    $call_tool > $output
 
 	    $call_clean_2
@@ -261,4 +269,9 @@ elif [ $# == 3 ]; then
 	fi
 
 fi
+
+# In case that config.pyc has been created, delete it, and restore previous 
+# config file
+rm -f ctc-translation/config.pyc
+mv ./config.py ctc-translation/
 

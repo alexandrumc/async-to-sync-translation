@@ -1,5 +1,5 @@
 ===============
-ATHOS - Aynchronous To HO Synchronizer
+ATHOS - Asynchronous To HO Synchronizer
 ===============
 
 :Authors:

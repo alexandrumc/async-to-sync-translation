@@ -1,7 +1,6 @@
 from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, \
-    Break, StructRef, BinaryOp
+    Break, StructRef, BinaryOp, TypeDecl, PtrDecl, Decl, Struct, Enum
 from pycparser import c_generator, c_ast
-from modify_whiles import to_modify
 import copy
 
 
@@ -38,6 +37,371 @@ class EpochVisitor(c_ast.NodeVisitor):
     def visit_Assignment(self, node):
         if node.lvalue.name == self.epoch_name:
             self.epoch_list.append(node)
+
+
+class NullAssignVisitor(c_ast.NodeVisitor):
+    """
+    Takes the name of all message variables and mailbox variables and returns
+    a list with all NULL assignments
+    """
+
+    def __init__(self, name_list):
+        self.name_list = name_list
+        self.result_list = []
+
+    def visit_Assignment(self, node):
+        if node.lvalue.name not in self.name_list:
+            return
+
+        if isinstance(node.rvalue, ID) and node.rvalue.name == "NULL":
+            self.result_list.append(node)
+
+
+class UselessFuncVisitor(c_ast.NodeVisitor):
+    """
+    Takes all free type functions and creates a list with them
+    Also adds all functions which refer to a timeout, as these will
+    be useless after recv whiles turning into ifs
+    """
+
+    def __init__(self, dispose_funcs_names):
+        self.result_list = []
+        self.dispose_funcs_names = dispose_funcs_names
+
+    def visit_FuncCall(self, node):
+        stat = False
+        if node.name.name in self.dispose_funcs_names:
+            stat = True
+
+        if "clear" in node.name.name:
+            stat = True
+
+        if "clean" in node.name.name:
+            stat = True
+
+        if "free" in node.name.name:
+            stat = True
+
+        if "dispose" in node.name.name:
+            stat = True
+
+        if "delete" in node.name.name:
+            stat = True
+
+        if "erase" in node.name.name:
+            stat = True
+
+        if "timeout" in node.name.name:
+            stat = True
+
+        if stat:
+            self.result_list.append(node)
+
+
+class EmptyInstrVisitor(c_ast.NodeVisitor):
+    """
+    If there are instr with empty compounds,
+    add them in a list and then delete them
+    """
+
+    def __init__(self):
+        self.result_list = []
+
+    def visit_If(self, node):
+        if node.iffalse:
+            if isinstance(node.iffalse, Compound) and len(node.iffalse.block_items) != 0:
+                self.generic_visit(node.iffalse)
+
+        if node.iffalse:
+            if isinstance(node.iffalse, Compound) and len(node.iffalse.block_items) == 0:
+                node.iffalse = None
+
+        if node.iffalse:
+            if isinstance(node.iffalse, If):
+                self.visit_If(node.iffalse)
+            elif isinstance(node.iffalse, While):
+                self.visit_While(node.iffalse)
+            elif not isinstance(node.iffalse, Compound):
+                self.generic_visit(node.iffalse)
+
+        if node.iftrue:
+            if isinstance(node.iftrue, Compound) and len(node.iftrue.block_items) != 0:
+                self.generic_visit(node.iftrue)
+
+        if node.iftrue:
+            if isinstance(node.iftrue, Compound) and len(node.iftrue.block_items) == 0:
+                node.iftrue = None
+
+        if node.iftrue:
+            if isinstance(node.iftrue, If):
+                self.visit_If(node.iftrue)
+            elif isinstance(node.iftrue, While):
+                self.visit_While(node.iftrue)
+            elif not isinstance(node.iftrue, Compound):
+                self.generic_visit(node.iftrue)
+
+        if (not node.iftrue) and (not node.iffalse):
+            self.result_list.append(node)
+            return
+
+        if (not node.iftrue) and node.iffalse:
+            new_cond = UnaryOp("!", node.cond)
+            node.cond = new_cond
+            node.iftrue = node.iffalse
+            node.iffalse = None
+
+    def visit_While(self, node):
+        if node.stmt:
+            if isinstance(node.stmt, If):
+                self.visit_If(node.stmt)
+            elif isinstance(node.stmt, While):
+                self.visit_While(node.stmt)
+            elif not isinstance(node.stmt, Compound):
+                self.generic_visit(node.stmt)
+
+        if node.stmt:
+            if isinstance(node.stmt, Compound) and len(node.stmt.block_items) != 0:
+                self.generic_visit(node.stmt)
+
+        if not node.stmt:
+            self.result_list.append(node)
+        elif isinstance(node.stmt, Compound) and len(node.stmt.block_items) == 0:
+            self.result_list.append(node)
+
+
+class RecvCallVisitor(c_ast.NodeVisitor):
+    """
+    With this visitor we can identify the number of recv type function
+    calls from a certain while(true) block
+    Used to decide whether a while loop is a receiving one, or a new
+    algorithm
+    """
+    def __init__(self):
+        self.nr = 0
+
+    def visit_FuncCall(self, node):
+        if ("recv" in str.lower(node.name.name)) or ("receive" in str.lower(node.name.name)):
+            self.nr += 1
+
+        if isinstance(node.args, FuncCall):
+            self.visit_FuncCall(node.args)
+        elif node.args:
+            self.generic_visit(node.args)
+
+    def visit_While(self, node):
+        # If we find a while loop, this is either a new algo, or another recv loop
+        # so we skip its content
+        if isinstance(node.cond, ID) and node.cond.name == "true":
+            return
+
+        self.generic_visit(node.stmt)
+
+
+class AssigRoundVisitor(c_ast.NodeVisitor):
+    """
+    This visitor checks if a block contains a round assignment
+    If it contains and the block is a while (true)m then it's
+    considered to be a nested algo
+    """
+    def __init__(self, rounds_list, msg_fields):
+        self.status = True
+        self.rounds_list = rounds_list
+        self.msg_fields = msg_fields
+
+    def visit_Assignment(self, node):
+
+        check1 = False
+        if isinstance(node.lvalue, ID):
+            for el in self.msg_fields:
+                if node.lvalue.name == el["round_field"]:
+                    check1 = True
+                    break
+
+        if not check1:
+            return
+
+        if node.rvalue and isinstance(node.rvalue, ID):
+            for my_list in self.rounds_list:
+                if node.rvalue.name in my_list:
+                    self.status = False
+                    break
+
+
+class WhileAlgoVisitor(c_ast.NodeVisitor):
+    """
+    With this visitor we return a list of whiles which represent
+    a nested algorithm
+    We also add markers for the beginning and ending of this algo
+
+    Every nested algo starts with a while(true)
+    """
+    def __init__(self, rounds_list, msg_fields):
+        self.result_list = []
+        self.conditions = []
+        self.rounds_list = rounds_list
+        self.msg_fields = msg_fields
+
+    @staticmethod
+    def check_if_recv_loop(node):
+        v = RecvCallVisitor()
+        v.visit(node)
+        if v.nr > 0:
+            return True
+
+        return False
+
+    def visit_While(self, node):
+        if node.stmt:
+            if isinstance(node.stmt, If):
+                self.visit_If(node.stmt)
+            elif isinstance(node.stmt, While):
+                self.visit_While(node.stmt)
+            else:
+                self.generic_visit(node.stmt)
+
+        if not (isinstance(node.cond, ID) and node.cond.name == "true"):
+            return
+
+        if WhileAlgoVisitor.check_if_recv_loop(node.stmt):
+            return
+
+        v = AssigRoundVisitor(self.rounds_list, self.msg_fields)
+        v.visit(node)
+
+        if v.status:
+            return
+        # print node.coord.line
+        # Keep conditions although we don't add them
+        cop = copy.deepcopy(self.conditions)
+
+        new_id = ID("marker_start", node.coord)
+        func = FuncCall(new_id, None, node.coord)
+
+        node.stmt.block_items.insert(0, func)
+
+        new_id = ID("marker_stop", node.coord)
+        func = FuncCall(new_id, None, node.coord)
+
+        node.stmt.block_items.append(func)
+        self.result_list.append((node, cop))
+
+    def visit_If(self, node):
+        self.conditions.append(node.cond)
+        if node.iftrue:
+            if isinstance(node.iftrue, If):
+                self.visit_If(node.iftrue)
+            elif isinstance(node.iftrue, While):
+                self.visit_While(node.iftrue)
+            else:
+                self.generic_visit(node.iftrue)
+
+        del self.conditions[-1]
+        new_cond = UnaryOp('!', node.cond)
+        self.conditions.append(new_cond)
+        if node.iffalse:
+            if isinstance(node.iffalse, If):
+                self.visit_If(node.iffalse)
+            elif isinstance(node.iffalse, While):
+                self.visit_While(node.iffalse)
+            else:
+                self.generic_visit(node.iffalse)
+
+        del self.conditions[-1]
+
+
+class DeclAlgoVisitor(c_ast.NodeVisitor):
+    """
+    This visitor creates a list with all variables declared inside an algorithm
+    """
+
+    def __init__(self, mbox_name):
+        self.result_list = []
+        self.mbox_name = mbox_name
+
+    def visit_Typedef(self, node):
+        return
+
+    def visit_FuncDef(self, node):
+        if node.decl.name != "main":
+            return
+
+        self.generic_visit(node.body)
+
+    def visit_Decl(self, node):
+        if len(node.storage) != 0:
+            return
+
+        if (not isinstance(node.type, TypeDecl)) and (not isinstance(node.type, PtrDecl)):
+            return
+
+        if isinstance(node.type, TypeDecl):
+            inner_type = node.type.type
+
+            if isinstance(inner_type, Struct):
+                self.result_list.append((node.name, "struct " + inner_type.name))
+            elif isinstance(inner_type, Enum):
+                self.result_list.append((node.name, "enum " + inner_type.name))
+            else:
+                self.result_list.append((node.name, inner_type.names[0]))
+        elif isinstance(node.type, PtrDecl):
+            inner_type = node.type
+            while isinstance(inner_type, PtrDecl):
+                inner_type = inner_type.type
+            inner_type = inner_type.type
+
+            if isinstance(inner_type, Struct):
+                self.result_list.append((node.name, "struct " + inner_type.name + "*"))
+            else:
+                self.result_list.append((node.name, inner_type.names[0] + "*"))
+
+    def visit_Assignment(self, node):
+        # If we have an assignment old_0_mbox = ... then
+        # this is like a declared var
+        if isinstance(node.lvalue, ID):
+            if "old" in node.lvalue.name and self.mbox_name in node.lvalue.name:
+                self.result_list.append((node.lvalue.name, ""))
+        elif isinstance(node.lvalue, Decl):
+            self.visit_Decl(node.lvalue)
+        else:
+            self.generic_visit(node.lvalue)
+
+        if isinstance(node.rvalue, Decl):
+            self.visit_Decl(node.rvalue)
+        elif isinstance(node.rvalue, Assignment):
+            self.visit_Assignment(node.rvalue)
+        else:
+            self.generic_visit(node.rvalue)
+
+
+class AllVarsAlgoVisitor(c_ast.NodeVisitor):
+    """
+    This visitor creates a list with all IDs met inside an algo
+    """
+
+    def __init__(self):
+        self.result_list = []
+
+    def visit_ID(self, node):
+        if node.name == "NULL":
+            return
+
+        if node.name == "to_all":
+            return
+
+        self.result_list.append(node.name)
+
+    def visit_FuncCall(self, node):
+        if "inner_algorithm" in node.name.name:
+            return
+
+        if node.args:
+            if node.args.exprs:
+                self.generic_visit(node.args.exprs)
+
+    def visit_StructRef(self, node):
+        if node.name:
+            if isinstance(node.name, ID):
+                self.result_list.append(node.name.name)
 
 
 class CondVisitor(c_generator.CGenerator):
@@ -79,7 +443,7 @@ class CondVisitor(c_generator.CGenerator):
         return '%s %s %s' % (lval_str, n.op, rval_str)
 
 
-class SendVisitor(c_ast.NodeVisitor):
+class SendWhileVisitor(c_ast.NodeVisitor):
     """
     Returns a list with all occurences of send function
     """
@@ -92,7 +456,44 @@ class SendVisitor(c_ast.NodeVisitor):
             self.list.append(node)
 
 
-class RecvWhileVisitor(c_generator.CGenerator):
+class SendLoopsVisitor(c_ast.NodeVisitor):
+    """
+    All while(true) send loops identified and returned
+    as a list
+    """
+
+    def __init__(self, rounds_list, msg_fields):
+        self.result_list = []
+        self.rounds_list = rounds_list
+        self.msg_fields = msg_fields
+
+    def visit_While(self, node):
+        if node.stmt:
+            if isinstance(node.stmt, While):
+                self.visit_While(node.stmt)
+            else:
+                self.generic_visit(node.stmt)
+
+        if not (isinstance(node.cond, ID) and node.cond.name == "true"):
+            return
+
+        if WhileAlgoVisitor.check_if_recv_loop(node.stmt):
+            return
+
+        v = AssigRoundVisitor(self.rounds_list, self.msg_fields)
+        v.visit(node)
+
+        if not v.status:
+            return
+
+        v = SendWhileVisitor()
+        v.visit(node)
+
+        if len(v.list) > 0:
+            self.result_list.append(node)
+
+
+class RecvWhileVisitor(c_ast.NodeVisitor):
     """
     Identifies the recv whiles, used for asserts
     """
@@ -102,13 +503,17 @@ class RecvWhileVisitor(c_generator.CGenerator):
         self.list = []
 
     def visit_While(self, n):
-        if to_modify(n):
+        if n.stmt:
+            if isinstance(n.stmt, While):
+                self.visit_While(n.stmt)
+            else:
+                self.generic_visit(n.stmt)
+
+        if not (isinstance(n.cond, ID) and n.cond.name == "true"):
+            return
+
+        if WhileAlgoVisitor.check_if_recv_loop(n.stmt):
             self.list.append(n)
-        s = ""
-        if n.cond:
-            self.visit(n.cond)
-        self._generate_stmt(n.stmt, add_indent=True)
-        return s
 
 
 class CheckLabelNumber(c_ast.NodeVisitor):
@@ -494,7 +899,7 @@ class RoundGenerator(c_generator.CGenerator):
     The last case needs more complex computation.
     """
 
-    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, first_round, save_round, path=None):
+    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, save_round, path=None):
         c_generator.CGenerator.__init__(self)
         # a string that indicates send or update mode; "send" for send and "update" for update
         self.mode = mode
@@ -519,7 +924,6 @@ class RoundGenerator(c_generator.CGenerator):
         self.delete = delete_round_phase
         self.message = message
         self.variables = variables
-        self.first_round = first_round
         self.remember_round = save_round
 
     def visit_Break(self, n):
@@ -787,7 +1191,7 @@ class RoundGenerator(c_generator.CGenerator):
                     if self.mode == "update" and self.send_reached:
                         if n.lvalue.name == self.labelname and isinstance(n.rvalue, ID) \
                                 and n.rvalue.name == "AUX_ROUND":
-                            n.rvalue.name = self.first_round
+                            n.rvalue.name = "ERR_ROUND"
 
                     if self.delete:
                         if isinstance(n.rvalue, ID):
@@ -923,9 +1327,9 @@ class RoundGenerator(c_generator.CGenerator):
                     return ""
                 s += s_aux
                 if n.iffalse:
-                    if n.iftrue is not None:
-                        s += self._make_indent() + 'else\n'
                     s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                    if (n.iftrue is not None) and (len(s_aux) > 0):
+                        s += self._make_indent() + 'else\n'
                     aux = copy.copy(s_aux)
                     aux = aux.replace(" ", "")
                     # print s_aux
@@ -1136,10 +1540,10 @@ class RoundGenerator(c_generator.CGenerator):
                         return ""
                     s += s_aux
                 if n.iffalse:
-                    if n.iftrue is not None:
+                    s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                    if (n.iftrue is not None) and (len(s_aux) > 0):
                         s += self._make_indent() + 'else\n'
 
-                    s_aux = self._generate_stmt(n.iffalse, add_indent=True)
                     aux = copy.copy(s_aux)
                     aux = aux.replace(" ", "")
                     # print s_aux
@@ -1468,9 +1872,9 @@ class RoundGenerator(c_generator.CGenerator):
                         ok1 = True
                         self.send_last_instr = False
                 if n.iffalse:
-                    if n.iftrue is not None:
-                        s += self._make_indent() + 'else\n'
                     s_aux = self._generate_stmt(n.iffalse, add_indent=True)
+                    if n.iftrue is not None and len(s_aux) > 0:
+                        s += self._make_indent() + 'else\n'
                     aux = copy.copy(s_aux)
                     aux = aux.replace(" ", "")
 
@@ -1615,8 +2019,8 @@ class CheckIfGenerator(c_generator.CGenerator):
     This generator inspects the AST/a node and detects
     if it contains jumps of rounds or blocking loops.
     It takes as arguments the source node and the destination node.
-    If the node doesn't containt any jumps or blocking loops,
-    then the algoritm doesn't inspect it at all. This wouldn't be
+    If the node doesn't contain any jumps or blocking loops,
+    then the algorithm doesn't inspect it at all. This wouldn't be
     a good situation if inside the node is the source node or the
     destination node but no jumps or blocking loops because in this situation the node
     would remain unvisited and the source/dest node would never be
