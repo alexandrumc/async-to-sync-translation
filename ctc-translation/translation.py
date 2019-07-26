@@ -1,7 +1,7 @@
-from take_lab import take_code_from_file, get_extern_while_body_from_func, get_paths_trees, \
-    turn_nested_algo_marked_compound, print_rounds, get_param_list, extract_recv_loops, turn_send_loops_funcs
+from take_lab import get_extern_while_body_from_func, get_paths_trees, \
+    turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs
 from pycparser import parse_file
-from utils import duplicate_element, find_parent, get_global_vars, get_vars_table
+from utils import duplicate_element, find_parent, get_global_vars, get_vars_table, get_recv_whiles
 
 from modify_whiles import *
 import sys
@@ -25,14 +25,22 @@ x = get_extern_while_body_from_func(ast, "main")
 get_vars_table(ast, vars_table)
 
 # Identify recv loops
-recv_loops = extract_recv_loops(x)
+# Get main function from ast
+l = ast.children()
+i = 0
+while i < len(l):
+    if isinstance(l[i][1], FuncDef) and l[i][1].decl.name == "main":
+        break
+    i += 1
+
+recv_loops = get_recv_whiles(l[i][1], config.rounds_list, config.msg_structure_fields)
 
 # Identify and already modify send loops, as recv loops
 # may contain send loops - recovery case, for example
 turn_send_loops_funcs(x, config.rounds_list, config.msg_structure_fields)
 
 conditions = []
-whiles_to_if(x, conditions)
+whiles_to_if(x, recv_loops, conditions)
 
 identify_recv_exits(x, conditions)
 

@@ -991,7 +991,7 @@ def identify_nested(ast_tree):
 
                     for elem in list1:
                         conditii = []
-                        whiles_to_if(elem.stmt, conditii)
+                        whiles_to_if(elem.stmt, conditii, None)
                         identify_recv_exits(elem.stmt, conditii)
                         remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
                         aux1 = elem.stmt
@@ -1009,7 +1009,7 @@ def identify_nested(ast_tree):
                 if list2:
                     for elem in list2:
                         conditii = []
-                        whiles_to_if(elem.stmt, conditii)
+                        whiles_to_if(elem.stmt, conditii, None)
                         identify_recv_exits(elem.stmt, conditii)
                         remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
                         aux2 = elem.stmt
@@ -1044,7 +1044,7 @@ def identify_nested(ast_tree):
             for elem in list:
                 # print generator.visit(elem), "AAAAAAAAAAA"
                 conditii = []
-                whiles_to_if(elem.stmt, conditii)
+                whiles_to_if(elem.stmt, conditii, None)
 
                 identify_recv_exits(elem.stmt, conditii)
                 remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
@@ -1145,45 +1145,6 @@ def take_code_from_file(ast, filename, labelname, round_list, delete_round_phase
         print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, round_list)
 
 
-def get_rank_of_algo(x, rounds_list, msg_structure_fields):
-    # While loops will be either for receive either another algorithm
-    # We are interested only in assignments which contain a round label
-    # as right member
-
-    if not x or (not isinstance(x, Compound)) or not x.block_items:
-        return -1
-
-    for elem in x.block_items:
-        if isinstance(elem, If):
-            res = get_rank_of_algo(elem.iftrue, rounds_list, msg_structure_fields)
-            if res != -1:
-                return res
-            res = get_rank_of_algo(elem.iffalse, rounds_list, msg_structure_fields)
-            if res != -1:
-                return res
-
-        elif isinstance(elem, Assignment):
-            # First search to see if this is a round assignment
-            found = False
-            for struc in msg_structure_fields:
-                if elem.lvalue.name == struc['round_field']:
-                    found = True
-                    break
-
-            if not found:
-                continue
-            for mround in rounds_list:
-                if isinstance(elem.rvalue, ID) and elem.rvalue.name in mround:
-                    return rounds_list.index(mround)
-
-        elif isinstance(elem, While) and (not elem.cond.name == "true"):
-            res = get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
-            if res != -1:
-                return res
-
-    return -1
-
-
 def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, rounds_list, msg_structure_fields):
     """
     Found that we have nested algorithms from the config file
@@ -1208,7 +1169,7 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
         if not isinstance(p, Compound):
             continue
         ind = p.block_items.index(elem)
-        r = get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
+        r = WhileAlgoVisitor.get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
 
         if r == -1:
             continue
@@ -1288,13 +1249,6 @@ def get_param_list(trees_dict, i, global_vars, mbox_name, vars_table):
                         break
 
     return final_list
-
-
-def extract_recv_loops(x):
-    v = RecvWhileVisitor()
-    v.visit(x)
-
-    return v.list
 
 
 def turn_send_loops_funcs(x, rounds_list, msg_structure_fields):

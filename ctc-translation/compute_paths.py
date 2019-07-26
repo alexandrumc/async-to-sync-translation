@@ -865,7 +865,7 @@ if __name__ == "__main__":
     tree_gen = TreeGenerator()
     ast = parse_file(filename="examples/c_files/tpc_AMIT_modificat.c", use_cpp=False)
     cond = []
-    whiles_to_if(get_extern_while_body(ast), cond)
+    whiles_to_if(get_extern_while_body(ast), None, cond)
     identify_recv_exits(get_extern_while_body(ast), cond)
     remove_mbox(get_extern_while_body(ast))
 

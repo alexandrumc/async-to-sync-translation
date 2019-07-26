@@ -114,7 +114,7 @@ def round PrepareOk_ROUND:
   }
   if (!(pid == get_primary(view_nr, n)) && (((old_1_mboxB != NULL) && (old_1_mboxB->size == 1)) && (old_1_mboxB->next == NULL)) && (((old_0_mboxA != NULL) && (old_0_mboxA->size == 1)) && (old_0_mboxA->next == NULL)))
   {
-
+    
     round = Prepare_ROUND;
   }
 
@@ -178,14 +178,16 @@ def round StartView_ROUND:
 
   if ((pid == get_primary(view_nr, n)) && ((old_0_mboxB != NULL) && (old_0_mboxB->size >= (n / 2))))
   {
-    inner_algorithm_B(char* client_req, listA* old_1_mboxA, arraylist* log, listB* old_1_mboxB, listA* old_0_mboxA, listB* old_0_mboxB, msg_NormalOp* msgA, commit_list* recovery_buffer, listA* mboxA);
+    inner_algorithm_B(char* client_req, arraylist* log, listB* old_1_mboxB, listB* old_0_mboxB, msg_NormalOp* msgA, commit_list* recovery_buffer);
   }
   bround = DoViewChange_ROUND;
   if (!(pid == get_primary(view_nr, n)))
   {
     if ((((mboxB != NULL) && (mboxB->size == 1)) && (mboxB->next == NULL)))
     {
-      inner_algorithm_B(char* client_req, listA* old_1_mboxA, arraylist* log, listB* old_1_mboxB, listA* old_0_mboxA, listB* old_0_mboxB, msg_NormalOp* msgA, commit_list* recovery_buffer, listA* mboxA);
+      inner_algorithm_B(char* client_req, arraylist* log, listB* old_1_mboxB, listB* old_0_mboxB, msg_NormalOp* msgA, commit_list* recovery_buffer);
     }
   }
   bround = DoViewChange_ROUND;
+
+

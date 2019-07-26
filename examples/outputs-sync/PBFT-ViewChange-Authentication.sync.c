@@ -16,7 +16,7 @@ if(round == ViewChange_ROUND){
 
 if(round == ViewChange_ROUND)
 {
-
+  
 }
 
 
@@ -35,7 +35,7 @@ if(round == ViewChangeAck_ROUND){
 
 if(round == ViewChangeAck_ROUND)
 {
-
+  
 }
 
 
@@ -70,3 +70,5 @@ if(round == NewView_ROUND)
     }
   }
 }
+
+

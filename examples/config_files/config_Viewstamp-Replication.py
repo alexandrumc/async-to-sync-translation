@@ -87,12 +87,12 @@ variables = []
 # Modify with phase and round variables names
 variables.append(dict(
     phase="view_nr",
-    round="round"
+    round="bround"
 ))
 
 variables.append(dict(
     phase="op_number",
-    round="bround"
+    round="round"
 ))
 
 msg_structure_fields = []
@@ -101,20 +101,20 @@ msg_structure_fields = []
 msg_structure_fields.append(dict(
     name="msgA",
     phase_field="view_nr",
-    round_field="round"
+    round_field="bround"
 ))
 
 msg_structure_fields.append(dict(
     name="msgB",
     phase_field="op_number",
-    round_field="bround"
+    round_field="round"
 ))
 
 mailbox = []
 
 # Modify with mailbox name
-mailbox.append("mboxA")
 mailbox.append("mboxB")
+mailbox.append("mboxA")
 
 clean_mailbox = []
 
@@ -130,8 +130,8 @@ rounds_list.append(['Prepare_ROUND', 'PrepareOk_ROUND', 'AUX_ROUND'])
 
 delete_round_phase = []
 
-delete_round_phase.append(True)
-delete_round_phase.append(True)
+delete_round_phase.append(False)
+delete_round_phase.append(False)
 
 # Add as many fields as you need
 

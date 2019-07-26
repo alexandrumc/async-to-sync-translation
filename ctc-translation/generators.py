@@ -250,6 +250,32 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
         return False
 
+    @staticmethod
+    def get_rank_of_algo(x, rounds_list, msg_structure_fields):
+        # While loops will be either for receive either another algorithm
+        # We are interested only in assignments which contain a round label
+        # as right member
+
+        if not x or (not isinstance(x, Compound)) or not x.block_items:
+            return -1
+
+        for elem in x.block_items:
+            if isinstance(elem, Assignment):
+                # First search to see if this is a round assignment
+                found = False
+                for struc in msg_structure_fields:
+                    if elem.lvalue.name == struc['round_field']:
+                        found = True
+                        break
+
+                if not found:
+                    continue
+                for mround in rounds_list:
+                    if isinstance(elem.rvalue, ID) and elem.rvalue.name in mround:
+                        return rounds_list.index(mround)
+
+        return -1
+
     def visit_While(self, node):
         if node.stmt:
             if isinstance(node.stmt, If):
@@ -493,27 +519,112 @@ class SendLoopsVisitor(c_ast.NodeVisitor):
             self.result_list.append(node)
 
 
+class TimeoutVisitor(c_ast.NodeVisitor):
+    """
+    Finds if there is an algorithm exit from a recv while loop
+    Exists are represented by the call to out_internal()
+    """
+    def __init__(self):
+        self.status = False
+    """
+    def visit_If(self, node):
+        if isinstance(node.cond, FuncCall):
+            if "timeout" in node.cond.name.name:
+                if isinstance(node.iftrue, FuncCall) and node.iftrue.name.name == "out_internal":
+                    self.status = True
+                elif isinstance(node.iftrue, Compound):
+                    self.generic_visit(node.iftrue)
+
+        if self.status:
+            return
+
+        if node.iftrue:
+            if isinstance(node.iftrue, If):
+                self.visit_If(node.iftrue)
+            else:
+                self.generic_visit(node.iftrue)
+
+        if node.iffalse:
+            if isinstance(node.iffalse, If):
+                self.visit_If(node.iffalse)
+            else:
+                self.generic_visit(node.iffalse)
+    """
+    def visit_FuncCall(self, node):
+        if node.name.name == "out_internal":
+            self.status = True
+
+
 class RecvWhileVisitor(c_ast.NodeVisitor):
     """
     Identifies the recv whiles, used for asserts
+
+    Returns a dictionary, result, with data regarding
+    the return from the algorithm which contains this
+    loop
+
+    Also returns a list with deep copy for each recv loop,
+    for further analysis
     """
 
-    def __init__(self):
+    def __init__(self, msg_fields, rounds_list):
         super(RecvWhileVisitor, self).__init__()
+        self.result = {}
         self.list = []
+        self.algo_list = []
+        self.msg_fields = msg_fields
+        self.rounds_list = rounds_list
 
     def visit_While(self, n):
+        algo_check = True
+        if not (isinstance(n.cond, ID) and n.cond.name == "true"):
+            algo_check = False
+
+        if WhileAlgoVisitor.check_if_recv_loop(n.stmt):
+            algo_check = False
+
+        prev = len(self.algo_list)
+        if algo_check:
+            # Check for top level round assignment, algo specific
+            for el in n.stmt.children():
+                if prev == len(self.algo_list) - 1:
+                    break
+                if isinstance(el[1], Assignment):
+                    if isinstance(el[1].lvalue, ID):
+                        for msg in self.msg_fields:
+                            if msg["round_field"] == el[1].lvalue.name:
+                                self.algo_list.append(self.msg_fields.index(msg))
+                                break
+
+        if not prev == len(self.algo_list) - 1:
+            algo_check = False
+
         if n.stmt:
             if isinstance(n.stmt, While):
                 self.visit_While(n.stmt)
             else:
                 self.generic_visit(n.stmt)
 
+        if algo_check:
+            del self.algo_list[len(self.algo_list) - 1]
+
         if not (isinstance(n.cond, ID) and n.cond.name == "true"):
             return
 
         if WhileAlgoVisitor.check_if_recv_loop(n.stmt):
             self.list.append(n)
+            if len(self.algo_list) < 2:
+                self.result[(n.coord.line, n.coord.column)] = None
+                return
+
+            # Check if it contains if (timeout()) {out_internal()}
+            v = TimeoutVisitor()
+            v.visit(n)
+
+            if v.status:
+                assig_node = Assignment('=', ID(self.msg_fields[self.algo_list[len(self.algo_list) - 2]]["round_field"]),
+                                        ID(self.rounds_list[self.algo_list[len(self.algo_list) - 2]][0]), n.coord)
+                self.result[(n.coord.line, n.coord.column)] = assig_node
 
 
 class CheckLabelNumber(c_ast.NodeVisitor):
@@ -958,6 +1069,7 @@ class RoundGenerator(c_generator.CGenerator):
         return ''
 
     def visit_FuncCall(self, n):
+        #print "Functia:   " + n.name.name
         if self.path is not None:
             if n in self.path or self.extend_visit or self.visit_cond:
                 if self.mode == "send" and not self.send_reached \

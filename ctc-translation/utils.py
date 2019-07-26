@@ -112,10 +112,10 @@ def get_send_usage(ast_tree):
     return v.list
 
 
-def get_recv_whiles(ast_tree):
-    v = RecvWhileVisitor()
+def get_recv_whiles(ast_tree, rounds_list, msg_fields):
+    v = RecvWhileVisitor(msg_fields, rounds_list)
     v.visit(ast_tree)
-    return v.list
+    return v.result
 
 
 def print_path(paths_list, index=-1):

@@ -113,8 +113,8 @@ msg_structure_fields.append(dict(
 mailbox = []
 
 # Modify with mailbox name
-mailbox.append("mboxA")
 mailbox.append("mboxB")
+mailbox.append("mboxA")
 
 clean_mailbox = []
 
