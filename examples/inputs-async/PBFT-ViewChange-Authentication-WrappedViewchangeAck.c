@@ -4,18 +4,18 @@
 #include<stdbool.h>
 
 typedef struct Msg {
-	int round;
-	int view;
-	// ViewChange data
-	int checkpoint;
-	struct List * checkpoint_certificate_set;
-	struct List * prepared_set;
-	int pid;
-	// ViewChangeAck data
-	struct List * pid_ack;
-	// NewView data
-	struct List * viewchange_certificate_set;
-	struct List * preprepared_set;
+    int round;
+    int view;
+    // ViewChange data
+    int checkpoint;
+    struct List * checkpoint_certificate_set;
+    struct List * prepared_set;
+    int pid;
+    // ViewChangeAck data
+    struct List * pid_ack;
+    // NewView data
+    struct List * viewchange_certificate_set;
+    struct List * preprepared_set;
 } msg;
 
 typedef struct List{
@@ -73,6 +73,7 @@ int main(int argc, char **argv)//@ : main
 //@ ensures true;
 {
     int pid;
+    int n;
     int to_all = n+1;
 
     enum round_typ round;
@@ -88,7 +89,7 @@ int main(int argc, char **argv)//@ : main
         round = ViewChange_ROUND;
         mbox = NULL;
 
-	    // A timeout has been detected
+        // A timeout has been detected
         m = (msg *) malloc(sizeof(msg));
         if(m==0) {
         abort();
@@ -101,6 +102,7 @@ int main(int argc, char **argv)//@ : main
         m = NULL;
         mbox = NULL;
 
+        // We wait for others to detect the timeout
         while(true)
         {
             m = recv();
@@ -128,88 +130,120 @@ int main(int argc, char **argv)//@ : main
 
         }
 
+        round = ViewChangeAck_ROUND;
+        
+        // When we received enough ViewChanges we acknowledge the new primary
         if(mbox!=NULL && mbox->size > 2*n/3 && all_same(mbox,view) ) {
-            view = mbox->message->view;
-            round = ViewChangeAck_ROUND;
-
-            mviewchange = mbox->message;
             
-			// Send the ViewChangeAck to the new primary
-			m = (msg *) malloc(sizeof(msg));
-			if(m==0) {
-				abort();
-			}
-			m->view = view;
-			m->pid = pid;
-			m->pid_ack = list_of_acks(mbox);
-			m->round = ViewChangeAck_ROUND;
 
-			send(m, primary(n,view));
-			dispose(m);
+            if(!primary(n,view)==pid){
 
-			mviewchange = mbox->next;
-		
-            list_dispose(mbox);
+                // Send the ViewChangeAck to the new primary
+                m = (msg *) malloc(sizeof(msg));
+                if(m==0) {
+                    abort();
+                }
+                m->view = view;
+                m->pid = pid;
+                m->pid_ack = list_of_acks(mbox);
+                m->round = ViewChangeAck_ROUND;
+
+                send(m, primary(n,view));
+                dispose(m);
+
+                list_dispose(mbox);
+
+            // If we are the new primary we wait for the ACKs
+            }else{
+
+                while(true)
+                {
+
+                    m = recv();
+                    // Received a valid message
+                    if (m != NULL && m->view>=view){
+                        mbox_new = (list*) malloc(sizeof(list));
+                        if(mbox_new==0) {
+                        abort();
+                        }
+                        mbox_new->message = m;
+                        if(mbox!=0){mbox_new->size = mbox->size + 1;}
+                        else { mbox_new->size =1 ;}
+                        mbox_new->next = mbox;
+
+                        mbox = mbox_new;
+
+                    }else{ dispose(m); }
+
+                    if(mbox!=NULL && mbox->size >= 2*n-1/3 && all_same(mbox,view) ) {
+                        break;
+                    }
+
+                    if (timeout()){ break; }
+
+                }
+            }
         }
 
         round = NewView_ROUND;
 
-        if(primary(n,view)==pid){
+        if(mbox!=NULL && mbox->size >= 2*n-1/3 && all_same(mbox,view) ) {
 
-            m = (msg *) malloc(sizeof(msg));
-            if(m==0) {
-            abort();
-            }
-            m->view = view;
-            m->round = NewView_ROUND;
+            if(primary(n,view)==pid){
 
-            send(m, to_all);
-            dispose(m);
-            m = NULL;
+                m = (msg *) malloc(sizeof(msg));
+                if(m==0) {
+                abort();
+                }
+                m->view = view;
+                m->round = NewView_ROUND;
 
-            out(view);
+                send(m, to_all);
+                dispose(m);
+                m = NULL;
 
-        }else{
+                out(view);
 
-            while(true)
-            {
+            }else{
 
-                m = recv();
-                // Received a valid message
-                if (m != NULL && m->view>=view){
-                    mbox_new = (list*) malloc(sizeof(list));
-                    if(mbox_new==0) {
-                    abort();
+                while(true)
+                {
+
+                    m = recv();
+                    // Received a valid message
+                    if (m != NULL && m->view>=view){
+                        mbox_new = (list*) malloc(sizeof(list));
+                        if(mbox_new==0) {
+                        abort();
+                        }
+                        mbox_new->message = m;
+                        if(mbox!=0){mbox_new->size = mbox->size + 1;}
+                        else { mbox_new->size =1 ;}
+                        mbox_new->next = mbox;
+
+                        mbox = mbox_new;
+
+                    }else{ dispose(m); }
+
+                    // Received a valid confirmation of the NewView
+                    if (m != NULL && mbox->size ==1 && mbox->next == NULL && mbox->message->round == NewView_ROUND && view == mbox->message->view){
+                        break;
                     }
-                    mbox_new->message = m;
-                    if(mbox!=0){mbox_new->size = mbox->size + 1;}
-                    else { mbox_new->size =1 ;}
-                    mbox_new->next = mbox;
 
-                    mbox = mbox_new;
+                    if (timeout()){ break; }
 
-                }else{ dispose(m); }
-
-                // Received a valid confirmation of the NewView
-                if (m != NULL && mbox->size ==1 && mbox->next == NULL && mbox->message->round == NewView_ROUND && view == mbox->message->view && certified_newview(m)){
-                    break;
                 }
 
-                if (timeout()){ break; }
+                if (m != NULL && mbox->size ==1 && mbox->next == NULL && mbox->message->round == NewView_ROUND && view == mbox->message->view){
+                    out(view);
+                }
 
             }
 
-            if (m != NULL && mbox->size ==1 && mbox->next == NULL && mbox->message->round == NewView_ROUND && view == mbox->message->view && certified_newview(m)){
-                out(view);
-            }
+            view++;
+            round = ViewChange_ROUND;
 
         }
-
-        view++;
-        round = ViewChange_ROUND;
-
-
-
 
     }
     return 1;

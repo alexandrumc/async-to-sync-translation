@@ -135,9 +135,9 @@ int main(int argc, char **argv)//@ : main
             mviewchange = mbox->message;
             while(true)
             {
-				if (mviewchange == NULL) {
-					break;
-				}
+                if (mviewchange == NULL) {
+                    break;
+                }
                 // Send the ViewChangeAck to the new primary
                 m = (msg *) malloc(sizeof(msg));
                 if(m==0) {
