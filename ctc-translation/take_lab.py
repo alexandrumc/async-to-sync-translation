@@ -1,9 +1,10 @@
 import copy
 import os
 from utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
-    find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles
+    find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles, \
+    get_extern_while_body
 from generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor, DeclAlgoVisitor, \
-    AllVarsAlgoVisitor, RecvWhileVisitor, SendLoopsVisitor
+    AllVarsAlgoVisitor, AssigDummyVisitor, SendLoopsVisitor
 from compute_paths import find_all_paths_between_two_nodes, prune_tree
 from pycparser import c_generator, parse_file
 from pycparser.plyparser import Coord
@@ -305,11 +306,9 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
                                         is_job = True
                                     trees_paths_list.append(test)
 
-                    # aici bag conditiile
-
+                    # conditions are added here
         trees_dict[label1] = trees_list
         trees_paths_dict[label1] = trees_paths_list
-
         if label1 == "FIFTH_ROUND" or label1 == "SIXTH_ROUND":
             print trees_dict[label1]
             print trees_paths_dict[label1]
@@ -317,8 +316,50 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
         # break
     # print conds_dict.keys()
     # print generator.visit(ast)
-
+    remove_dummy_assigs(trees_dict, trees_paths_dict)
     return trees_dict, trees_paths_dict, is_job
+
+
+def remove_dummy_assigs(trees_dict, trees_paths_dict):
+    """
+    Because in order to parse out_internal -> return_from_inner cases we needed to
+    use some dummy round = ERR_ROUND assigs, now we need to delete them as those are
+    considered dead_code
+    :return:
+    """
+    v = AssigDummyVisitor()
+    for td in trees_dict.values():
+        for aux_td in td:
+            v.result = []
+            aux_td = get_extern_while_body(aux_td)
+            v.visit(aux_td)
+
+            for el in v.result:
+                p = find_parent(aux_td, el)
+                if isinstance(p, Compound):
+                    ind = p.block_items.index(el)
+                    if ind >= 1 and isinstance(p.block_items[ind - 1], FuncCall):
+                        if p.block_items[ind - 1].name.name == "return_from_inner":
+                            del p.block_items[ind]
+
+    # Probably for trees_path_dict should be done as well, but crashes
+    """
+    for td in trees_paths_dict.values():
+        for aux_td in td:
+            v.result = []
+            aux_td = get_extern_while_body(aux_td)
+            v.visit(aux_td)
+
+            for el in v.result:
+                p = find_parent(aux_td, el)
+                if isinstance(p, Compound):
+                    ind = p.block_items.index(el)
+                    if ind >= 1 and isinstance(p.block_items[ind - 1], FuncCall):
+                        if p.block_items[ind - 1].name.name == "return_from_inner":
+                            del p.block_items[ind]
+
+    return
+    """
 
 
 def modify_cond(cond, new_vals):

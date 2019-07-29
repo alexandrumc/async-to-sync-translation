@@ -178,9 +178,6 @@ def remove_timeout_from_cond(cond, needed_if):
 
 def to_modify(while_to_check):
     """
-    vefifica daca while-ul primit ca parametru indeplineste conditia de a fi modificat:
-    sa faca recv
-    intoarce true sau false
     :param while_to_check:
     :return:
     """
@@ -264,16 +261,17 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
                 assign_coord.line = coord_aux
                 assign_coord.column = coord_aux
 
-                if (element.coord.line, element.coord.column) in recv_loops:
-                    if recv_loops[(element.coord.line, element.coord.column)]:
-                        new_id = ID("return_from_inner()", assign_coord)
-                        func = FuncCall(new_id, None, assign_coord)
-                        #new_if.iffalse = Compound([recv_loops[(element.coord.line, element.coord.column)], func], new_coord)
-                        #recv_loops[(element.coord.line, element.coord.column)],
-                        new_if.iffalse = Compound([Assignment('=', ID("round"), ID("ERR_ROUND"), assign_coord)],
-                                                  new_coord)
+                if ((element.coord.line, element.coord.column) in recv_loops) and \
+                        (recv_loops[(element.coord.line, element.coord.column)][0]):
+                    round_name = recv_loops[(element.coord.line, element.coord.column)][1]
+                    new_id = ID("return_from_inner", assign_coord)
+                    func = FuncCall(new_id, None, assign_coord)
+                    new_if.iffalse = Compound([recv_loops[(element.coord.line, element.coord.column)][0], func], new_coord)
+                    aux_assig = Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)
+                    new_if.iffalse.block_items.append(aux_assig)
                 else:
-                    new_if.iffalse = Compound([Assignment('=', ID("round"), ID("ERR_ROUND"), assign_coord)], new_coord)
+                    round_name = recv_loops[(element.coord.line, element.coord.column)][1]
+                    new_if.iffalse = Compound([Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)], new_coord)
 
                 # FuncCall(ID("wait_for_messages", id_coord), None, new_break_coord)
 
@@ -339,14 +337,17 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
                             assign_coord.column = coord_aux
 
                             if (item.coord.line, item.coord.column) in recv_loops and \
-                                    recv_loops[(item.coord.line, item.coord.column)]:
-                                new_id = ID("return_from_inner()", None)
+                                    recv_loops[(item.coord.line, item.coord.column)][0]:
+                                round_name = recv_loops[(item.coord.line, item.coord.column)][1]
+                                new_id = ID("return_from_inner", None)
                                 func = FuncCall(new_id, None, assign_coord)
-                                new_if.iffalse = Compound([recv_loops[(item.coord.line, item.coord.column)], func],
+                                new_if.iffalse = Compound([recv_loops[(item.coord.line, item.coord.column)][0], func],
                                                           new_coord)
-                                #recv_loops[(item.coord.line, item.coord.column)],
+                                aux_assig = Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)
+                                new_if.iffalse.block_items.append(aux_assig)
                             else:
-                                new_if.iffalse = Compound([Assignment('=', ID("round"), ID("ERR_ROUND"), assign_coord)],
+                                round_name = recv_loops[(item.coord.line, item.coord.column)][1]
+                                new_if.iffalse = Compound([Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)],
                                                           new_coord)
 
                             element.iftrue.block_items.insert(index, new_if)

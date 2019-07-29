@@ -191,7 +191,7 @@ class RecvCallVisitor(c_ast.NodeVisitor):
     def visit_While(self, node):
         # If we find a while loop, this is either a new algo, or another recv loop
         # so we skip its content
-        if isinstance(node.cond, ID) and node.cond.name == "true":
+        if WhileAlgoVisitor.check_while_cond(node.cond):
             return
 
         self.generic_visit(node.stmt)
@@ -227,6 +227,21 @@ class AssigRoundVisitor(c_ast.NodeVisitor):
                     break
 
 
+class AssigDummyVisitor(c_ast.NodeVisitor):
+    """
+    Create a list with all assignments to ERR_ROUND
+    Then refine them in take_lab.py and delete the
+    ones which are dummy
+    """
+    def __init__(self):
+        self.result = []
+
+    def visit_Assignment(self, node):
+
+        if isinstance(node.rvalue, ID) and node.rvalue.name == "ERR_ROUND":
+            self.result.append(node)
+
+
 class WhileAlgoVisitor(c_ast.NodeVisitor):
     """
     With this visitor we return a list of whiles which represent
@@ -243,9 +258,22 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
     @staticmethod
     def check_if_recv_loop(node):
+        # Checks if a node is a recv loop, by having
+        # a recv() call top level
         v = RecvCallVisitor()
         v.visit(node)
         if v.nr > 0:
+            return True
+
+        return False
+
+    @staticmethod
+    def check_while_cond(cond):
+        # determines if the while is a while true
+        if isinstance(cond, ID) and cond.name == "true":
+            return True
+
+        if isinstance(cond, Constant) and cond.value == "1":
             return True
 
         return False
@@ -285,7 +313,7 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
             else:
                 self.generic_visit(node.stmt)
 
-        if not (isinstance(node.cond, ID) and node.cond.name == "true"):
+        if not WhileAlgoVisitor.check_while_cond(node.cond):
             return
 
         if WhileAlgoVisitor.check_if_recv_loop(node.stmt):
@@ -500,7 +528,7 @@ class SendLoopsVisitor(c_ast.NodeVisitor):
             else:
                 self.generic_visit(node.stmt)
 
-        if not (isinstance(node.cond, ID) and node.cond.name == "true"):
+        if not WhileAlgoVisitor.check_while_cond(node.cond):
             return
 
         if WhileAlgoVisitor.check_if_recv_loop(node.stmt):
@@ -577,7 +605,7 @@ class RecvWhileVisitor(c_ast.NodeVisitor):
 
     def visit_While(self, n):
         algo_check = True
-        if not (isinstance(n.cond, ID) and n.cond.name == "true"):
+        if not WhileAlgoVisitor.check_while_cond(n.cond):
             algo_check = False
 
         if WhileAlgoVisitor.check_if_recv_loop(n.stmt):
@@ -608,13 +636,13 @@ class RecvWhileVisitor(c_ast.NodeVisitor):
         if algo_check:
             del self.algo_list[len(self.algo_list) - 1]
 
-        if not (isinstance(n.cond, ID) and n.cond.name == "true"):
+        if not WhileAlgoVisitor.check_while_cond(n.cond):
             return
 
         if WhileAlgoVisitor.check_if_recv_loop(n.stmt):
             self.list.append(n)
-            if len(self.algo_list) < 2:
-                self.result[(n.coord.line, n.coord.column)] = None
+            if len(self.algo_list) == 1:
+                self.result[(n.coord.line, n.coord.column)] = (None, self.msg_fields[self.algo_list[0]]["round_field"])
                 return
 
             # Check if it contains if (timeout()) {out_internal()}
@@ -624,7 +652,8 @@ class RecvWhileVisitor(c_ast.NodeVisitor):
             if v.status:
                 assig_node = Assignment('=', ID(self.msg_fields[self.algo_list[len(self.algo_list) - 2]]["round_field"]),
                                         ID(self.rounds_list[self.algo_list[len(self.algo_list) - 2]][0]), n.coord)
-                self.result[(n.coord.line, n.coord.column)] = assig_node
+                self.result[(n.coord.line, n.coord.column)] = (assig_node,
+                                                               self.msg_fields[self.algo_list[len(self.algo_list) - 1]]["round_field"])
 
 
 class CheckLabelNumber(c_ast.NodeVisitor):

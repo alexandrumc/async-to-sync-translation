@@ -54,7 +54,8 @@ def round Prepare_ROUND:
     old_0_mboxA = mboxA;
     if (!(((mboxA != NULL) && (mboxA->size == 1)) && (mboxA->next == NULL)))
     {
-      round = ERR_ROUND;
+      bround = DoViewChange_ROUND;
+      return_from_inner();
     }
   }
   if ((pid == get_primary(view_nr, n)) && ((old_0_mboxB != NULL) && (old_0_mboxB->size >= (n / 2))))
@@ -98,7 +99,8 @@ def round PrepareOk_ROUND:
   {
     if (!((mboxA != NULL) && (mboxA->size >= (n / 2))))
     {
-      round = ERR_ROUND;
+      bround = DoViewChange_ROUND;
+      return_from_inner();
     }
   }
   if ((pid == get_primary(view_nr, n)) && ((old_0_mboxB != NULL) && (old_0_mboxB->size >= (n / 2))))
@@ -189,5 +191,6 @@ def round StartView_ROUND:
     }
   }
   bround = DoViewChange_ROUND;
+
 
 
