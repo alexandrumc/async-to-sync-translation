@@ -77,21 +77,13 @@
 
 
 # Number of nested algorithms
-number_of_nested_algorithms = 2
-
-# We will use list of elements to represent details about each
-# algorithm
+number_of_nested_algorithms = 1
 
 variables = []
 
 # Modify with phase and round variables names
 variables.append(dict(
-    phase="view_nr",
-    round="bround"
-))
-
-variables.append(dict(
-    phase="op_number",
+    phase="view",
     round="round"
 ))
 
@@ -99,40 +91,30 @@ msg_structure_fields = []
 
 # Modify with phase and round fields names in the message structure
 msg_structure_fields.append(dict(
-    name="msgA",
-    phase_field="view_nr",
-    round_field="bround"
-))
-
-msg_structure_fields.append(dict(
-    name="msgB",
-    phase_field="op_number",
+    name="m",
+    phase_field="view",
     round_field="round"
 ))
 
 mailbox = []
 
 # Modify with mailbox name
-mailbox.append("mboxB")
-mailbox.append("mboxA")
+mailbox.append("mbox")
 
 clean_mailbox = []
 
 # Modify with clean mailbox function name
-clean_mailbox.append("list_disposeB")
-clean_mailbox.append("list_disposeA")
+clean_mailbox.append("list_dispose")
 
 rounds_list = []
 
-# Modify with labels for each algorithm
-rounds_list.append(['StartViewChange_ROUND', 'DoViewChange_ROUND', 'StartView_ROUND', 'AUX_ROUND'])
-rounds_list.append(['Prepare_ROUND', 'PrepareOk_ROUND', 'AUX_ROUND'])
+rounds_list.append(['ViewChange_ROUND', 'ViewChangeAck_ROUND', 'NewView_ROUND', 'AUX_ROUND'])
 
 delete_round_phase = []
 
-delete_round_phase.append(False)
-delete_round_phase.append(False)
+delete_round_phase.append(True)
 
 # Add as many fields as you need
 
 ######################################################################################################################
+

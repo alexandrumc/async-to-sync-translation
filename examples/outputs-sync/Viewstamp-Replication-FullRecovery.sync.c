@@ -49,18 +49,9 @@ def round Prepare_ROUND:
 
   UPDATE():
 
-  if ((pid == get_primary(view_nr, n)) && (old_0_transfer_to_algo == 1))
-  {
-    old_0_mboxA = mboxA;
-    if (!(((mboxA != NULL) && (mboxA->size == 1)) && (mboxA->next == NULL)))
-    {
-      bround = StartViewChange_ROUND;
-      return_from_inner();
-    }
-  }
   if (!(pid == get_primary(view_nr, n)) && (((old_2_mboxB != NULL) && (old_2_mboxB->size >= (n / 2))) && (old_2_mboxB->next == NULL)) && (((old_3_mboxB != NULL) && (old_3_mboxB->size == 1)) && (old_3_mboxB->next == NULL)))
   {
-    old_2_mboxA = mboxA;
+    old_0_mboxA = mboxA;
     if (!(((mboxA != NULL) && (mboxA->size == 1)) && (mboxA->next == NULL)))
     {
       bround = StartViewChange_ROUND;
@@ -72,7 +63,7 @@ def round Prepare_ROUND:
     msgA->message = NULL;
     round = PrepareOk_ROUND;
   }
-  if ((pid == get_primary(view_nr, n)) && (old_0_transfer_to_algo == 1))
+  if (!(pid == get_primary(view_nr, n)) && (((old_2_mboxB != NULL) && (old_2_mboxB->size >= (n / 2))) && (old_2_mboxB->next == NULL)) && (((old_3_mboxB != NULL) && (old_3_mboxB->size == 1)) && (old_3_mboxB->next == NULL)))
   {
     old_0_mboxA = mboxA;
     if ((((mboxA != NULL) && (mboxA->size == 1)) && (mboxA->next == NULL)))
@@ -84,38 +75,14 @@ def round Prepare_ROUND:
       }
     }
   }
-  if (!(pid == get_primary(view_nr, n)) && (((old_2_mboxB != NULL) && (old_2_mboxB->size >= (n / 2))) && (old_2_mboxB->next == NULL)) && (((old_3_mboxB != NULL) && (old_3_mboxB->size == 1)) && (old_3_mboxB->next == NULL)))
-  {
-    old_2_mboxA = mboxA;
-    if ((((mboxA != NULL) && (mboxA->size == 1)) && (mboxA->next == NULL)))
-    {
-      old_3_mboxA = mboxA;
-      if ((((mboxA != NULL) && (mboxA->size == 1)) && (mboxA->next == NULL)))
-      {
-        round = PrepareOk_ROUND;
-      }
-    }
-  }
 
 
 def round PrepareOk_ROUND:
   SEND():
 
-  if ((pid == get_primary(view_nr, n)) && (old_0_transfer_to_algo == 1) && (((old_0_mboxA != NULL) && (old_0_mboxA->size == 1)) && (old_0_mboxA->next == NULL)))
+  if (!(pid == get_primary(view_nr, n)) && (((old_2_mboxB != NULL) && (old_2_mboxB->size >= (n / 2))) && (old_2_mboxB->next == NULL)) && (((old_3_mboxB != NULL) && (old_3_mboxB->size == 1)) && (old_3_mboxB->next == NULL)) && (((old_0_mboxA != NULL) && (old_0_mboxA->size == 1)) && (old_0_mboxA->next == NULL)))
   {
     if ((((old_1_mboxA != NULL) && (old_1_mboxA->size == 1)) && (old_1_mboxA->next == NULL)))
-    {
-      msgA = malloc(sizeof(msg_NormalOp));
-      msgA->label = PrepareOk;
-      msgA->view_nr = view_nr;
-      msgA->replica_id = pid;
-      msgA->request_nr = mboxA->info->request_nr;
-      send(msgA, get_primary(view_nr, n));
-    }
-  }
-  if (!(pid == get_primary(view_nr, n)) && (((old_2_mboxB != NULL) && (old_2_mboxB->size >= (n / 2))) && (old_2_mboxB->next == NULL)) && (((old_3_mboxB != NULL) && (old_3_mboxB->size == 1)) && (old_3_mboxB->next == NULL)) && (((old_2_mboxA != NULL) && (old_2_mboxA->size == 1)) && (old_2_mboxA->next == NULL)))
-  {
-    if ((((old_3_mboxA != NULL) && (old_3_mboxA->size == 1)) && (old_3_mboxA->next == NULL)))
     {
       msgA = malloc(sizeof(msg_NormalOp));
       msgA->label = PrepareOk;
@@ -147,12 +114,7 @@ def round PrepareOk_ROUND:
       round = Prepare_ROUND;
     }
   }
-  if ((pid == get_primary(view_nr, n)) && (old_0_transfer_to_algo == 1) && (((old_0_mboxA != NULL) && (old_0_mboxA->size == 1)) && (old_0_mboxA->next == NULL)))
-  {
-    
-    round = Prepare_ROUND;
-  }
-  if (!(pid == get_primary(view_nr, n)) && (((old_2_mboxB != NULL) && (old_2_mboxB->size >= (n / 2))) && (old_2_mboxB->next == NULL)) && (((old_3_mboxB != NULL) && (old_3_mboxB->size == 1)) && (old_3_mboxB->next == NULL)) && (((old_2_mboxA != NULL) && (old_2_mboxA->size == 1)) && (old_2_mboxA->next == NULL)))
+  if (!(pid == get_primary(view_nr, n)) && (((old_2_mboxB != NULL) && (old_2_mboxB->size >= (n / 2))) && (old_2_mboxB->next == NULL)) && (((old_3_mboxB != NULL) && (old_3_mboxB->size == 1)) && (old_3_mboxB->next == NULL)) && (((old_0_mboxA != NULL) && (old_0_mboxA->size == 1)) && (old_0_mboxA->next == NULL)))
   {
     
     round = Prepare_ROUND;
@@ -167,7 +129,6 @@ def round StartViewChange_ROUND:
 
 if(round == StartViewChange_ROUND){
   view_nr++;
-  transfer_to_algo = -1;
   if ((pid == get_primary(view_nr, n)))
   {
     msgB = malloc(sizeof(msg_ViewChange *));
@@ -181,7 +142,6 @@ if(round == StartViewChange_ROUND){
     send((void *) msgB, to_all);
   }
   view_nr++;
-  transfer_to_algo = -1;
   if (!(pid == get_primary(view_nr, n)))
   {
     msgB = malloc(sizeof(msg_ViewChange *));
@@ -205,7 +165,6 @@ if(round == StartViewChange_ROUND)
     old_0_mboxB = mboxB;
     if ((((mboxB != NULL) && (mboxB->size >= (n / 2))) && (mboxB->next == NULL)))
     {
-      transfer_to_algo = -1;
       bround = DoViewChange_ROUND;
     }
   }
@@ -214,7 +173,6 @@ if(round == StartViewChange_ROUND)
     old_2_mboxB = mboxB;
     if ((((mboxB != NULL) && (mboxB->size >= (n / 2))) && (mboxB->next == NULL)))
     {
-      transfer_to_algo = -1;
       bround = DoViewChange_ROUND;
     }
   }
@@ -263,12 +221,6 @@ if(round == DoViewChange_ROUND)
     old_1_mboxB = mboxB;
     if (!((mboxB != NULL) && (mboxB->size >= (n / 2))))
     {
-      if ((transfer_to_algo == 1))
-      {
-        status = normal;
-        op_number = 0;
-        inner_algorithm_B(arraylist* log, listB* old_3_mboxB, msg_NormalOp* msgA, commit_list* recovery_buffer, listB* old_1_mboxB, listB* old_0_mboxB, char* client_req, listB* old_2_mboxB);
-      }
       bround = StartViewChange_ROUND;
     }
   }
@@ -307,13 +259,7 @@ if(round == StartView_ROUND)
     {
       status = normal;
       op_number = 0;
-      inner_algorithm_B(arraylist* log, listB* old_3_mboxB, msg_NormalOp* msgA, commit_list* recovery_buffer, listB* old_1_mboxB, listB* old_0_mboxB, char* client_req, listB* old_2_mboxB);
-    }
-    if ((transfer_to_algo == 1))
-    {
-      status = normal;
-      op_number = 0;
-      inner_algorithm_B(arraylist* log, listB* old_3_mboxB, msg_NormalOp* msgA, commit_list* recovery_buffer, listB* old_1_mboxB, listB* old_0_mboxB, char* client_req, listB* old_2_mboxB);
+      inner_algorithm_B(arraylist* log, listB* old_3_mboxB, msg_NormalOp* msgA, listB* old_1_mboxB, commit_list* recovery_buffer, listB* old_0_mboxB, char* client_req, listB* old_2_mboxB);
     }
     bround = StartViewChange_ROUND;
   }
@@ -325,12 +271,11 @@ if(round == StartView_ROUND)
       {
         status = normal;
         op_number = 0;
-        inner_algorithm_B(arraylist* log, listB* old_3_mboxB, msg_NormalOp* msgA, commit_list* recovery_buffer, listB* old_1_mboxB, listB* old_0_mboxB, char* client_req, listB* old_2_mboxB);
+        inner_algorithm_B(arraylist* log, listB* old_3_mboxB, msg_NormalOp* msgA, listB* old_1_mboxB, commit_list* recovery_buffer, listB* old_0_mboxB, char* client_req, listB* old_2_mboxB);
       }
     }
     bround = StartViewChange_ROUND;
   }
 }
-
 
 

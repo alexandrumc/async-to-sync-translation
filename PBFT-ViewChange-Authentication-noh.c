@@ -89,9 +89,9 @@ int main(int argc, char **argv)
             mviewchange = mbox->message;
             while(true)
             {
-    if (mviewchange == NULL) {
-     break;
-    }
+                if (mviewchange == NULL) {
+                    break;
+                }
                 m = (msg *) malloc(sizeof(msg));
                 if(m==0) {
                     abort();

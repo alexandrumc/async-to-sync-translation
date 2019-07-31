@@ -200,13 +200,16 @@ class RecvCallVisitor(c_ast.NodeVisitor):
 class AssigRoundVisitor(c_ast.NodeVisitor):
     """
     This visitor checks if a block contains a round assignment
-    If it contains and the block is a while (true)m then it's
+    If it contains and the block is a while (true), then it's
     considered to be a nested algo
+
+    Also return the first assignment
     """
     def __init__(self, rounds_list, msg_fields):
         self.status = True
         self.rounds_list = rounds_list
         self.msg_fields = msg_fields
+        self.assig = None
 
     def visit_Assignment(self, node):
 
@@ -224,6 +227,8 @@ class AssigRoundVisitor(c_ast.NodeVisitor):
             for my_list in self.rounds_list:
                 if node.rvalue.name in my_list:
                     self.status = False
+                    if not self.assig:
+                        self.assig = node
                     break
 
 
@@ -240,6 +245,30 @@ class AssigDummyVisitor(c_ast.NodeVisitor):
 
         if isinstance(node.rvalue, ID) and node.rvalue.name == "ERR_ROUND":
             self.result.append(node)
+
+
+class JumpPhaseVisitor(c_ast.NodeVisitor):
+    """
+    Checks on a while loop algo if there is a
+    phase jump - an assignment to phase different from
+    phase + 1
+    """
+    def __init__(self, phase_var_name):
+        self.result = False
+        self.phase_var_name = phase_var_name
+
+    def visit_Assignment(self, node):
+
+        if not (isinstance(node.lvalue, ID) and node.lvalue.name == self.phase_var_name):
+            return
+
+        if isinstance(node.rvalue, BinaryOp):
+            if node.rvalue.op == "+":
+                if isinstance(node.rvalue.left, ID) and node.rvalue.left.name == self.phase_var_name:
+                    if isinstance(node.rvalue.right, Constant) and node.rvalue.right.value == "1":
+                        return
+
+        self.result = True
 
 
 class WhileAlgoVisitor(c_ast.NodeVisitor):
@@ -304,6 +333,12 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
         return -1
 
+    def __create_jump_if(self, node):
+        if_cond = BinaryOp("==", ID("iter"), ID("PHASE"), node.coord)
+
+        if_iftrue = Compound([], node.coord)
+        
+
     def visit_While(self, node):
         if node.stmt:
             if isinstance(node.stmt, If):
@@ -324,7 +359,21 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
         if v.status:
             return
-        # print node.coord.line
+        first_assig = v.assig
+
+        # Now that is a while algo, check if it contains an
+        # assignment which can determine a phase jump
+        phase_jmp_stat = False
+        index = WhileAlgoVisitor.get_rank_of_algo(node.stmt, self.rounds_list, self.msg_fields)
+        phase_var_name = self.msg_fields[index]["phase_field"]
+
+        v_phase = JumpPhaseVisitor(phase_var_name)
+        v_phase.visit(node)
+
+        if v_phase.result:
+            phase_jmp_stat = True
+            #phase_if =
+
         # Keep conditions although we don't add them
         cop = copy.deepcopy(self.conditions)
 
@@ -337,7 +386,7 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
         func = FuncCall(new_id, None, node.coord)
 
         node.stmt.block_items.append(func)
-        self.result_list.append((node, cop))
+        self.result_list.append((node, cop, phase_jmp_stat))
 
     def visit_If(self, node):
         self.conditions.append(node.cond)

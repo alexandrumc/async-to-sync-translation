@@ -27,21 +27,7 @@ if(round == ViewChangeAck_ROUND){
   if ((((old_0_mbox != NULL) && (old_0_mbox->size > ((2 * n) / 3))) && all_same(mbox, view)))
   {
     mviewchange = mbox->message;
-    while (true)
-    {
-      if ((mviewchange == NULL))
-      {
-        out();
-      }
-      m = (msg *) malloc(sizeof(msg));
-      if ((m == 0))
-      {
-        abort();
-      }
-      m->pid = pid;
-      m->pid_ack = mviewchange->pid;
-      send(m, primary(n, PHASE));
-    }
+    send_mbox();
   }
 }
 
@@ -49,13 +35,7 @@ if(round == ViewChangeAck_ROUND){
 
 if(round == ViewChangeAck_ROUND)
 {
-  if ((((old_0_mbox != NULL) && (old_0_mbox->size > ((2 * n) / 3))) && all_same(mbox, view)))
-  {
-    while (true)
-    {
-      mviewchange = mbox->next;
-    }
-  }
+  
 }
 
 
@@ -72,7 +52,6 @@ if(round == NewView_ROUND){
     }
     send(m, to_all);
   }
-  else
 }
 
   UPDATE():
