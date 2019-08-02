@@ -16,6 +16,8 @@ class LabelVisitor(c_ast.NodeVisitor):
         self.label_item = []
 
     def visit_Assignment(self, node):
+        if not isinstance(node.lvalue, ID):
+            return
         if node.lvalue.name == self.label_name:
             if isinstance(node.rvalue, ID):
                 if node.rvalue.name == self.label_value:

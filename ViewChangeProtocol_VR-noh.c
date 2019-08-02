@@ -246,111 +246,17 @@ int main(int argc, char **argv) {
             view_nr++;
         }
         else {
-            msg = malloc(sizeof(msg_ViewChange*));
-            if (!msg) {
-                abort();
-            }
-            msg->view_nr = view_nr;
-            msg->replica_id = pid;
-            msg->label = StartViewChange;
-            send((void*)msg, to_all);
-            while (true) {
-                msg = (msg_ViewChange*) recv();
-                if (msg != NULL && msg->view_nr == view_nr && msg->label == StartViewChange) {
-                    listB* mboxB_new = malloc(sizeof(listB));
-                    if (!mboxB_new) {
-                        abort();
-                    }
-                    mboxB_new->info = msg;
-                    if (mbox) {
-                        mboxB_new->size = mbox->size + 1;
-                    } else {
-                        mboxB_new->size = 1;
-                    }
-                    mboxB_new->next = mbox;
-                    mbox = mboxB_new;
-                } else if (msg != NULL && msg->view_nr > view_nr &&
-                    (msg->label == StartViewChange || msg->label == DoViewChange)) {
-                        break;
-                    }
-                if (mbox != NULL && mbox->size >= n / 2 && mbox->next == NULL) {
-                    break;
-                }
-                if (timeout()) {
-                    break;
-                }
-            }
-            if (msg != NULL && msg->view_nr > view_nr &&
-                msg->label == StartViewChange) {
-                    view_nr = msg->view_nr;
-                    continue;
-                }
-            if (msg != NULL && msg->view_nr > view_nr &&
-                msg->label == DoViewChange) {
-                    view_nr = msg->view_nr;
-                    int no_recvs = n / 2 - 1;
-                    list_disposeB(&mbox);
-                    mbox = NULL;
-                    while (true) {
-                        msg = (msg_ViewChange*)recv();
-                        if (msg != NULL && msg->view_nr == view_nr && msg->label == DoViewChange) {
-                            listB* mboxB_new = malloc(sizeof(listB));
-                            if (!mboxB_new) {
-                                abort();
-                            }
-                            mboxB_new->info = msg;
-                            if (mbox) {
-                                mboxB_new->size = mbox->size + 1;
-                            } else {
-                                mboxB_new->size = 1;
-                            }
-                            mboxB_new->next = mbox;
-                            mbox = mboxB_new;
-                        }
-                        if (timeout()) {
-                            break;
-                        }
-                        if (mbox != NULL && mbox->size >= no_recvs) {
-                            break;
-                        }
-                    }
-                    if (mbox != NULL && mbox->size >= no_recvs) {
-                        int Max;
-                        log->array = choose_log(mbox, &Max);
-                        log->size = log->current = Max;
-                        list_disposeB(&mbox);
-                        mbox = NULL;
-                        round = StartView_ROUND;
-                        msg = malloc(sizeof(msg_ViewChange));
-                        if (!msg) {
-                            abort();
-                        }
-                        msg->view_nr = view_nr;
-                        msg->label = StartView;
-                        msg->log_size = log->size;
-                        msg->log = log->array;
-                        send((void*)msg, to_all);
-                    }
-                }
-            else if (mbox != NULL && mbox->size >= n / 2 && mbox->next == NULL) {
-                list_disposeB(&mbox);
-                mbox = NULL;
-                round = DoViewChange_ROUND;
-                msg = malloc(sizeof(msg_ViewChange));
+                msg = malloc(sizeof(msg_ViewChange*));
                 if (!msg) {
                     abort();
                 }
                 msg->view_nr = view_nr;
                 msg->replica_id = pid;
-                msg->label = DoViewChange;
-                msg->log_size = log->size;
-                msg->log = log->array;
-                msg->prev_view = prev_view;
-                send(msg, get_primary(view_nr, pid));
-                round = StartView_ROUND;
+                msg->label = StartViewChange;
+                send((void*)msg, to_all);
                 while (true) {
                     msg = (msg_ViewChange*) recv();
-                    if (msg != NULL && msg->view_nr == view_nr && msg->label == StartView) {
+                    if (msg != NULL && msg->view_nr == view_nr && msg->label == StartViewChange) {
                         listB* mboxB_new = malloc(sizeof(listB));
                         if (!mboxB_new) {
                             abort();
@@ -363,14 +269,16 @@ int main(int argc, char **argv) {
                         }
                         mboxB_new->next = mbox;
                         mbox = mboxB_new;
-                    } else if (msg != NULL && msg->view_nr > view_nr &&
-                        (msg->label == StartViewChange || msg->label == DoViewChange)) {
-                            break;
+                    } else {
+                        if (msg != NULL && msg->view_nr > view_nr &&
+                            (msg->label == StartViewChange || msg->label == DoViewChange)) {
+                                break;
                         }
-                    if (timeout()) {
+                    }
+                    if (mbox != NULL && mbox->size >= n / 2 && mbox->next == NULL) {
                         break;
                     }
-                    if (mbox != NULL && mbox->size == 1 && mbox->next == NULL) {
+                    if (timeout()) {
                         break;
                     }
                 }
@@ -426,11 +334,109 @@ int main(int argc, char **argv) {
                             send((void*)msg, to_all);
                         }
                     }
-                else if (mbox != NULL && mbox->size == 1 && mbox->next == NULL) {
-                    log->size = mbox->info->log_size;
-                    log->array = mbox->info->log;
+            else {
+                if (mbox != NULL && mbox->size >= n / 2 && mbox->next == NULL) {
                     list_disposeB(&mbox);
                     mbox = NULL;
+                    round = DoViewChange_ROUND;
+                    msg = malloc(sizeof(msg_ViewChange));
+                    if (!msg) {
+                        abort();
+                    }
+                    msg->view_nr = view_nr;
+                    msg->replica_id = pid;
+                    msg->label = DoViewChange;
+                    msg->log_size = log->size;
+                    msg->log = log->array;
+                    msg->prev_view = prev_view;
+                    send(msg, get_primary(view_nr, pid));
+                    round = StartView_ROUND;
+                    while (true) {
+                        msg = (msg_ViewChange*) recv();
+                        if (msg != NULL && msg->view_nr == view_nr && msg->label == StartView) {
+                            listB* mboxB_new = malloc(sizeof(listB));
+                            if (!mboxB_new) {
+                                abort();
+                            }
+                            mboxB_new->info = msg;
+                            if (mbox) {
+                                mboxB_new->size = mbox->size + 1;
+                            } else {
+                                mboxB_new->size = 1;
+                            }
+                            mboxB_new->next = mbox;
+                            mbox = mboxB_new;
+                        } else if (msg != NULL && msg->view_nr > view_nr &&
+                            (msg->label == StartViewChange || msg->label == DoViewChange)) {
+                                break;
+                            }
+                        if (timeout()) {
+                            break;
+                        }
+                        if (mbox != NULL && mbox->size == 1 && mbox->next == NULL) {
+                            break;
+                        }
+                    }
+                    if (msg != NULL && msg->view_nr > view_nr &&
+                        msg->label == StartViewChange) {
+                            view_nr = msg->view_nr;
+                            continue;
+                        }
+                    if (msg != NULL && msg->view_nr > view_nr &&
+                        msg->label == DoViewChange) {
+                            view_nr = msg->view_nr;
+                            int no_recvs = n / 2 - 1;
+                            list_disposeB(&mbox);
+                            mbox = NULL;
+                            while (true) {
+                                msg = (msg_ViewChange*)recv();
+                                if (msg != NULL && msg->view_nr == view_nr && msg->label == DoViewChange) {
+                                    listB* mboxB_new = malloc(sizeof(listB));
+                                    if (!mboxB_new) {
+                                        abort();
+                                    }
+                                    mboxB_new->info = msg;
+                                    if (mbox) {
+                                        mboxB_new->size = mbox->size + 1;
+                                    } else {
+                                        mboxB_new->size = 1;
+                                    }
+                                    mboxB_new->next = mbox;
+                                    mbox = mboxB_new;
+                                }
+                                if (timeout()) {
+                                    break;
+                                }
+                                if (mbox != NULL && mbox->size >= no_recvs) {
+                                    break;
+                                }
+                            }
+                            if (mbox != NULL && mbox->size >= no_recvs) {
+                                int Max;
+                                log->array = choose_log(mbox, &Max);
+                                log->size = log->current = Max;
+                                list_disposeB(&mbox);
+                                mbox = NULL;
+                                round = StartView_ROUND;
+                                msg = malloc(sizeof(msg_ViewChange));
+                                if (!msg) {
+                                    abort();
+                                }
+                                msg->view_nr = view_nr;
+                                msg->label = StartView;
+                                msg->log_size = log->size;
+                                msg->log = log->array;
+                                send((void*)msg, to_all);
+                            }
+                        }
+                    else {
+                        if (mbox != NULL && mbox->size == 1 && mbox->next == NULL) {
+                            log->size = mbox->info->log_size;
+                            log->array = mbox->info->log;
+                            list_disposeB(&mbox);
+                            mbox = NULL;
+                        }
+                    }
                 }
             }
             round = StartViewChange_ROUND;
