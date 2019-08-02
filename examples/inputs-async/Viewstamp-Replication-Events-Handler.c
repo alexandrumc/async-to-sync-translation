@@ -99,7 +99,7 @@ int main(int argc, char **argv)//@ : main
 	    round = StartViewChange_ROUND;
 	    view++; 
         }else {
-
+	    view++;
             round = StartViewChange_ROUND;
 
             m = (msg *) malloc(sizeof(msg));
@@ -107,8 +107,8 @@ int main(int argc, char **argv)//@ : main
             m->round = StartViewChange_ROUND;
 
             send((void*)m, to_all);
-            round = StartViewChange_ROUND;
-	    view++; 
+            
+	     
         }
 
     }
