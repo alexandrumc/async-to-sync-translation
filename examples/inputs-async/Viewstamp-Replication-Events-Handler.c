@@ -75,13 +75,13 @@ int main(int argc, char **argv)//@ : main
 
             if (timeout()){ break; }
 
-            if(mbox!=NULL && mbox->size > 2*n/3 && some_condition(mbox,view) ) {
+            if(mbox!=NULL && mbox->size > n/2 && all_start_view_change(mbox,view) ) {
                 break;
             }
 
         }
         
-        if(mbox!=NULL && mbox->size > 2*n/3 && some_condition(mbox,view) ) {
+        if(round == StartViewChange_ROUND && mbox!=NULL && mbox->size > n/2 && all_start_view_change(mbox,view) ) {
             round = DoViewChange_ROUND;
 
             m = (msg *) malloc(sizeof(msg));
