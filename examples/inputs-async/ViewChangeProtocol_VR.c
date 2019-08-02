@@ -164,6 +164,60 @@ log_str **choose_log(listB *mbox, int *Max)
     return mess_log;
 }
 
+listB *last_elem(listB *mbox)
+{
+    listB *aux = NULL, *it = mbox;
+    while (it) {
+        aux = it;
+        it = it->next;
+    }
+
+    return aux;
+}
+
+int count_of_view(listB *mbox, int view)
+{
+    listB *it = mbox;
+    int nr = 0;
+    while (it) {
+        if (it->info->view_nr == view) {
+            nr++;
+        }
+        it = it->next;
+    }
+
+    return nr;
+}
+
+listB *delete_msg_view(listB *mbox, int view)
+{
+    listB *it = mbox, *aux, *aux2;
+
+    /* Delete from beginning */
+    while (it && it->info->view_nr == view) {
+        free_msg_ViewChange(it->info);
+        aux = it->next;
+        free(it);
+        it = aux;
+    }
+
+    mbox = it;
+    aux = NULL;
+
+    while (it) {
+        if (it->info->view_nr == view) {
+            aux->next = it->next;
+            free_msg_ViewChange(it->info);
+            free(it);
+            it = aux->next;
+        } else {
+            aux = it;
+            it = it->next;
+        }
+    }
+    return mbox;
+}
+
 int main(int argc, char **argv) {
     /* Check for replica_id, IP and total nr of nodes as command line args */
     if (argc < 4) {
@@ -231,17 +285,42 @@ int main(int argc, char **argv) {
                     mbox = mboxB_new;
                 }
                 else if (msg != NULL && msg->view_nr == view_nr && msg->label == DoViewChange) {
+                    listB *mboxB_new = malloc(sizeof(listB));
+                    if (!mboxB_new) {
+                        abort();
+                    }
+
+                    mboxB_new->info = msg;
+                    if (mbox) {
+                        mboxB_new->size = mbox->size + 1;
+                    } else {
+                        mboxB_new->size = 1;
+                    }
+
+                    mboxB_new->next = mbox;
+                    mbox = mboxB_new;
                     break;
                 }
                 else if (msg != NULL && msg->view_nr > view_nr &&
                     (msg->label == StartViewChange || msg->label == DoViewChange)) {
+                        listB *mboxB_new = malloc(sizeof(listB));
+                        if (!mboxB_new) {
+                            abort();
+                        }
+
+                        mboxB_new->info = msg;
+                        if (mbox) {
+                            mboxB_new->size = mbox->size + 1;
+                        } else {
+                            mboxB_new->size = 1;
+                        }
+
+                        mboxB_new->next = mbox;
+                        mbox = mboxB_new;
                         break;
                 }
 
-                if (mbox != NULL && mbox->size >= n / 2 && mbox->next == NULL) {
-                    free_msg_ViewChange(msg);
-                    free(msg);
-                    msg = NULL;
+                if (mbox != NULL && mbox->size > n / 2 && mbox->next == NULL) {
                     break;
                 }
 
@@ -255,28 +334,21 @@ int main(int argc, char **argv) {
                receive a DoViewChange as well). If I will get a timeout, at least
                I will be in the same view with the others for the next phase.
              */
-            if (msg != NULL && msg->view_nr > view_nr &&
-                msg->label == StartViewChange) {
-                    view_nr = msg->view_nr;
+            if (mbox != NULL && (last_elem(mbox))->info->view_nr > view_nr &&
+                (last_elem(mbox))->info->label == StartViewChange) {
+                    view_nr = (last_elem(mbox))->info->view_nr;
                     continue;
                 }
 
-            if ((mbox != NULL && mbox->size >= n / 2 && mbox->next == NULL) ||
-                (msg != NULL && msg->view_nr >= view_nr && msg->label == DoViewChange_ROUND)) {
-                int no_recvs = n / 2;
+            if ((mbox != NULL && count_of_view(mbox, view_nr) >= n / 2 && mbox->next == NULL) ||
+                (mbox != NULL && (last_elem(mbox))->info->view_nr >= view_nr && (last_elem(mbox))->info->label == DoViewChange_ROUND)) {
 
-                if (msg != NULL && msg->label == DoViewChange_ROUND) {
-                    no_recvs--;
-                    if (msg->view_nr > view_nr) {
-                        view_nr = msg->view_nr;
-                    }
+                delete_msg_view(mbox, view_nr);
+                if (mbox != NULL && (last_elem(mbox))->info->view_nr >= view_nr && (last_elem(mbox))->info->label == DoViewChange_ROUND) {
+                        view_nr = (last_elem(mbox))->info->view_nr;
                 }
 
-                list_disposeB(&mbox);
-                mbox = NULL;
                 round = DoViewChange_ROUND;
-                /* Send to himself is not relevant */
-                mbox = NULL;
                 while (true) {
                     msg = (msg_ViewChange*)recv();
 
@@ -301,12 +373,12 @@ int main(int argc, char **argv) {
                         break;
                     }
 
-                    if (mbox != NULL && mbox->size >= no_recvs) {
+                    if (mbox != NULL && mbox->size > n / 2) {
                         break;
                     }
                 }
 
-                if (mbox != NULL && mbox->size >= no_recvs) {
+                if (mbox != NULL && mbox->size > n / 2) {
                     /* Choose log with max nr of commited ops */
                     int Max;
                     log->array = choose_log(mbox, &Max);
