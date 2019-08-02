@@ -50,7 +50,13 @@ int main(int argc, char **argv)//@ : main
     list* mbox_new = NULL;
     msg* m = NULL;
     view = 0;
+    round = StartViewChange_ROUND;
 
+    m = (msg *) malloc(sizeof(msg));
+    m->view = view;
+    m->round = StartViewChange_ROUND;
+    send((void*)m, to_all); 
+	
     while(true)
     {
 
@@ -89,7 +95,9 @@ int main(int argc, char **argv)//@ : main
             m->round = DoViewChange_ROUND;
 
             send((void*)m, primary(n, view));
-
+     
+	    round = StartViewChange_ROUND;
+	    view++; 
         }else {
 
             round = StartViewChange_ROUND;
@@ -99,10 +107,9 @@ int main(int argc, char **argv)//@ : main
             m->round = StartViewChange_ROUND;
 
             send((void*)m, to_all);
+            round = StartViewChange_ROUND;
+	    view++; 
         }
-        
-
-        view++;
 
     }
     return 1;
