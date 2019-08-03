@@ -121,6 +121,51 @@ log_str **choose_log(listB *mbox, int *Max)
     }
     return mess_log;
 }
+listB *last_elem(listB *mbox)
+{
+    listB *aux = NULL, *it = mbox;
+    while (it) {
+        aux = it;
+        it = it->next;
+    }
+    return aux;
+}
+int count_of_view(listB *mbox, int view)
+{
+    listB *it = mbox;
+    int nr = 0;
+    while (it) {
+        if (it->info->view_nr == view) {
+            nr++;
+        }
+        it = it->next;
+    }
+    return nr;
+}
+listB *delete_msg_view(listB *mbox, int view)
+{
+    listB *it = mbox, *aux, *aux2;
+    while (it && it->info->view_nr == view) {
+        free_msg_ViewChange(it->info);
+        aux = it->next;
+        free(it);
+        it = aux;
+    }
+    mbox = it;
+    aux = NULL;
+    while (it) {
+        if (it->info->view_nr == view) {
+            aux->next = it->next;
+            free_msg_ViewChange(it->info);
+            free(it);
+            it = aux->next;
+        } else {
+            aux = it;
+            it = it->next;
+        }
+    }
+    return mbox;
+}
 int main(int argc, char **argv) {
     if (argc < 4) {
         printf("Not enough arguments!\n");
@@ -167,40 +212,57 @@ int main(int argc, char **argv) {
                     mbox = mboxB_new;
                 }
                 else if (msg != NULL && msg->view_nr == view_nr && msg->label == DoViewChange) {
+                    listB *mboxB_new = malloc(sizeof(listB));
+                    if (!mboxB_new) {
+                        abort();
+                    }
+                    mboxB_new->info = msg;
+                    if (mbox) {
+                        mboxB_new->size = mbox->size + 1;
+                    } else {
+                        mboxB_new->size = 1;
+                    }
+                    mboxB_new->next = mbox;
+                    mbox = mboxB_new;
                     break;
                 }
                 else if (msg != NULL && msg->view_nr > view_nr &&
                     (msg->label == StartViewChange || msg->label == DoViewChange)) {
+                        listB *mboxB_new = malloc(sizeof(listB));
+                        if (!mboxB_new) {
+                            abort();
+                        }
+                        mboxB_new->info = msg;
+                        if (mbox) {
+                            mboxB_new->size = mbox->size + 1;
+                        } else {
+                            mboxB_new->size = 1;
+                        }
+                        mboxB_new->next = mbox;
+                        mbox = mboxB_new;
                         break;
                 }
-                if (mbox != NULL && mbox->size >= n / 2 && mbox->next == NULL) {
-                    free_msg_ViewChange(msg);
-                    free(msg);
-                    msg = NULL;
+                if (mbox != NULL && mbox->size > n / 2 && mbox->next == NULL) {
                     break;
                 }
                 if (timeout()) {
                     break;
                 }
             }
-            if (msg != NULL && msg->view_nr > view_nr &&
-                msg->label == StartViewChange) {
-                    view_nr = msg->view_nr;
+            if (mbox != NULL && (last_elem(mbox))->info->view_nr > view_nr &&
+                (last_elem(mbox))->info->label == StartViewChange) {
+                    prev_view = view_nr;
+                    view_nr = (last_elem(mbox))->info->view_nr;
                     continue;
                 }
-            if ((mbox != NULL && mbox->size >= n / 2 && mbox->next == NULL) ||
-                (msg != NULL && msg->view_nr >= view_nr && msg->label == DoViewChange_ROUND)) {
-                int no_recvs = n / 2;
-                if (msg != NULL && msg->label == DoViewChange_ROUND) {
-                    no_recvs--;
-                    if (msg->view_nr > view_nr) {
-                        view_nr = msg->view_nr;
-                    }
+            if ((mbox != NULL && mbox->size >= n / 2) ||
+                (mbox != NULL && (last_elem(mbox))->info->view_nr >= view_nr && (last_elem(mbox))->info->label == DoViewChange_ROUND)) {
+                delete_msg_view(mbox, view_nr);
+                if (mbox != NULL && (last_elem(mbox))->info->view_nr >= view_nr && (last_elem(mbox))->info->label == DoViewChange_ROUND) {
+                        prev_view = view_nr;
+                        view_nr = (last_elem(mbox))->info->view_nr;
                 }
-                list_disposeB(&mbox);
-                mbox = NULL;
                 round = DoViewChange_ROUND;
-                mbox = NULL;
                 while (true) {
                     msg = (msg_ViewChange*)recv();
                     if (msg != NULL && msg->view_nr == view_nr && msg->label == DoViewChange) {
@@ -220,11 +282,11 @@ int main(int argc, char **argv) {
                     if (timeout()) {
                         break;
                     }
-                    if (mbox != NULL && mbox->size >= no_recvs) {
+                    if (mbox != NULL && mbox->size > n / 2) {
                         break;
                     }
                 }
-                if (mbox != NULL && mbox->size >= no_recvs) {
+                if (mbox != NULL && mbox->size > n / 2) {
                     int Max;
                     log->array = choose_log(mbox, &Max);
                     log->size = log->current = Max;
@@ -272,6 +334,18 @@ int main(int argc, char **argv) {
                     } else {
                         if (msg != NULL && msg->view_nr > view_nr &&
                             (msg->label == StartViewChange || msg->label == DoViewChange)) {
+                                listB* mboxB_new = malloc(sizeof(listB));
+                                if (!mboxB_new) {
+                                    abort();
+                                }
+                                mboxB_new->info = msg;
+                                if (mbox) {
+                                    mboxB_new->size = mbox->size + 1;
+                                } else {
+                                    mboxB_new->size = 1;
+                                }
+                                mboxB_new->next = mbox;
+                                mbox = mboxB_new;
                                 break;
                         }
                     }
@@ -282,17 +356,17 @@ int main(int argc, char **argv) {
                         break;
                     }
                 }
-                if (msg != NULL && msg->view_nr > view_nr &&
-                    msg->label == StartViewChange) {
+                if (mbox != NULL && (last_elem(mbox))->info->view_nr > view_nr &&
+                    (last_elem(mbox))->info->label == StartViewChange) {
+                        prev_view = view_nr;
                         view_nr = msg->view_nr;
                         continue;
                     }
-                if (msg != NULL && msg->view_nr > view_nr &&
-                    msg->label == DoViewChange) {
+                if (mbox != NULL && (last_elem(mbox))->info->view_nr > view_nr &&
+                    (last_elem(mbox))->info->label == DoViewChange) {
+                        delete_msg_view(mbox, view_nr);
+                        prev_view = view_nr;
                         view_nr = msg->view_nr;
-                        int no_recvs = n / 2 - 1;
-                        list_disposeB(&mbox);
-                        mbox = NULL;
                         while (true) {
                             msg = (msg_ViewChange*)recv();
                             if (msg != NULL && msg->view_nr == view_nr && msg->label == DoViewChange) {
@@ -312,11 +386,11 @@ int main(int argc, char **argv) {
                             if (timeout()) {
                                 break;
                             }
-                            if (mbox != NULL && mbox->size >= no_recvs) {
+                            if (mbox != NULL && mbox->size > n / 2) {
                                 break;
                             }
                         }
-                        if (mbox != NULL && mbox->size >= no_recvs) {
+                        if (mbox != NULL && mbox->size > n / 2) {
                             int Max;
                             log->array = choose_log(mbox, &Max);
                             log->size = log->current = Max;
@@ -335,7 +409,7 @@ int main(int argc, char **argv) {
                         }
                     }
             else {
-                if (mbox != NULL && mbox->size >= n / 2 && mbox->next == NULL) {
+                if (mbox != NULL && mbox->size >= n / 2) {
                     list_disposeB(&mbox);
                     mbox = NULL;
                     round = DoViewChange_ROUND;
@@ -368,6 +442,18 @@ int main(int argc, char **argv) {
                             mbox = mboxB_new;
                         } else if (msg != NULL && msg->view_nr > view_nr &&
                             (msg->label == StartViewChange || msg->label == DoViewChange)) {
+                                listB* mboxB_new = malloc(sizeof(listB));
+                                if (!mboxB_new) {
+                                    abort();
+                                }
+                                mboxB_new->info = msg;
+                                if (mbox) {
+                                    mboxB_new->size = mbox->size + 1;
+                                } else {
+                                    mboxB_new->size = 1;
+                                }
+                                mboxB_new->next = mbox;
+                                mbox = mboxB_new;
                                 break;
                             }
                         if (timeout()) {
@@ -377,17 +463,17 @@ int main(int argc, char **argv) {
                             break;
                         }
                     }
-                    if (msg != NULL && msg->view_nr > view_nr &&
-                        msg->label == StartViewChange) {
+                    if (mbox != NULL && (last_elem(mbox))->info->view_nr > view_nr &&
+                        (last_elem(mbox))->info->label == StartViewChange) {
+                            prev_view = view_nr;
                             view_nr = msg->view_nr;
                             continue;
                         }
-                    if (msg != NULL && msg->view_nr > view_nr &&
-                        msg->label == DoViewChange) {
+                    if (mbox != NULL && (last_elem(mbox))->info->view_nr > view_nr &&
+                        (last_elem(mbox))->info->label == DoViewChange) {
+                            delete_msg_view(mbox, view_nr);
+                            prev_view = view_nr;
                             view_nr = msg->view_nr;
-                            int no_recvs = n / 2 - 1;
-                            list_disposeB(&mbox);
-                            mbox = NULL;
                             while (true) {
                                 msg = (msg_ViewChange*)recv();
                                 if (msg != NULL && msg->view_nr == view_nr && msg->label == DoViewChange) {
@@ -407,11 +493,11 @@ int main(int argc, char **argv) {
                                 if (timeout()) {
                                     break;
                                 }
-                                if (mbox != NULL && mbox->size >= no_recvs) {
+                                if (mbox != NULL && mbox->size > n / 2) {
                                     break;
                                 }
                             }
-                            if (mbox != NULL && mbox->size >= no_recvs) {
+                            if (mbox != NULL && mbox->size > n / 2) {
                                 int Max;
                                 log->array = choose_log(mbox, &Max);
                                 log->size = log->current = Max;
@@ -427,6 +513,8 @@ int main(int argc, char **argv) {
                                 msg->log_size = log->size;
                                 msg->log = log->array;
                                 send((void*)msg, to_all);
+                                list_disposeB(&mbox);
+                                mbox = NULL;
                             }
                         }
                     else {
@@ -440,6 +528,7 @@ int main(int argc, char **argv) {
                 }
             }
             round = StartViewChange_ROUND;
+            prev_view = view_nr;
             view_nr++;
         }
     }
