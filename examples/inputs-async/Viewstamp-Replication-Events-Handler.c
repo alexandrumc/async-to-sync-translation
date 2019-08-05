@@ -85,7 +85,7 @@ int main(int argc, char **argv)//@ : main
                 break;
             }
 
-            if(round == DoViewChange_ROUND && follower(n, view) == pid && m->round == StartView_ROUND ) {
+            if(round == StartView_ROUND && follower(n, view) == pid && m->round == StartView_ROUND ) {
                 break;
             }
 
@@ -106,13 +106,15 @@ int main(int argc, char **argv)//@ : main
             I go to StartView round and wait for the new primary to confirm the new view 
         */
         if(round == StartViewChange_ROUND && follower(n, view) == pid && collected_all_start_view_change(mbox,view) ) {
-            round = StartView_ROUND;
+            round = DoViewChange_ROUND;
 
             m = (msg *) malloc(sizeof(msg));
             m->view = view;
             m->round = DoViewChange_ROUND;
 
             send((void*)m, primary(n, view));
+
+            round = StartView_ROUND;
 
 	        continue;
         }
@@ -144,7 +146,7 @@ int main(int argc, char **argv)//@ : main
             I am the new primary and I collected f+1 DoViewChange messages, I advertise the followers
         */
         if(round == DoViewChange_ROUND && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
-            round = StartViewChange_ROUND;
+            round = StartView_ROUND;
 
             m = (msg *) malloc(sizeof(msg));
             m->view = view;
@@ -152,8 +154,9 @@ int main(int argc, char **argv)//@ : main
 
             send((void*)m, to_all);
             out(view);
-            
+    
             // I prepare for the next view change 
+            round = StartViewChange_ROUND;
             view++;
 
             continue;
