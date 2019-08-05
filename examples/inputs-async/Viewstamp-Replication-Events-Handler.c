@@ -121,7 +121,7 @@ int main(int argc, char **argv)//@ : main
             I am a follower, the new primary confirmed the new view
         */
 
-        if(round == DoViewChange_ROUND && follower(n, view) == pid && m->round == StartView_ROUND) {
+        if(round == StartView_ROUND && follower(n, view) == pid && m->round == StartView_ROUND) {
             round = StartViewChange_ROUND;
             
             out(view);
