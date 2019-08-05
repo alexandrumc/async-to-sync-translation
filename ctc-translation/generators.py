@@ -1375,6 +1375,8 @@ class RoundGenerator(c_generator.CGenerator):
                 return s
 
     def visit_Assignment(self, n):
+        if isinstance(n.lvalue, ID) and n.lvalue.name == "view_nr":
+            print "Da"
         if self.path is not None:
             if n in self.path or self.extend_visit or self.visit_cond:
                 if self.mode == "send" and not self.send_reached \
