@@ -40,6 +40,7 @@ int main(int argc, char **argv)//@ : main
 //@ requires true;
 //@ ensures true;
 {
+    /* Init */
     int pid;
     int to_all = n+1;
 
@@ -50,8 +51,9 @@ int main(int argc, char **argv)//@ : main
     list* mbox_new = NULL;
     msg* m = NULL;
     view = 0;
-    round = StartViewChange_ROUND;
 
+    /* First round */
+    round = StartViewChange_ROUND;
     m = (msg *) malloc(sizeof(msg));
     m->view = view;
     m->round = StartViewChange_ROUND;
@@ -130,6 +132,11 @@ int main(int argc, char **argv)//@ : main
             // I prepare for the next view change 
             round = StartViewChange_ROUND;
             view++;
+            m = (msg *) malloc(sizeof(msg));
+            m->view = view;
+            m->round = StartViewChange_ROUND;
+            send((void*)m, to_all); 
+            
             continue;
         }
 
@@ -158,6 +165,10 @@ int main(int argc, char **argv)//@ : main
             // I prepare for the next view change 
             round = StartViewChange_ROUND;
             view++;
+            m = (msg *) malloc(sizeof(msg));
+            m->view = view;
+            m->round = StartViewChange_ROUND;
+            send((void*)m, to_all); 
 
             continue;
         }
