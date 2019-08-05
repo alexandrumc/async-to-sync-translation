@@ -104,7 +104,7 @@ int main(int argc, char **argv)//@ : main
 
             send((void*)m, primary(n, view));
 
-	    break;
+	    continue;
         }
 
         if(round == DoViewChange_ROUND && mbox!=NULL && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
