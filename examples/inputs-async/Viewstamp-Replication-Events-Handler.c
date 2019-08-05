@@ -81,22 +81,32 @@ int main(int argc, char **argv)//@ : main
 
             if (timeout()){ break; }
 
-            if(round == StartViewChange_ROUND && mbox!=NULL && collected_all_start_view_change(mbox,view)) {
+            if(round == StartViewChange_ROUND && follower(n, view) == pid && collected_all_start_view_change(mbox,view) ) {
                 break;
             }
 
-            if(round == DoViewChange_ROUND && mbox!=NULL && primary(n, view) == pid && collected_all_do_view_change(mbox,view)) {
+            if(round == DoViewChange_ROUND && follower(n, view) == pid && m->round == StartView_ROUND ) {
                 break;
             }
 
-            if(round == DoViewChange_ROUND && mbox!=NULL && primary(n, view) != pid && received_start_view(mbox,view)) {
+            if(round == StartViewChange_ROUND && primary(n, view) == pid && m->round == DoViewChange_ROUND) {
                 break;
             }
+
+            if(round == DoViewChange_ROUND && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
+                break;
+            }
+
 
         }
         
-        if(round == StartViewChange_ROUND && mbox!=NULL && collected_all_start_view_change(mbox,view) ) {
-            round = DoViewChange_ROUND;
+        /* 
+            I am a follower and I received all the f StartViewChange messages, 
+            I advertise this to the new primary
+            I go to StartView round and wait for the new primary to confirm the new view 
+        */
+        if(round == StartViewChange_ROUND && follower(n, view) == pid && collected_all_start_view_change(mbox,view) ) {
+            round = StartView_ROUND;
 
             m = (msg *) malloc(sizeof(msg));
             m->view = view;
@@ -104,11 +114,37 @@ int main(int argc, char **argv)//@ : main
 
             send((void*)m, primary(n, view));
 
-	    continue;
+	        continue;
         }
 
-        if(round == DoViewChange_ROUND && mbox!=NULL && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
-            round = StartView_ROUND;
+        /*
+            I am a follower, the new primary confirmed the new view
+        */
+
+        if(round == DoViewChange_ROUND && follower(n, view) == pid && m->round == StartView_ROUND) {
+            round = StartViewChange_ROUND;
+            
+            out(view);
+
+            // I prepare for the next view change 
+            view++;
+            continue;
+        }
+
+        /*
+            I am the new primary and just started the protocol, I wait for f+1 DoViewChange messages
+        */
+        if(round == StartViewChange_ROUND && primary(n, view) == pid && m->round == DoViewChange_ROUND) {
+            round = DoViewChange_ROUND;
+
+	        continue;
+        }
+
+        /*
+            I am the new primary and I collected f+1 DoViewChange messages, I advertise the followers
+        */
+        if(round == DoViewChange_ROUND && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
+            round = StartViewChange_ROUND;
 
             m = (msg *) malloc(sizeof(msg));
             m->view = view;
@@ -116,14 +152,14 @@ int main(int argc, char **argv)//@ : main
 
             send((void*)m, to_all);
             out(view);
+            
+            // I prepare for the next view change 
+            view++;
+
+            continue;
         }
 
-        if(round == DoViewChange_ROUND && mbox!=NULL && primary(n, view) != pid && received_start_view(mbox,view) ) {
-            round = StartView_ROUND;
-
-            out(view);
-        }
-
+        
     }
     return 1;
 }
