@@ -124,11 +124,11 @@ int main(int argc, char **argv)//@ : main
         */
 
         if(round == StartView_ROUND && follower(n, view) == pid && m->round == StartView_ROUND) {
-            round = StartViewChange_ROUND;
-            
+
             out(view);
 
             // I prepare for the next view change 
+            round = StartViewChange_ROUND;
             view++;
             continue;
         }
