@@ -1,20 +1,26 @@
 import copy
 import os
-from utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
-    find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles, \
-    get_extern_while_body
-from generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor, DeclAlgoVisitor, \
-    AllVarsAlgoVisitor, AssigDummyVisitor, SendLoopsVisitor
-from compute_paths import find_all_paths_between_two_nodes, prune_tree
+import sys
+import config
+from cStringIO import StringIO
+
 from pycparser import c_generator, parse_file
 from pycparser.plyparser import Coord
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
     For, Compound, Continue, FuncCall, FuncDecl, IdentifierType, Decl, TypeDecl
+
+from utils.utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
+    find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles, \
+    get_extern_while_body
+from utils.generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor, DeclAlgoVisitor, \
+    AllVarsAlgoVisitor, AssigDummyVisitor, SendLoopsVisitor
+
+from compute_paths import find_all_paths_between_two_nodes, prune_tree
+
 from modify_whiles import coord_aux, whiles_to_if, identify_recv_exits
 from mbox_removal import remove_mbox
-from cStringIO import StringIO
-import sys
-import config
+
+
 
 generator = c_generator.CGenerator()
 

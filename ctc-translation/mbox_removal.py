@@ -1,6 +1,7 @@
-import utils
-from generators import NullAssignVisitor, UselessFuncVisitor, EmptyInstrVisitor
 from pycparser.c_ast import *
+
+from utils.generators import NullAssignVisitor, UselessFuncVisitor, EmptyInstrVisitor
+from utils.utils import find_parent
 
 
 def remove_mbox_assign_to_zero(extern_while_body, mbox_name):
@@ -17,7 +18,7 @@ def remove_mbox_assign_to_zero(extern_while_body, mbox_name):
     v.visit(extern_while_body)
 
     for el in v.result_list:
-        p = utils.find_parent(extern_while_body, el)
+        p = find_parent(extern_while_body, el)
 
         if isinstance(p, Compound):
             p.block_items.remove(el)
@@ -35,7 +36,7 @@ def remove_list_dispose(extern_while_body, func_names):
     v.visit(extern_while_body)
 
     for el in v.result_list:
-        p = utils.find_parent(extern_while_body, el)
+        p = find_parent(extern_while_body, el)
 
         if isinstance(p, Compound):
             p.block_items.remove(el)
@@ -60,7 +61,7 @@ def remove_null_if(extern_while_body):
             keep_removing = False
 
         for el in v.result_list:
-            p = utils.find_parent(extern_while_body, el)
+            p = find_parent(extern_while_body, el)
 
             if isinstance(p, Compound):
                 p.block_items.remove(el)

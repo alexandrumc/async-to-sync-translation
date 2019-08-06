@@ -1,10 +1,10 @@
+import copy
 from pycparser import c_generator
 from pycparser.c_ast import *
 from pycparser.plyparser import Coord
 
-from generators import WhileAlgoVisitor
+from utils.generators import WhileAlgoVisitor
 
-import copy
 
 generator = c_generator.CGenerator()
 

@@ -1,12 +1,14 @@
-from take_lab import get_extern_while_body_from_func, get_paths_trees, \
-    turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs
+import config
 from pycparser import parse_file
-from utils import duplicate_element, find_parent, get_global_vars, get_vars_table, get_recv_whiles
+
+from utils.utils import duplicate_element, find_parent, get_global_vars, get_vars_table, get_recv_whiles
 
 from modify_whiles import *
-import sys
-import config
 from mbox_removal import remove_mbox
+
+from take_lab import get_extern_while_body_from_func, get_paths_trees, \
+    turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs
+
 
 ast = parse_file(filename=sys.argv[1], use_cpp=False)
 

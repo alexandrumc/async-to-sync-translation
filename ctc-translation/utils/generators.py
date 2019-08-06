@@ -1,7 +1,27 @@
+"""
+utils: generators.py
+
+This module implements Visitors which extend either c_ast.NodeVisitor
+or c_generator.CGenerator.
+
+Visitors offer a simpler way to iterate through every node of the tree
+but focus only on some of them.
+
+Usual implementation: define methods for nodes on which you wan to focus
+(visit_Assignment, ...) and use fields to return those nodes as a list or
+different status.
+
+Results form visitors will be handled in wrapper functions.
+whileAlgoVisitor has more functionality as it implements different methods
+which analyse an inner algorithm
+
+"""
+
+
+import copy
 from pycparser.c_ast import While, Assignment, ID, If, Node, FuncDef, FileAST, Constant, UnaryOp, Compound, FuncCall, \
     Break, StructRef, BinaryOp, TypeDecl, PtrDecl, Decl, Struct, Enum
 from pycparser import c_generator, c_ast
-import copy
 
 
 class LabelVisitor(c_ast.NodeVisitor):

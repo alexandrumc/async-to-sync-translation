@@ -1,3 +1,9 @@
+"""
+utils: utils.py
+
+Module which contains utilities functions
+"""
+
 import copy
 from pycparser.c_ast import FileAST, FuncDef, While, Decl, TypeDecl, PtrDecl
 from generators import PathGenerator, LabelVisitor, LocateNode, LocateParentNode, CheckLabelNumber,\

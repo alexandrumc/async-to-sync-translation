@@ -1,8 +1,10 @@
 from pycparser import c_generator, parse_file
 from pycparser.c_ast import ID, If, Compound, FuncCall
+
+from utils.generators import CheckIfGenerator, TreeGenerator
+from utils.utils import find_node, duplicate_element, get_label, get_extern_while_body, generate_c_code_from_paths_and_trees
+
 from modify_whiles import whiles_to_if, identify_recv_exits
-from generators import CheckIfGenerator, TreeGenerator
-from utils import find_node, duplicate_element, get_label, get_extern_while_body, generate_c_code_from_paths_and_trees
 from mbox_removal import remove_mbox
 
 
