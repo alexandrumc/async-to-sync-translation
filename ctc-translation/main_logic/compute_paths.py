@@ -1,3 +1,10 @@
+"""
+main_logic: compute_paths.py
+
+compute_paths contains the logic for determining the path between two round assignments or
+pruning the tree around two assignments
+"""
+
 from pycparser import c_generator, parse_file
 from pycparser.c_ast import ID, If, Compound, FuncCall
 

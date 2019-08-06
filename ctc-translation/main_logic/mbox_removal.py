@@ -1,3 +1,9 @@
+"""
+main_logic: mbox_removal.py
+
+mbox_removal does different node elimination based on the information from the
+config file
+"""
 from pycparser.c_ast import *
 
 from utils.generators import NullAssignVisitor, UselessFuncVisitor, EmptyInstrVisitor

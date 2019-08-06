@@ -1,3 +1,9 @@
+"""
+main_logic: modify_whiles.py
+
+modify_whiles contains the logic which turns receiving while loops into if statements
+"""
+
 import copy
 from pycparser import c_generator
 from pycparser.c_ast import *

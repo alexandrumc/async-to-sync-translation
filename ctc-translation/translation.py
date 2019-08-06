@@ -1,14 +1,13 @@
-import config
 from pycparser import parse_file
 
+import config
 from utils.utils import duplicate_element, find_parent, get_global_vars, get_vars_table, get_recv_whiles
 
-from modify_whiles import *
-from mbox_removal import remove_mbox
+from main_logic.modify_whiles import *
+from main_logic.mbox_removal import remove_mbox
 
-from take_lab import get_extern_while_body_from_func, get_paths_trees, \
+from main_logic.take_lab import get_extern_while_body_from_func, get_paths_trees, \
     turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs
-
 
 ast = parse_file(filename=sys.argv[1], use_cpp=False)
 

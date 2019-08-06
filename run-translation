@@ -273,5 +273,3 @@ fi
 # In case that config.pyc has been created, delete it, and restore previous 
 # config file
 rm -f ctc-translation/config.pyc
-mv ./config.py ctc-translation/
-

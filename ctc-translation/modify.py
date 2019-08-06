@@ -1,4 +1,4 @@
-from take_lab import take_code_from_file, get_extern_while_body_from_func, get_context
+from take_lab import take_code_from_file, get_extern_while_body_from_func
 from pycparser import parse_file
 
 from modify_whiles import *
