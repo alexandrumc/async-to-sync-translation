@@ -276,7 +276,12 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
                     aux_assig = Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)
                     new_if.iffalse.block_items.append(aux_assig)
                 else:
-                    round_name = recv_loops[(element.coord.line, element.coord.column)][1]
+                    # TODO: recv_loops does not return all loops
+                    # Only a quick fix
+                    if (element.coord.line, element.coord.column) in recv_loops:
+                        round_name = recv_loops[(element.coord.line, element.coord.column)][1]
+                    else:
+                        round_name = "round"
                     new_if.iffalse = Compound([Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)], new_coord)
 
                 # FuncCall(ID("wait_for_messages", id_coord), None, new_break_coord)

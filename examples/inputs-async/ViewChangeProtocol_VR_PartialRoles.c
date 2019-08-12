@@ -373,6 +373,27 @@ int main(int argc, char **argv) {
 
                             mboxB_new->next = mbox;
                             mbox = mboxB_new;
+                        } else if (msg != NULL && msg->view_nr > view_nr && msg->label == DoViewChange) {
+                            delete_msg_view(mbox, view_nr);
+                            view = msg->view_nr;
+                            reset_timeout();
+                            continue;
+                        } else if (msg != NULL && msg->view_nr > view_nr && msg->label == StartViewChange) {
+                            listB* mboxB_new = malloc(sizeof(listB));
+                            if (!mboxB_new) {
+                                abort();
+                            }
+
+                            mboxB_new->info = msg;
+                            if (mbox) {
+                                mboxB_new->size = mbox->size + 1;
+                            } else {
+                                mboxB_new->size = 1;
+                            }
+
+                            mboxB_new->next = mbox;
+                            mbox = mboxB_new;
+                            break;
                         }
 
                         if (timeout()) {
@@ -383,6 +404,14 @@ int main(int argc, char **argv) {
                             break;
                         }
                     }
+
+                    if (mbox != NULL && (last_elem(mbox))->info->view_nr > view_nr &&
+                        (last_elem(mbox))->info->label == StartViewChange) {
+                            prev_view = view_nr;
+                            view_nr = (last_elem(mbox))->info->view_nr;
+                            continue;
+                    }
+
                     /* By considering jumping to StartViewChange, won't generate
                        infinte code. But jumping to DoViewChange would, because
                        I would have to duplicate the same receiving as above
@@ -508,6 +537,27 @@ int main(int argc, char **argv) {
 
                                     mboxB_new->next = mbox;
                                     mbox = mboxB_new;
+                                } else if (msg != NULL && msg->view_nr > view_nr && msg->label == DoViewChange) {
+                                    delete_msg_view(mbox, view_nr);
+                                    view = msg->view_nr;
+                                    reset_timeout();
+                                    continue;
+                                } else if (msg != NULL && msg->view_nr > view_nr && msg->label == StartViewChange) {
+                                    listB* mboxB_new = malloc(sizeof(listB));
+                                    if (!mboxB_new) {
+                                        abort();
+                                    }
+
+                                    mboxB_new->info = msg;
+                                    if (mbox) {
+                                        mboxB_new->size = mbox->size + 1;
+                                    } else {
+                                        mboxB_new->size = 1;
+                                    }
+
+                                    mboxB_new->next = mbox;
+                                    mbox = mboxB_new;
+                                    break;
                                 }
 
                                 if (timeout()) {
@@ -518,6 +568,14 @@ int main(int argc, char **argv) {
                                     break;
                                 }
                             }
+
+                            if (mbox != NULL && (last_elem(mbox))->info->view_nr > view_nr &&
+                                (last_elem(mbox))->info->label == StartViewChange) {
+                                    prev_view = view_nr;
+                                    view_nr = (last_elem(mbox))->info->view_nr;
+                                    continue;
+                            }
+
                             /* By considering jumping to StartViewChange, won't generate
                                infinte code. But jumping to DoViewChange would, because
                                I would have to duplicate the same receiving as above

@@ -5,9 +5,9 @@ Module which contains utilities functions
 """
 
 import copy
-from pycparser.c_ast import FileAST, FuncDef, While, Decl, TypeDecl, PtrDecl
+from pycparser.c_ast import *
 from generators import PathGenerator, LabelVisitor, LocateNode, LocateParentNode, CheckLabelNumber,\
-    EpochVisitor, LocateParentNodeUpdated, SendWhileVisitor, RecvWhileVisitor, DeclAlgoVisitor
+    EpochVisitor, LocateParentNodeUpdated, SendWhileVisitor, RecvWhileVisitor, DeclAlgoVisitor, WhileAlgoVisitor
 
 main_function_name = "main"
 new_code = "\n\n\n\n NEW CODE \n\n\n\n"
@@ -116,6 +116,60 @@ def get_send_usage(ast_tree):
     v = SendWhileVisitor()
     v.visit(ast_tree)
     return v.list
+
+
+def is_upon_syntax(node, msg_fields, rounds_list):
+    """
+    Wrapper for get_syntax_of_algo
+    :param node: while algo node
+    :param msg_fields: msg_struct_fields from config
+    :param rounds_list: rounds_list from config
+    :return: True for UPON, False otherwise
+    """
+
+    try:
+        value = get_syntax_of_algo(node, msg_fields, rounds_list)
+        if value == 1:
+            return True
+        return False
+    except ValueError:
+        # Unexpected args
+        return False
+
+
+def get_syntax_of_algo(node, msg_fields, rounds_list):
+    """
+    It determines if the given while algo node has UPON syntax or not
+    :param node: while algo node
+    :param msg_fields: msg_struct_fields from config
+    :param rounds_list: rounds_list from config
+    :return: 0 for old syntax, 1 for UPON syntax, raises ValueError for incorrect args
+    """
+
+    if not isinstance(node, While):
+        raise ValueError("Given argument can't be while algo")
+
+    v = RecvWhileVisitor(msg_fields, rounds_list)
+    v.visit(node)
+    count = len(v.list)
+
+    if count != 1:
+        return 0
+
+    if node.stmt and isinstance(node.stmt, Compound):
+        if node.stmt.block_items and len(node.stmt.block_items) > 0:
+            if isinstance(node.stmt.block_items[0], While):
+                if WhileAlgoVisitor.check_if_recv_loop(node.stmt.block_items[0].stmt):
+                    return 1
+            elif isinstance(node.stmt.block_items[0], Assignment) and isinstance(node.stmt.block_items[1], While):
+                if WhileAlgoVisitor.check_if_recv_loop(node.stmt.block_items[0].stmt):
+                    return 1
+
+    if node.stmt and isinstance(node.stmt, While):
+        if WhileAlgoVisitor.check_if_recv_loop(node.stmt.stmt):
+            return 1
+
+    return 0
 
 
 def get_recv_whiles(ast_tree, rounds_list, msg_fields):

@@ -298,12 +298,9 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
     With this visitor we return a list of whiles which represent
     a nested algorithm
     We also add markers for the beginning and ending of this algo
-
-    Every nested algo starts with a while(true)
     """
     def __init__(self, rounds_list, msg_fields):
         self.result_list = []
-        self.conditions = []
         self.rounds_list = rounds_list
         self.msg_fields = msg_fields
 
@@ -352,6 +349,26 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
                 for mround in rounds_list:
                     if isinstance(elem.rvalue, ID) and elem.rvalue.name in mround:
                         return rounds_list.index(mround)
+            else:
+                v = -1
+                if isinstance(elem, If) and elem.iftrue and isinstance(elem.iftrue, Compound):
+                    v = WhileAlgoVisitor.get_rank_of_algo(elem.iftrue, rounds_list, msg_structure_fields)
+
+                if v != -1:
+                    return v
+
+                if isinstance(elem, If) and elem.iffalse and isinstance(elem.iffalse, Compound):
+                    v = WhileAlgoVisitor.get_rank_of_algo(elem.iftrue, rounds_list, msg_structure_fields)
+
+                if v != -1:
+                    return v
+
+                if isinstance(elem, While) and WhileAlgoVisitor.check_while_cond(elem.cond):
+                    # Check while recv for round assignments as well
+                    if WhileAlgoVisitor.check_if_recv_loop(elem.stmt):
+                        v = WhileAlgoVisitor.get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
+                        if v != -1:
+                            return v
 
         return -1
 
@@ -363,9 +380,7 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
     def visit_While(self, node):
         if node.stmt:
-            if isinstance(node.stmt, If):
-                self.visit_If(node.stmt)
-            elif isinstance(node.stmt, While):
+            if isinstance(node.stmt, While):
                 self.visit_While(node.stmt)
             else:
                 self.generic_visit(node.stmt)
@@ -383,6 +398,8 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
             return
         first_assig = v.assig
 
+        self.result_list.append(node)
+
         # Now that is a while algo, check if it contains an
         # assignment which can determine a phase jump
         phase_jmp_stat = False
@@ -395,43 +412,6 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
         if v_phase.result:
             phase_jmp_stat = True
             #phase_if =
-
-        # Keep conditions although we don't add them
-        cop = copy.deepcopy(self.conditions)
-
-        new_id = ID("marker_start", node.coord)
-        func = FuncCall(new_id, None, node.coord)
-
-        node.stmt.block_items.insert(0, func)
-
-        new_id = ID("marker_stop", node.coord)
-        func = FuncCall(new_id, None, node.coord)
-
-        node.stmt.block_items.append(func)
-        self.result_list.append((node, cop, phase_jmp_stat))
-
-    def visit_If(self, node):
-        self.conditions.append(node.cond)
-        if node.iftrue:
-            if isinstance(node.iftrue, If):
-                self.visit_If(node.iftrue)
-            elif isinstance(node.iftrue, While):
-                self.visit_While(node.iftrue)
-            else:
-                self.generic_visit(node.iftrue)
-
-        del self.conditions[-1]
-        new_cond = UnaryOp('!', node.cond)
-        self.conditions.append(new_cond)
-        if node.iffalse:
-            if isinstance(node.iffalse, If):
-                self.visit_If(node.iffalse)
-            elif isinstance(node.iffalse, While):
-                self.visit_While(node.iffalse)
-            else:
-                self.generic_visit(node.iffalse)
-
-        del self.conditions[-1]
 
 
 class DeclAlgoVisitor(c_ast.NodeVisitor):
@@ -531,14 +511,15 @@ class AllVarsAlgoVisitor(c_ast.NodeVisitor):
 
 class CondVisitor(c_generator.CGenerator):
 
-    def __init__(self, current_round):
+    def __init__(self, current_round, is_upon):
         c_generator.CGenerator.__init__(self)
         self.current_round = current_round
         self.inside_binop = False
         self.save_round = ""
+        self.is_upon = is_upon
 
     def visit_ID(self, n):
-        if self.inside_binop is False:
+        if not self.is_upon and self.inside_binop is False:
             if "==" in n.name and "_ROUND" in n.name and self.current_round not in n.name:
                 return 'jump == True'
 
@@ -552,7 +533,7 @@ class CondVisitor(c_generator.CGenerator):
             self.inside_binop = True
             changed = True
 
-        if isinstance(n.right, ID):
+        if not self.is_upon and isinstance(n.right, ID):
             if n.right.name.endswith("_ROUND") and n.right.name != self.current_round:
                 if changed:
                     self.inside_binop = False
@@ -1110,7 +1091,8 @@ class RoundGenerator(c_generator.CGenerator):
     The last case needs more complex computation.
     """
 
-    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, save_round, path=None):
+    def __init__(self, mode, labelname, current_round, delete_round_phase, message, variables, save_round, is_upon,
+                 path=None):
         c_generator.CGenerator.__init__(self)
         # a string that indicates send or update mode; "send" for send and "update" for update
         self.mode = mode
@@ -1136,6 +1118,9 @@ class RoundGenerator(c_generator.CGenerator):
         self.message = message
         self.variables = variables
         self.remember_round = save_round
+
+        # is_upon determines if the current code has UPON syntax, which means a different strategy
+        self.is_upon = is_upon
 
     def visit_Break(self, n):
         return 'out();'
@@ -1395,8 +1380,10 @@ class RoundGenerator(c_generator.CGenerator):
                 return s
 
     def visit_Assignment(self, n):
+        """
         if isinstance(n.lvalue, ID) and n.lvalue.name == "view_nr":
             print "Da"
+        """
         if self.path is not None:
             if n in self.path or self.extend_visit or self.visit_cond:
                 if self.mode == "send" and not self.send_reached \
@@ -1481,7 +1468,7 @@ class RoundGenerator(c_generator.CGenerator):
                 s = 'if ('
                 self.visit_cond = True
                 s += '('
-                cond_visitor = CondVisitor(self.current_round)
+                cond_visitor = CondVisitor(self.current_round, self.is_upon)
                 s += cond_visitor.visit(n.cond)
                 # s += self.visit(n.cond)
                 s += ')'
@@ -1575,7 +1562,7 @@ class RoundGenerator(c_generator.CGenerator):
                     else:
                         s += '('
                     self.visit_cond = True
-                    cond_visitor = CondVisitor(self.current_round)
+                    cond_visitor = CondVisitor(self.current_round, self.is_upon)
                     s += cond_visitor.visit(n.cond)
                     # s += self.visit(n.cond)
 
@@ -1616,7 +1603,7 @@ class RoundGenerator(c_generator.CGenerator):
                             s += '!('
                         else:
                             s += '('
-                        cond_visitor = CondVisitor(self.current_round)
+                        cond_visitor = CondVisitor(self.current_round, self.is_upon)
                         s += cond_visitor.visit(node.cond)
                         s += ')'
 
@@ -1670,7 +1657,7 @@ class RoundGenerator(c_generator.CGenerator):
                     s = 'if ('
                     self.visit_cond = True
                     s += '('
-                    cond_visitor = CondVisitor(self.current_round)
+                    cond_visitor = CondVisitor(self.current_round, self.is_upon)
                     s += cond_visitor.visit(n.cond)
                     # s += self.visit(n.cond)
                     self.visit_cond = False
@@ -1687,7 +1674,7 @@ class RoundGenerator(c_generator.CGenerator):
                             s += '!('
                         else:
                             s += '('
-                        cond_visitor = CondVisitor(self.current_round)
+                        cond_visitor = CondVisitor(self.current_round, self.is_upon)
                         s += cond_visitor.visit(n.cond)
 
                         if cond_visitor.save_round != "":
@@ -1727,7 +1714,7 @@ class RoundGenerator(c_generator.CGenerator):
                             s += '!('
                         else:
                             s += '('
-                        cond_visitor = CondVisitor(self.current_round)
+                        cond_visitor = CondVisitor(self.current_round, self.is_upon)
                         s += cond_visitor.visit(node.cond)
 
                         if cond_visitor.save_round != "":
@@ -1798,7 +1785,7 @@ class RoundGenerator(c_generator.CGenerator):
                 self.visit_cond = True
                 #### incepe
                 s += '('
-                cond_visitor = CondVisitor(self.current_round)
+                cond_visitor = CondVisitor(self.current_round, self.is_upon)
                 s += cond_visitor.visit(n.cond)
                 s += ')'
 
@@ -1890,7 +1877,7 @@ class RoundGenerator(c_generator.CGenerator):
                     else:
                         s += '('
                     self.visit_cond = True
-                    cond_visitor = CondVisitor(self.current_round)
+                    cond_visitor = CondVisitor(self.current_round, self.is_upon)
                     s += cond_visitor.visit(n.cond)
 
                     if cond_visitor.save_round != "":
@@ -1932,7 +1919,7 @@ class RoundGenerator(c_generator.CGenerator):
                             s += '!('
                         else:
                             s += '('
-                        cond_visitor = CondVisitor(self.current_round)
+                        cond_visitor = CondVisitor(self.current_round, self.is_upon)
                         s += cond_visitor.visit(node.cond)
                         s += ')'
                         if cond_visitor.save_round != "":
@@ -1994,7 +1981,7 @@ class RoundGenerator(c_generator.CGenerator):
                     s = 'if ('
                     s += '('
                     self.visit_cond = True
-                    cond_visitor = CondVisitor(self.current_round)
+                    cond_visitor = CondVisitor(self.current_round, self.is_upon)
                     s += cond_visitor.visit(n.cond)
 
                     if cond_visitor.save_round != "":
@@ -2011,7 +1998,7 @@ class RoundGenerator(c_generator.CGenerator):
                         else:
                             s += '('
                         self.visit_cond = True
-                        cond_visitor = CondVisitor(self.current_round)
+                        cond_visitor = CondVisitor(self.current_round, self.is_upon)
                         s += cond_visitor.visit(n.cond)
 
                         if cond_visitor.save_round != "":
@@ -2053,7 +2040,7 @@ class RoundGenerator(c_generator.CGenerator):
                             s += '!('
                         else:
                             s += '('
-                        cond_visitor = CondVisitor(self.current_round)
+                        cond_visitor = CondVisitor(self.current_round, self.is_upon)
                         s += cond_visitor.visit(node.cond)
                         s += ')'
 

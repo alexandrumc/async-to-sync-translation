@@ -1,13 +1,14 @@
 from pycparser import parse_file
 
-import config
 from utils.utils import duplicate_element, find_parent, get_global_vars, get_vars_table, get_recv_whiles
 
 from main_logic.modify_whiles import *
 from main_logic.mbox_removal import remove_mbox
 
 from main_logic.take_lab import get_extern_while_body_from_func, get_paths_trees, \
-    turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs
+    turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs, syntax_each_algo
+
+import config
 
 ast = parse_file(filename=sys.argv[1], use_cpp=False)
 
@@ -34,7 +35,13 @@ while i < len(l):
         break
     i += 1
 
-recv_loops = get_recv_whiles(l[i][1], config.rounds_list, config.msg_structure_fields)
+main_func_node = l[i][1]
+
+recv_loops = get_recv_whiles(main_func_node, config.rounds_list, config.msg_structure_fields)
+
+# Get syntax for every algo
+syntax_dict = {}
+syntax_dict = syntax_each_algo(main_func_node, config.rounds_list, config.msg_structure_fields)
 
 # Identify and already modify send loops, as recv loops
 # may contain send loops - recovery case, for example
@@ -45,12 +52,17 @@ whiles_to_if(x, recv_loops, conditions)
 
 identify_recv_exits(x, conditions)
 
-# Turn all while algos into marked compounds
+# Uncomment this to print AST after while recv removal
+"""
+cgen = c_generator.CGenerator()
+print cgen.visit(x)
+raise AttributeError
+"""
 
+# Turn all while algos into marked compounds
 nested_algos_details = []
 
-if config.number_of_nested_algorithms > 1:
-    turn_nested_algo_marked_compound(x, nested_algos_details, config.rounds_list, config.msg_structure_fields)
+turn_nested_algo_marked_compound(main_func_node, nested_algos_details, config.rounds_list, config.msg_structure_fields)
 
 # Delete unnecessary operations, like disposes and timeouts from code
 # First, get a list of all messages names
@@ -89,17 +101,30 @@ while i >= 0:
 
     cop = duplicate_element(ast)
 
-    trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, config.variables[i]['round'])
-    #is_job = False
-    print_rounds(labs, trees_dict, trees_paths_dict, config.variables[i]['round'], is_job,
-                 config.delete_round_phase[i], config.msg_structure_fields[i], config.variables[i])
+    is_upon = False
 
-    all_vars = []
-    all_vars = get_param_list(trees_dict, i, global_vars, config.mailbox[i], vars_table)
-    all_vars = list(map(lambda x: ID(x, None), all_vars))
+    try:
+        is_upon = syntax_dict[i]
+    except KeyError:
+        print "Found an unlabeled algorithm"
+
+    trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, config.variables[i]['round'], is_upon)
+
+    if is_upon:
+        is_job = False
+        for el in trees_paths_dict.keys():
+            trees_paths_dict[el] = []
+    print_rounds(labs, trees_dict, trees_paths_dict, config.variables[i]['round'], is_job,
+                 config.delete_round_phase[i], config.msg_structure_fields[i], config.variables[i], is_upon)
+
+    all_vars = get_param_list(trees_dict, i, global_vars, config.mailbox[i], vars_table,
+                              config.mailbox, config.msg_structure_fields, config.rounds_list)
+    all_vars = [ID(aux_node, None) for aux_node in all_vars]
 
     cop_all_vars = duplicate_element(all_vars)
 
+    if i == 0:
+        break
     for el in nested_algos_details:
         if el[0] == i:
             p = find_parent(x, el[1].block_items[0])

@@ -17,10 +17,9 @@ from pycparser.plyparser import Coord
 from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp, BinaryOp, StructRef, ArrayRef, \
     For, Compound, Continue, FuncCall, FuncDecl, IdentifierType, Decl, TypeDecl
 
-import config
 from utils.utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
     find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles, \
-    get_extern_while_body
+    get_extern_while_body, is_upon_syntax
 from utils.generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor, DeclAlgoVisitor, \
     AllVarsAlgoVisitor, AssigDummyVisitor, SendLoopsVisitor
 
@@ -227,7 +226,7 @@ def modify_conds(label1, conds_dict, cop, ast):
                 modify_cond(node_ast.cond, new_vals)
 
 
-def get_paths_trees(ast, labels, labels_sorted, labelname):
+def get_paths_trees(ast, labels, labels_sorted, labelname, is_upon):
     aux_dict = {}
     trees_dict = {}
     trees_paths_dict = {}
@@ -257,11 +256,16 @@ def get_paths_trees(ast, labels, labels_sorted, labelname):
                         dest_list = []
                         source_list = []
                         prune_tree(get_extern_while_body(cop), start, end, dest_list, source_list)
+
+                        #print "Print for round " + label1
+                        #print generator.visit(get_extern_while_body(cop))
+                        #print "Done printing one sequence \n\n"
                         #remove_null_if(get_extern_while_body(cop))
 
                         if dest_list and source_list:
                             context = []
-                            get_context(get_extern_while_body(cop), context)
+                            if not is_upon:
+                                get_context(get_extern_while_body(cop), context)
                             add_ghost_assign_in_tree(ast, context, used_old_vars, added_ifs_assignment, aux_dict)
                             for elem in aux_dict:
                                 test = find_node(cop, elem)
@@ -667,7 +671,7 @@ def print_code(trees_dict, trees_paths_dict, labels):
     print_code_from_trees_paths(trees_paths_dict, labels)
 
 
-def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables):
+def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, is_upon):
     labels.reverse()
     # print labels[:len(labels) - 1]
     save_round = ""
@@ -694,7 +698,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
 
         for tree in trees_dict[label]:
             # print TreeGenerator().visit(get_extern_while_body(tree))
-            gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, save_round)
+            gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, save_round, is_upon)
 
 
             result = gen.visit(get_extern_while_body(tree))
@@ -714,7 +718,8 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
                 # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
-                gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, save_round, tuple_el[1])
+                gen = RoundGenerator("send", labelname, label, delete_round_phase, message, variables, save_round,
+                                     is_upon, tuple_el[1])
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
                 if gen.remember_round != "":
                     save_round = gen.remember_round
@@ -745,7 +750,7 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         history_of_strings = []
         for i, tree in enumerate(trees_dict[label]):
             # print TreeGenerator().visit(get_extern_while_body(tree))
-            gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, save_round)
+            gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, save_round, is_upon)
             if not found_send_list[i]:
                 gen.send_reached = True
             result = gen.visit(get_extern_while_body(tree))
@@ -760,7 +765,8 @@ def print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete
         for list_of_tuples in list_of_lists_of_tuples:
             for tuple_el in list_of_tuples:
                 # print TreeGenerator().visit(get_extern_while_body(tuple_el[0]))
-                gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, save_round, tuple_el[1])
+                gen = RoundGenerator("update", labelname, label, delete_round_phase, message, variables, save_round,
+                                     is_upon, tuple_el[1])
                 if not found_send_list[i]:
                     gen.send_reached = True
                 result = gen.visit(get_extern_while_body(tuple_el[0]))
@@ -1200,6 +1206,26 @@ def take_code_from_file(ast, filename, labelname, round_list, delete_round_phase
         print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, round_list)
 
 
+def syntax_each_algo(ast_tree, rounds_list, msg_structure_fields):
+    """
+    Iterate through every while algo node and decide its syntax
+    :return:
+    """
+    syntax_dict = {}
+    v = WhileAlgoVisitor(rounds_list, msg_structure_fields)
+    v.visit(ast_tree)
+
+    for el in v.result_list:
+        rank = WhileAlgoVisitor.get_rank_of_algo(el.stmt, rounds_list, msg_structure_fields)
+
+        if rank in syntax_dict:
+            continue
+
+        syntax_dict[rank] = is_upon_syntax(el, msg_structure_fields, rounds_list)
+
+    return syntax_dict
+
+
 def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, rounds_list, msg_structure_fields):
     """
     Found that we have nested algorithms from the config file
@@ -1207,37 +1233,47 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
 
     For each non recv while loop, take the compound and add markers before
     and after it
-
-    As another effect, this function also returns the list of potential send
-    type loops, as they are considered to not have a round assignment in them
     :return:
     """
     v = WhileAlgoVisitor(rounds_list, msg_structure_fields)
     v.visit(extern_while_body)
 
     for el in v.result_list:
-        p = find_parent(extern_while_body, el[0])
+        parent = find_parent(extern_while_body, el)
 
-        elem = el[0]
+        elem = el
 
         # Suppose that nested algos start only in compounds
-        if not isinstance(p, Compound):
+        if not isinstance(parent, Compound):
             continue
-        ind = p.block_items.index(elem)
-        r = WhileAlgoVisitor.get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
+        ind = parent.block_items.index(elem)
+        rank = WhileAlgoVisitor.get_rank_of_algo(elem.stmt, rounds_list, msg_structure_fields)
 
-        if r == -1:
+        if rank == -1:
             continue
+        # Add start/stop markers
+        new_id = ID("marker_start", elem.coord)
+        func = FuncCall(new_id, None, elem.coord)
 
-        del p.block_items[ind]
+        elem.stmt.block_items.insert(0, func)
+
+        new_id = ID("marker_stop", elem.coord)
+        func = FuncCall(new_id, None, elem.coord)
+
+        elem.stmt.block_items.append(func)
+
+        # Consider that 0 is the most outer algorithm
+        if rank == 0:
+            continue
+        del parent.block_items[ind]
 
         siz = len(elem.stmt.block_items)
         j = 0
         while j < siz:
-            p.block_items.insert(ind, elem.stmt.block_items[j])
+            parent.block_items.insert(ind, elem.stmt.block_items[j])
             ind += 1
             j += 1
-        nested_algos_details.append((r, elem.stmt, p))
+        nested_algos_details.append((rank, elem.stmt, parent))
 
 
 def add_to_param_list(ast, decl_vars, all_vars, mbox_name):
@@ -1262,7 +1298,7 @@ def add_to_param_list(ast, decl_vars, all_vars, mbox_name):
     all_vars.extend(v.result_list)
 
 
-def get_param_list(trees_dict, i, global_vars, mbox_name, vars_table):
+def get_param_list(trees_dict, i, global_vars, mbox_name, vars_table, mailbox, msg_structure_fields, rounds_list):
 
     # Construct the list of declared variables and of all used vars
     decl_var = []
@@ -1281,15 +1317,15 @@ def get_param_list(trees_dict, i, global_vars, mbox_name, vars_table):
     all_vars = list(filter(lambda x: (x != "pid") and (x != "n") and (x != "ROUND") and (x != "PHASE"), all_vars))
 
     # Eliminate own algo variables
-    all_vars = list(filter(lambda x: (x != config.mailbox[i]) and (x != config.msg_structure_fields[i]["name"]),
+    all_vars = list(filter(lambda x: (x != mailbox[i]) and (x != msg_structure_fields[i]["name"]),
                            all_vars))
 
     # Consider known all phases and rounds
-    for el in config.msg_structure_fields:
+    for el in msg_structure_fields:
         all_vars = list(filter(lambda x: (x != el["phase_field"]) and (x != el["round_field"]), all_vars))
 
     # Eliminate labels of algorithms
-    for j in config.rounds_list:
+    for j in rounds_list:
         all_vars = list(filter(lambda x: (x not in j), all_vars))
 
     final_list = []
@@ -1297,7 +1333,7 @@ def get_param_list(trees_dict, i, global_vars, mbox_name, vars_table):
         if el in vars_table:
             final_list.append(vars_table[el][0] + " " + el)
         elif "old_" in el:
-            for mbox in config.mailbox:
+            for mbox in mailbox:
                 if mbox in el:
                     if mbox in vars_table:
                         final_list.append(vars_table[mbox][0] + " " + el)
