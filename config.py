@@ -112,7 +112,7 @@ rounds_list.append(['StartViewChange_ROUND', 'DoViewChange_ROUND', 'StartView_RO
 
 delete_round_phase = []
 
-delete_round_phase.append(True)
+delete_round_phase.append(False)
 
 # Add as many fields as you need
 

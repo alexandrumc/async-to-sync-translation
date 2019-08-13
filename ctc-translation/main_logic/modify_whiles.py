@@ -214,7 +214,7 @@ def to_modify(while_to_check):
     return recv
 
 
-def whiles_to_if(extern_while_body, recv_loops, conditii=None):
+def whiles_to_if(extern_while_body, recv_loops, recv_loops_out_internal, syntax_dict, conditions=None):
     """
     modifies the main while loop
     all recv loops are translated to ifs
@@ -242,7 +242,12 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
             coord = element.stmt.coord
             aux_element = copy.deepcopy(element)
             new_if = modify_while(aux_element)
-            if isinstance(new_if, If):
+
+            is_upon = False
+            if element in recv_loops:
+                is_upon = syntax_dict[recv_loops[element]]
+
+            if isinstance(new_if, If) and not is_upon:
                 list = aux.block_items[i + 1:]  # next code is part of iftrue
                 extern_while_body.block_items[i + 1:] = []  # don't copy the next code
                 aux.block_items.remove(aux.block_items[i])
@@ -267,19 +272,19 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
                 assign_coord.line = coord_aux
                 assign_coord.column = coord_aux
 
-                if ((element.coord.line, element.coord.column) in recv_loops) and \
-                        (recv_loops[(element.coord.line, element.coord.column)][0]):
-                    round_name = recv_loops[(element.coord.line, element.coord.column)][1]
+                if ((element.coord.line, element.coord.column) in recv_loops_out_internal) and \
+                        (recv_loops_out_internal[(element.coord.line, element.coord.column)][0]):
+                    round_name = recv_loops_out_internal[(element.coord.line, element.coord.column)][1]
                     new_id = ID("return_from_inner", assign_coord)
                     func = FuncCall(new_id, None, assign_coord)
-                    new_if.iffalse = Compound([recv_loops[(element.coord.line, element.coord.column)][0], func], new_coord)
+                    new_if.iffalse = Compound([recv_loops_out_internal[(element.coord.line, element.coord.column)][0], func], new_coord)
                     aux_assig = Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)
                     new_if.iffalse.block_items.append(aux_assig)
                 else:
                     # TODO: recv_loops does not return all loops
                     # Only a quick fix
-                    if (element.coord.line, element.coord.column) in recv_loops:
-                        round_name = recv_loops[(element.coord.line, element.coord.column)][1]
+                    if (element.coord.line, element.coord.column) in recv_loops_out_internal:
+                        round_name = recv_loops_out_internal[(element.coord.line, element.coord.column)][1]
                     else:
                         round_name = "round"
                     new_if.iffalse = Compound([Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)], new_coord)
@@ -288,16 +293,18 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
 
                 aux.block_items.insert(i, new_if)
                 if new_if.iftrue:
-                    whiles_to_if(new_if.iftrue, recv_loops, conditii)
+                    whiles_to_if(new_if.iftrue, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
 
                 # TODO: Get marker_stop() out of a newly created if
 
                 break
             else:
                 delete.append(aux.block_items[i])  # daca are timeout, sterg bucla cu totull
-                conditii.append((new_if, coord))
+
+                if not is_upon:
+                    conditions.append((new_if, coord))
         elif isinstance(element, While) and (not WhileAlgoVisitor.check_if_recv_loop(element.stmt)):
-            whiles_to_if(element.stmt, recv_loops, conditii)
+            whiles_to_if(element.stmt, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
                 # aux.block_items[i] = None
         # elif isinstance(element, While) and (not to_modify(element)):
         #         whiles_to_if(element.stmt, conditii)
@@ -314,15 +321,19 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
                         list.append(item)
                         if isinstance(item, If):
                             if item.iftrue:
-                                whiles_to_if(item.iftrue, recv_loops, conditii)  # nu stiu inca de ce trb sa pun asta aici
+                                whiles_to_if(item.iftrue, recv_loops, recv_loops_out_internal, syntax_dict, conditions)  # nu stiu inca de ce trb sa pun asta aici
                             if item.iffalse:
-                                whiles_to_if(item.iffalse, recv_loops, conditii)
+                                whiles_to_if(item.iffalse, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
                     elif WhileAlgoVisitor.check_if_recv_loop(item.stmt):
                         # print item.coord, 'aaaa'
                         coord = item.stmt.coord
                         aux_item = copy.deepcopy(item)
                         new_if = modify_while(aux_item)
-                        if isinstance(new_if, If):  # daca intoarce if,adica daca nu are timeout
+
+                        is_upon = False
+                        if element in recv_loops:
+                            is_upon = syntax_dict[recv_loops[element]]
+                        if isinstance(new_if, If) and not is_upon:  # daca intoarce if,adica daca nu are timeout
                             lista = element.iftrue.block_items[index + 1:]
                             element.iftrue.block_items[index + 1:] = []
                             element.iftrue.block_items.remove(element.iftrue.block_items[index])
@@ -347,33 +358,35 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
                             assign_coord.line = coord_aux
                             assign_coord.column = coord_aux
 
-                            if (item.coord.line, item.coord.column) in recv_loops and \
-                                    recv_loops[(item.coord.line, item.coord.column)][0]:
-                                round_name = recv_loops[(item.coord.line, item.coord.column)][1]
+                            if (item.coord.line, item.coord.column) in recv_loops_out_internal and \
+                                    recv_loops_out_internal[(item.coord.line, item.coord.column)][0]:
+                                round_name = recv_loops_out_internal[(item.coord.line, item.coord.column)][1]
                                 new_id = ID("return_from_inner", None)
                                 func = FuncCall(new_id, None, assign_coord)
-                                new_if.iffalse = Compound([recv_loops[(item.coord.line, item.coord.column)][0], func],
+                                new_if.iffalse = Compound([recv_loops_out_internal[(item.coord.line, item.coord.column)][0], func],
                                                           new_coord)
                                 aux_assig = Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)
                                 new_if.iffalse.block_items.append(aux_assig)
                             else:
-                                round_name = recv_loops[(item.coord.line, item.coord.column)][1]
+                                round_name = recv_loops_out_internal[(item.coord.line, item.coord.column)][1]
                                 new_if.iffalse = Compound([Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)],
                                                           new_coord)
 
                             element.iftrue.block_items.insert(index, new_if)
                             if new_if.iftrue:
-                                whiles_to_if(new_if.iftrue, recv_loops, conditii)
+                                whiles_to_if(new_if.iftrue, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
 
                             # TODO: Get marker_stop out of the newly created if
 
                             break
                         else:
                             to_delete.append(element.iftrue.block_items[index])
-                            conditii.append((new_if, coord))
+
+                            if not is_upon:
+                                conditions.append((new_if, coord))
                             # element.iftrue.block_items[index] = None
                     elif not WhileAlgoVisitor.check_if_recv_loop(item.stmt):
-                        whiles_to_if(item.stmt, recv_loops, conditii)
+                        whiles_to_if(item.stmt, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
                 for x in to_delete:
                     element.iftrue.block_items.remove(x)
             if element.iffalse is not None:
@@ -386,14 +399,17 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
                             list.append(item)
                             # print item
                             if isinstance(item, If):
-                                whiles_to_if(item.iftrue, recv_loops, conditii)
+                                whiles_to_if(item.iftrue, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
                                 if item.iffalse:
-                                    whiles_to_if(item.iffalse, recv_loops, conditii)
+                                    whiles_to_if(item.iffalse, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
                         elif WhileAlgoVisitor.check_if_recv_loop(item.stmt):
                             # print item.coord,"bbb"
                             coord = item.stmt.coord
                             new_if = modify_while(item)
-                            if isinstance(new_if, If):
+                            is_upon = False
+                            if element in recv_loops:
+                                is_upon = syntax_dict[recv_loops[element]]
+                            if isinstance(new_if, If) and not is_upon:
                                 lista = element.iffalse.block_items[index + 1:]
                                 element.iffalse.block_items[index + 1:] = []
                                 element.iffalse.block_items.remove(element.iffalse.block_items[index])
@@ -401,7 +417,7 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
                                 # new_if.iffalse = Compound([Break()], coord_aux)
                                 element.iffalse.block_items.insert(index, new_if)
                                 if new_if.iffalse:
-                                    whiles_to_if(new_if.iffalse, recv_loops, conditii)
+                                    whiles_to_if(new_if.iffalse, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
 
                                 # TODO: Get marker_stop out of the newly created if
 
@@ -410,7 +426,7 @@ def whiles_to_if(extern_while_body, recv_loops, conditii=None):
                                 to_delete.append(element.iffalse.block_items[index])
                                 # element.iffalse.block_items[index] = None
                         elif not WhileAlgoVisitor.check_if_recv_loop(item.stmt):
-                            whiles_to_if(item.stmt, recv_loops, conditii)
+                            whiles_to_if(item.stmt, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
                     for x in to_delete:
                         element.iffalse.block_items.remove(x)
 

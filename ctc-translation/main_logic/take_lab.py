@@ -19,7 +19,7 @@ from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp
 
 from utils.utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
     find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles, \
-    get_extern_while_body, is_upon_syntax
+    get_extern_while_body, is_upon_syntax, get_init_section
 from utils.generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor, DeclAlgoVisitor, \
     AllVarsAlgoVisitor, AssigDummyVisitor, SendLoopsVisitor
 
@@ -1226,7 +1226,8 @@ def syntax_each_algo(ast_tree, rounds_list, msg_structure_fields):
     return syntax_dict
 
 
-def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, rounds_list, msg_structure_fields):
+def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_details, rounds_list,
+                                     msg_structure_fields):
     """
     Found that we have nested algorithms from the config file
     Iterate through every statement and check for non recv while loops
@@ -1236,10 +1237,10 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
     :return:
     """
     v = WhileAlgoVisitor(rounds_list, msg_structure_fields)
-    v.visit(extern_while_body)
+    v.visit(main_func_node)
 
     for el in v.result_list:
-        parent = find_parent(extern_while_body, el)
+        parent = find_parent(main_func_node, el)
 
         elem = el
 
@@ -1251,6 +1252,16 @@ def turn_nested_algo_marked_compound(extern_while_body, nested_algos_details, ro
 
         if rank == -1:
             continue
+
+        # If the algorithm has UPON syntax, then extract the possible init section
+        if syntax_dict[rank]:
+            to_add = get_init_section(main_func_node, elem, msg_structure_fields[rank]["round_field"],
+                                      rounds_list[rank][0])
+
+            if len(to_add) > 0:
+                for init_stm in to_add:
+                    elem.stmt.block_items.insert(0, init_stm)
+
         # Add start/stop markers
         new_id = ID("marker_start", elem.coord)
         func = FuncCall(new_id, None, elem.coord)

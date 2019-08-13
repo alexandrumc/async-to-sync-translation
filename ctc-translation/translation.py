@@ -1,6 +1,7 @@
 from pycparser import parse_file
 
-from utils.utils import duplicate_element, find_parent, get_global_vars, get_vars_table, get_recv_whiles
+from utils.utils import duplicate_element, find_parent, get_global_vars, get_vars_table, get_recv_whiles, \
+                        get_main_function
 
 from main_logic.modify_whiles import *
 from main_logic.mbox_removal import remove_mbox
@@ -28,16 +29,14 @@ get_vars_table(ast, vars_table)
 
 # Identify recv loops
 # Get main function from ast
-l = ast.children()
-i = 0
-while i < len(l):
-    if isinstance(l[i][1], FuncDef) and l[i][1].decl.name == "main":
-        break
-    i += 1
+main_func_node = None
+try:
+    main_func_node = get_main_function(ast)
+except ValueError:
+    print "Incorrect AST argument"
 
-main_func_node = l[i][1]
-
-recv_loops = get_recv_whiles(main_func_node, config.rounds_list, config.msg_structure_fields)
+recv_loops = {}
+recv_loops_out_internal = get_recv_whiles(main_func_node, config.rounds_list, config.msg_structure_fields, recv_loops)
 
 # Get syntax for every algo
 syntax_dict = {}
@@ -48,7 +47,7 @@ syntax_dict = syntax_each_algo(main_func_node, config.rounds_list, config.msg_st
 turn_send_loops_funcs(x, config.rounds_list, config.msg_structure_fields)
 
 conditions = []
-whiles_to_if(x, recv_loops, conditions)
+whiles_to_if(x, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
 
 identify_recv_exits(x, conditions)
 
@@ -62,7 +61,8 @@ raise AttributeError
 # Turn all while algos into marked compounds
 nested_algos_details = []
 
-turn_nested_algo_marked_compound(main_func_node, nested_algos_details, config.rounds_list, config.msg_structure_fields)
+turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_details, config.rounds_list,
+                                 config.msg_structure_fields)
 
 # Delete unnecessary operations, like disposes and timeouts from code
 # First, get a list of all messages names

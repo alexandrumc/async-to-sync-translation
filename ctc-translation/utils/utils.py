@@ -69,11 +69,60 @@ def get_extern_while(ast):
 
 
 def get_main_function(ast):
-    if isinstance(ast, FileAST):
-        for ext in ast.ext:
-            if isinstance(ext, FuncDef) and ext.decl.name == main_function_name:
-                return ext
-    return ast
+    if not isinstance(ast, FileAST):
+        raise ValueError('Incorrect argument')
+
+    l = ast.children()
+    i = 0
+    while i < len(l):
+        if isinstance(l[i][1], FuncDef) and l[i][1].decl.name == main_function_name:
+            break
+        i += 1
+    return l[i][1]
+
+
+def get_init_section(ast, node, round_label, round_name):
+    """
+    Searches for a round assignment above the while algorithm, but in the
+    same compound as the while. Useful for UPON syntax, as this one usually
+    has a few init statements
+    :param ast:
+    :param node:
+    :param round_label:
+    :param round_name:
+    :return: A list of nodes
+    """
+
+    p = find_parent(ast, node)
+
+    if not isinstance(p, Compound):
+        return []
+
+    result = []
+
+    ind_while = p.block_items.index(node)
+    i = ind_while - 1
+
+    while i >= 0:
+        if isinstance(p.block_items[i], Assignment):
+            if isinstance(p.block_items[i].lvalue, ID) and p.block_items[i].lvalue.name == round_label:
+                if isinstance(p.block_items[i].rvalue, ID) and p.block_items[i].rvalue.name == round_name:
+                    result.append(p.block_items[i])
+                    break
+        result.append(p.block_items[i])
+        i -= 1
+
+    if i < 0:
+        return []
+    result.reverse()
+
+    ind_assig = p.block_items.index(result[0])
+    i = ind_assig
+    while i < ind_while:
+        del p.block_items[ind_assig]
+        i += 1
+    result.reverse()
+    return result
 
 
 def find_node(ast_tree, node):
@@ -151,7 +200,7 @@ def get_syntax_of_algo(node, msg_fields, rounds_list):
 
     v = RecvWhileVisitor(msg_fields, rounds_list)
     v.visit(node)
-    count = len(v.list)
+    count = len(v.recv_loops)
 
     if count != 1:
         return 0
@@ -172,9 +221,10 @@ def get_syntax_of_algo(node, msg_fields, rounds_list):
     return 0
 
 
-def get_recv_whiles(ast_tree, rounds_list, msg_fields):
+def get_recv_whiles(ast_tree, rounds_list, msg_fields, recv_loops):
     v = RecvWhileVisitor(msg_fields, rounds_list)
     v.visit(ast_tree)
+    recv_loops.update(v.recv_loops)
     return v.result
 
 

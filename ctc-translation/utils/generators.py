@@ -641,16 +641,21 @@ class RecvWhileVisitor(c_ast.NodeVisitor):
 
     Returns a dictionary, result, with data regarding
     the return from the algorithm which contains this
-    loop
+    loop. Also contains the rank of the algorithm which
+    contains this loop.
 
-    Also returns a list with deep copy for each recv loop,
-    for further analysis
+    Also returns a dictionary with each recv loop,
+    for further analysis, including the index of the
+    algorithm which contains it
+
+    Separation for those which contain an out_internal, as they need to call
+    return_from_inner at some point
     """
 
     def __init__(self, msg_fields, rounds_list):
         super(RecvWhileVisitor, self).__init__()
         self.result = {}
-        self.list = []
+        self.recv_loops = {}
         self.algo_list = []
         self.msg_fields = msg_fields
         self.rounds_list = rounds_list
@@ -665,16 +670,10 @@ class RecvWhileVisitor(c_ast.NodeVisitor):
 
         prev = len(self.algo_list)
         if algo_check:
-            # Check for top level round assignment, algo specific
-            for el in n.stmt.children():
-                if prev == len(self.algo_list) - 1:
-                    break
-                if isinstance(el[1], Assignment):
-                    if isinstance(el[1].lvalue, ID):
-                        for msg in self.msg_fields:
-                            if msg["round_field"] == el[1].lvalue.name:
-                                self.algo_list.append(self.msg_fields.index(msg))
-                                break
+            rank = WhileAlgoVisitor.get_rank_of_algo(n.stmt, self.rounds_list, self.msg_fields)
+
+            if rank != -1:
+                self.algo_list.append(rank)
 
         if not prev == len(self.algo_list) - 1:
             algo_check = False
@@ -692,9 +691,10 @@ class RecvWhileVisitor(c_ast.NodeVisitor):
             return
 
         if WhileAlgoVisitor.check_if_recv_loop(n.stmt):
-            self.list.append(n)
+            self.recv_loops[n] = self.algo_list[-1]
             if len(self.algo_list) == 1:
-                self.result[(n.coord.line, n.coord.column)] = (None, self.msg_fields[self.algo_list[0]]["round_field"])
+                self.result[(n.coord.line, n.coord.column)] = (None, self.msg_fields[self.algo_list[0]]["round_field"],
+                                                               self.algo_list[0])
                 return
 
             # Check if it contains if (timeout()) {out_internal()}
@@ -702,10 +702,11 @@ class RecvWhileVisitor(c_ast.NodeVisitor):
             v.visit(n)
 
             if v.status:
-                assig_node = Assignment('=', ID(self.msg_fields[self.algo_list[len(self.algo_list) - 2]]["round_field"]),
-                                        ID(self.rounds_list[self.algo_list[len(self.algo_list) - 2]][0]), n.coord)
+                assig_node = Assignment('=', ID(self.msg_fields[self.algo_list[-2]]["round_field"]),
+                                        ID(self.rounds_list[self.algo_list[-2]][0]), n.coord)
                 self.result[(n.coord.line, n.coord.column)] = (assig_node,
-                                                               self.msg_fields[self.algo_list[len(self.algo_list) - 1]]["round_field"])
+                                                               self.msg_fields[self.algo_list[-1]]["round_field"],
+                                                               self.algo_list[-2])
 
 
 class CheckLabelNumber(c_ast.NodeVisitor):
