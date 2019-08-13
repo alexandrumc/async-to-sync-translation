@@ -83,23 +83,66 @@ int main(int argc, char **argv)//@ : main
 
             if (timeout()){ break; }
 
-            if(m->round == StartViewChange_ROUND && round == StartViewChange_ROUND && follower(n, view) == pid && collected_all_start_view_change(mbox,view) ) {
+            // Jumps
+            if(m->view > view) {
                 break;
             }
 
-            if(m->round == StartView_ROUND && round == StartView_ROUND && follower(n, view) == pid) {
+            if(m->view == view && m->round == StartViewChange_ROUND && round == StartViewChange_ROUND && follower(n, view) == pid && collected_all_start_view_change(mbox,view) ) {
                 break;
             }
 
-            if(m->round == DoViewChange_ROUND && round == StartViewChange_ROUND && primary(n, view) == pid) {
+            if(m->view == view && m->round == StartView_ROUND && round == StartView_ROUND && follower(n, view) == pid) {
                 break;
             }
 
-            if(m->round == DoViewChange_ROUND && round == DoViewChange_ROUND && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
+            if(m->view == view && m->round == DoViewChange_ROUND && round == StartViewChange_ROUND && primary(n, view) == pid) {
+                break;
+            }
+
+            if(m->view == view && m->round == DoViewChange_ROUND && round == DoViewChange_ROUND && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
                 break;
             }
 
 
+        }
+
+        /* I've been slow but I started from the first round, hope no one will notice */
+        if(m->view > view && m->round == StartViewChange_ROUND) {
+            view = m->view;
+
+            round = StartViewChange_ROUND;
+            m = (msg *) malloc(sizeof(msg));
+            m->view = view;
+            m->round = StartViewChange_ROUND;
+            send((void*)m, to_all); 
+
+            continue;
+        }
+
+        /* I've been slow and now I am the leader, best to stand up straight */
+        if(m->view > view && m->round == DoViewChange_ROUND) {
+            view = m->view;
+
+            round = DoViewChange_ROUND;
+
+	        continue;
+        }
+
+        /* I've been slow and the jumped view is confirmed */
+        if(m->view > view && m->round == StartView_ROUND) {
+            view = m->view;
+            out(view);
+
+            // I prepare for the next view change 
+            round = StartViewChange_ROUND;
+            view++;
+            m = (msg *) malloc(sizeof(msg));
+            m->view = view;
+            m->round = StartViewChange_ROUND;
+            send((void*)m, to_all); 
+
+	        continue;
         }
         
         /* 
@@ -172,7 +215,6 @@ int main(int argc, char **argv)//@ : main
 
             continue;
         }
-
 
         
     }
