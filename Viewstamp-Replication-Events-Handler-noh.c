@@ -48,20 +48,20 @@ int main(int argc, char **argv)
                 mbox = mbox_new;
             }else{ dispose(m); }
             if (timeout()){ break; }
-            if(round == StartViewChange_ROUND && follower(n, view) == pid && collected_all_start_view_change(mbox,view) ) {
+            if(m->round == StartViewChange_ROUND && round == StartViewChange_ROUND && follower(n, view) == pid && collected_all_start_view_change(mbox,view) ) {
                 break;
             }
-            if(round == StartView_ROUND && follower(n, view) == pid && m->round == StartView_ROUND ) {
+            if(m->round == StartView_ROUND && round == StartView_ROUND && follower(n, view) == pid) {
                 break;
             }
-            if(round == StartViewChange_ROUND && primary(n, view) == pid && m->round == DoViewChange_ROUND) {
+            if(m->round == DoViewChange_ROUND && round == StartViewChange_ROUND && primary(n, view) == pid) {
                 break;
             }
-            if(round == DoViewChange_ROUND && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
+            if(m->round == DoViewChange_ROUND && round == DoViewChange_ROUND && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
                 break;
             }
         }
-        if(round == StartViewChange_ROUND && follower(n, view) == pid && collected_all_start_view_change(mbox,view) ) {
+        if(m->view == view && m->round == StartViewChange_ROUND && round == StartViewChange_ROUND && follower(n, view) == pid && collected_all_start_view_change(mbox,view) ) {
             round = DoViewChange_ROUND;
             m = (msg *) malloc(sizeof(msg));
             m->view = view;
@@ -70,17 +70,21 @@ int main(int argc, char **argv)
             round = StartView_ROUND;
          continue;
         }
-        if(round == StartView_ROUND && follower(n, view) == pid && m->round == StartView_ROUND) {
+        if(m->view == view && m->round == StartView_ROUND && round == StartView_ROUND && follower(n, view) == pid) {
             out(view);
             round = StartViewChange_ROUND;
             view++;
+            m = (msg *) malloc(sizeof(msg));
+            m->view = view;
+            m->round = StartViewChange_ROUND;
+            send((void*)m, to_all);
             continue;
         }
-        if(round == StartViewChange_ROUND && primary(n, view) == pid && m->round == DoViewChange_ROUND) {
+        if(m->view == view && m->round == DoViewChange_ROUND && round == StartViewChange_ROUND && primary(n, view) == pid) {
             round = DoViewChange_ROUND;
          continue;
         }
-        if(round == DoViewChange_ROUND && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
+        if(m->view == view && m->round == DoViewChange_ROUND && round == DoViewChange_ROUND && primary(n, view) == pid && collected_all_do_view_change(mbox,view) ) {
             round = StartView_ROUND;
             m = (msg *) malloc(sizeof(msg));
             m->view = view;
@@ -89,6 +93,10 @@ int main(int argc, char **argv)
             out(view);
             round = StartViewChange_ROUND;
             view++;
+            m = (msg *) malloc(sizeof(msg));
+            m->view = view;
+            m->round = StartViewChange_ROUND;
+            send((void*)m, to_all);
             continue;
         }
     }

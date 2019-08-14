@@ -1,13 +1,14 @@
 from pycparser import parse_file
 
 from utils.utils import duplicate_element, find_parent, get_global_vars, get_vars_table, get_recv_whiles, \
-                        get_main_function
+                        get_main_function, get_extern_while_body
 
 from main_logic.modify_whiles import *
 from main_logic.mbox_removal import remove_mbox
 
 from main_logic.take_lab import get_extern_while_body_from_func, get_paths_trees, \
-    turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs, syntax_each_algo
+    turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs, syntax_each_algo, \
+    add_old_vars_filter
 
 import config
 
@@ -111,9 +112,20 @@ while i >= 0:
     trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, config.variables[i]['round'], is_upon)
 
     if is_upon:
-        is_job = False
+        is_job = True
+
+        vars_list = []
+        vars_list.append("pid")
+        vars_list.append(config.msg_structure_fields[i]["name"])
+        vars_list.append(config.msg_structure_fields[i]["round_field"])
+        vars_list.append(config.mailbox[i])
+
+        add_old_vars_filter(config.msg_structure_fields[i], vars_list, trees_dict, trees_paths_dict)
         for el in trees_paths_dict.keys():
             trees_paths_dict[el] = []
+
+    #cgen = c_generator.CGenerator()
+    #print cgen.visit(get_extern_while_body(trees_dict["StartViewChange_ROUND"][0]))
     print_rounds(labs, trees_dict, trees_paths_dict, config.variables[i]['round'], is_job,
                  config.delete_round_phase[i], config.msg_structure_fields[i], config.variables[i], is_upon)
 

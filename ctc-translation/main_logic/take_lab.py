@@ -21,7 +21,7 @@ from utils.utils import get_label, duplicate_element, get_label_assign_num, gene
     find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles, \
     get_extern_while_body, is_upon_syntax, get_init_section
 from utils.generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor, DeclAlgoVisitor, \
-    AllVarsAlgoVisitor, AssigDummyVisitor, SendLoopsVisitor
+    AllVarsAlgoVisitor, AssigDummyVisitor, SendLoopsVisitor, SwitchToOldVars
 
 from compute_paths import find_all_paths_between_two_nodes, prune_tree
 
@@ -225,6 +225,63 @@ def modify_conds(label1, conds_dict, cop, ast):
             if node_ast:
                 modify_cond(node_ast.cond, new_vals)
 
+
+def add_old_vars_filter(msg_field, vars_list, trees_dict, trees_paths_dict):
+    """
+    This filter will apply a visitor to every raw input extracted, only for the UPON syntax. At the end
+    of this filter, old vars should be applied where they are necessary
+    :param trees_dict:
+    :param trees_paths_dict:
+    :param msg_field:
+    :param vars_list:
+    :return:
+    """
+
+    for key, value in trees_dict.iteritems():
+        round_name = key
+        round_label = msg_field["round_field"]
+
+        for el in value:
+            v = SwitchToOldVars(vars_list, round_label, round_name)
+            v.visit(get_extern_while_body(el))
+
+            for x in v.other_assigs:
+                p = find_parent(get_main_function(el), x)
+
+                if not isinstance(p, Compound):
+                    continue
+
+                ind = p.block_items.index(x)
+                for y in vars_list:
+                    id1 = ID("old_" + y, x.coord)
+                    id2 = ID(y, x.coord)
+
+                    assig = Assignment("=", id1, id2, x.coord)
+                    p.block_items.insert(ind, assig)
+
+    """
+    for key, value in trees_paths_dict.iteritems():
+        round_name = key
+        round_label = msg_field["round_field"]
+
+        for el in value:
+            v = SwitchToOldVars(vars_list, round_label, round_name)
+            v.visit(get_extern_while_body(el))
+
+            for x in v.other_assigs:
+                p = find_parent(el, x)
+
+                if not isinstance(p, Compound):
+                    continue
+
+                ind = p.block_items.index(x)
+                for y in vars_list:
+                    id1 = ID("old_" + y, x.coord)
+                    id2 = ID(y, x.coord)
+
+                    assig = Assignment("=", id1, id2, x.coord)
+                    p.block_items.insert(ind, assig)
+    """
 
 def get_paths_trees(ast, labels, labels_sorted, labelname, is_upon):
     aux_dict = {}

@@ -724,6 +724,76 @@ class CheckLabelNumber(c_ast.NodeVisitor):
             self.count_labels += 1
 
 
+class SwitchToOldVars(c_ast.NodeVisitor):
+    """
+    This visitor will be used in the UPON syntax on every if.cond found. It switches
+    variables to old names. Variables will be given as a list in the constructor
+
+    Also it inserts old variables before the assignment of the next round. IDs from
+    cond will be modified only if they are children of an if statement.
+
+    After the initial assignment, if.cond IDs won't be visited as they need to be the new
+    ones (they will follow after while recv). The ast is given so that we cna insert the old vars
+    assignments in the parent of the assignment
+    """
+
+    def __init__(self, vars_list, round_label, round_name):
+        self.vars_list = vars_list
+        self.round_label = round_label
+        self.round_name = round_name
+        self.in_if = False
+        self.found = False
+        self.other_assigs = []
+
+    def visit_ID(self, node):
+        if not self.in_if:
+            return
+
+        if self.found:
+            return
+
+        if node.name in self.vars_list:
+            node.name = "old_" + node.name
+
+    def visit_If(self, node):
+        self.in_if = True
+
+        self.generic_visit(node.cond)
+
+        if node.iftrue:
+            if isinstance(node.iftrue, If):
+                self.visit_If(node.iftrue)
+                self.in_if = True
+            else:
+                self.generic_visit(node.iftrue)
+
+        if node.iffalse:
+            if isinstance(node.iffalse, If):
+                self.visit_If(node.iffalse)
+                self.in_if = True
+            else:
+                self.generic_visit(node.iffalse)
+
+        self.in_if = False
+
+    def visit_Assignment(self, node):
+        if isinstance(node.lvalue, ID) and node.lvalue.name == self.round_label:
+            if isinstance(node.rvalue, ID) and node.rvalue.name == self.round_name:
+                self.found = True
+                return
+
+        if isinstance(node.lvalue, ID) and node.lvalue.name == self.round_label:
+            self.other_assigs.append(node)
+
+    def visit_StructRef(self, node):
+        if not self.in_if:
+            return
+
+        if self.found:
+            return
+        if isinstance(node.name, ID):
+            node.name.name = "old_" + node.name.name
+
 class LocateParentNode(c_generator.CGenerator):
     """
     Takes a node as argument and find his parent in the AST.
