@@ -276,8 +276,25 @@ class JumpPhaseVisitor(c_ast.NodeVisitor):
     phase + 1
     """
     def __init__(self, phase_var_name):
-        self.result = False
-        self.phase_var_name = phase_var_name
+        self.__result = False
+        self.__assig_list = []
+        self.__phase_var_name = phase_var_name
+
+    @property
+    def assig_list(self):
+        return self.__assig_list
+
+    @property
+    def phase_var_name(self):
+        return self.__phase_var_name
+
+    @property
+    def result(self):
+        return self.__result
+
+    @result.setter
+    def result(self, value):
+        self.__result = value
 
     def visit_Assignment(self, node):
 
@@ -291,6 +308,7 @@ class JumpPhaseVisitor(c_ast.NodeVisitor):
                         return
 
         self.result = True
+        self.assig_list.append(node)
 
 
 class WhileAlgoVisitor(c_ast.NodeVisitor):
@@ -372,12 +390,6 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
 
         return -1
 
-    def __create_jump_if(self, node):
-        if_cond = BinaryOp("==", ID("iter"), ID("PHASE"), node.coord)
-
-        if_iftrue = Compound([], node.coord)
-        
-
     def visit_While(self, node):
         if node.stmt:
             if isinstance(node.stmt, While):
@@ -399,19 +411,6 @@ class WhileAlgoVisitor(c_ast.NodeVisitor):
         first_assig = v.assig
 
         self.result_list.append(node)
-
-        # Now that is a while algo, check if it contains an
-        # assignment which can determine a phase jump
-        phase_jmp_stat = False
-        index = WhileAlgoVisitor.get_rank_of_algo(node.stmt, self.rounds_list, self.msg_fields)
-        phase_var_name = self.msg_fields[index]["phase_field"]
-
-        v_phase = JumpPhaseVisitor(phase_var_name)
-        v_phase.visit(node)
-
-        if v_phase.result:
-            phase_jmp_stat = True
-            #phase_if =
 
 
 class DeclAlgoVisitor(c_ast.NodeVisitor):
@@ -1451,10 +1450,6 @@ class RoundGenerator(c_generator.CGenerator):
                 return s
 
     def visit_Assignment(self, n):
-        """
-        if isinstance(n.lvalue, ID) and n.lvalue.name == "view_nr":
-            print "Da"
-        """
         if self.path is not None:
             if n in self.path or self.extend_visit or self.visit_cond:
                 if self.mode == "send" and not self.send_reached \
@@ -1494,7 +1489,8 @@ class RoundGenerator(c_generator.CGenerator):
                 if self.mode == "update" and self.send_reached:
                     if n.lvalue.name == self.labelname and isinstance(n.rvalue, ID) \
                             and n.rvalue.name == "AUX_ROUND":
-                        n.rvalue.name = self.first_round
+                        # n.rvalue.name = self.first_round
+                        return ""
 
                 if self.delete:
                     if isinstance(n.rvalue, ID):

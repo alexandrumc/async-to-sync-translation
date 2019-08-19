@@ -8,7 +8,7 @@ from main_logic.mbox_removal import remove_mbox
 
 from main_logic.take_lab import get_extern_while_body_from_func, get_paths_trees, \
     turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs, syntax_each_algo, \
-    add_old_vars_filter
+    add_old_vars_filter, apply_ifs_for_phasejumps
 
 import config
 
@@ -124,8 +124,17 @@ while i >= 0:
         for el in trees_paths_dict.keys():
             trees_paths_dict[el] = []
 
-    #cgen = c_generator.CGenerator()
-    #print cgen.visit(get_extern_while_body(trees_dict["StartViewChange_ROUND"][0]))
+    # Check if this algo has phase jumps
+    check_jumps = False
+    for el in nested_algos_details:
+        if el[0] == i and el[3]:
+            check_jumps = True
+            break
+
+    if check_jumps:
+        apply_ifs_for_phasejumps(trees_dict, trees_paths_dict)
+        is_job = True
+
     print_rounds(labs, trees_dict, trees_paths_dict, config.variables[i]['round'], is_job,
                  config.delete_round_phase[i], config.msg_structure_fields[i], config.variables[i], is_upon)
 

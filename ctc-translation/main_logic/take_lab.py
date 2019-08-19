@@ -19,9 +19,9 @@ from pycparser.c_ast import While, Assignment, ID, If, FuncDef, FileAST, UnaryOp
 
 from utils.utils import get_label, duplicate_element, get_label_assign_num, generate_c_code_from_paths_and_trees, \
     find_parent, find_node, get_epochs_assigns, find_parentUpdated, get_main_function, find_lca, get_recv_whiles, \
-    get_extern_while_body, is_upon_syntax, get_init_section
+    get_extern_while_body, is_upon_syntax, get_init_section, get_extern_while
 from utils.generators import TreeGenerator, RoundGenerator, CheckIfGenerator, WhileAlgoVisitor, DeclAlgoVisitor, \
-    AllVarsAlgoVisitor, AssigDummyVisitor, SendLoopsVisitor, SwitchToOldVars
+    AllVarsAlgoVisitor, AssigDummyVisitor, SendLoopsVisitor, SwitchToOldVars, JumpPhaseVisitor
 
 from compute_paths import find_all_paths_between_two_nodes, prune_tree
 
@@ -107,17 +107,6 @@ def get_extern_while_body_from_func(ast, func_name):
                 for operation in amain_body.body:
                     if isinstance(operation, While):
                         return operation.stmt
-
-
-def get_extern_while_body(ast):
-    if isinstance(ast, FileAST):
-        for ext in ast.ext:
-            if isinstance(ext, FuncDef) and ext.decl.name == "main":
-                main_body = ext.body
-                for operation in main_body:
-                    if isinstance(operation, While):
-                        return operation.stmt
-    return ast
 
 
 def get_labels(filename, labelname):
@@ -282,6 +271,7 @@ def add_old_vars_filter(msg_field, vars_list, trees_dict, trees_paths_dict):
                     assig = Assignment("=", id1, id2, x.coord)
                     p.block_items.insert(ind, assig)
     """
+
 
 def get_paths_trees(ast, labels, labels_sorted, labelname, is_upon):
     aux_dict = {}
@@ -1081,6 +1071,41 @@ def syntax_each_algo(ast_tree, rounds_list, msg_structure_fields):
     return syntax_dict
 
 
+def check_phase_jump(node, rank, msg_structure_field):
+    """
+    Given a while algo node, check if there is any kind of phase jump in it
+    :param node:
+    :param rank:
+    :param msg_structure_field:
+    :return:
+    """
+    v = JumpPhaseVisitor(msg_structure_field[rank]["phase_field"])
+    v.visit(node)
+
+    return v.result, v.assig_list
+
+
+def apply_ifs_for_phasejumps(trees_dict, trees_paths_dict):
+    """
+    If I detect phase jumps, then every round has to execute only
+    if iter variable is equal to PHASE variable
+    :param trees_dict:
+    :param trees_paths_dict:
+    :return:
+    """
+    # Insert phase jump ifs extracting from FileAST
+    for list_asts in trees_dict.values():
+        for _ast_ in list_asts:
+            while_node = get_extern_while(_ast_)
+
+            # Create the if node
+            id_iter = ID("iter", while_node.coord)
+            id_phase = ID("PHASE", while_node.coord)
+            cond_node = BinaryOp("==", id_iter, id_phase, while_node.coord)
+            if_node = If(cond_node, while_node.stmt, None, while_node.coord)
+            while_node.stmt = Compound([if_node], while_node.coord)
+
+
 def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_details, rounds_list,
                                      msg_structure_fields):
     """
@@ -1117,6 +1142,9 @@ def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_d
                 for init_stm in to_add:
                     elem.stmt.block_items.insert(0, init_stm)
 
+        # Check if this algo has phase jumps
+        (result, assig_list) = check_phase_jump(elem, rank, msg_structure_fields)
+
         # Add start/stop markers
         new_id = ID("marker_start", elem.coord)
         func = FuncCall(new_id, None, elem.coord)
@@ -1139,7 +1167,7 @@ def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_d
             parent.block_items.insert(ind, elem.stmt.block_items[j])
             ind += 1
             j += 1
-        nested_algos_details.append((rank, elem.stmt, parent))
+        nested_algos_details.append((rank, elem.stmt, parent, result))
 
 
 def add_to_param_list(ast, decl_vars, all_vars, mbox_name):
