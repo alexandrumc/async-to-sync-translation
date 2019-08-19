@@ -475,7 +475,7 @@ def modify_cond(cond, new_vals):
                     if cond.name.name in val:
                         cond.name.name = val
 
-    elif isinstance(cond.left, StructRef):
+    elif isinstance(cond, BinaryOp) and isinstance(cond.left, StructRef):
         modify_cond(cond.left, new_vals)
         if isinstance(cond.left.name, ID):
             if not any(x in cond.left.name.name for x in strings):
@@ -504,7 +504,7 @@ def modify_cond(cond, new_vals):
                         if aux in val:
                             cond.left.name.name.name.name = val
 
-    elif isinstance(cond.left, ID):
+    elif isinstance(cond, BinaryOp) and isinstance(cond.left, ID):
         if not any(x in cond.left.name for x in strings):
             for val in new_vals:
                 if cond.left.name in val:
@@ -1059,208 +1059,6 @@ def async_to_async(ast, epoch_name):
         return aux
     else:
         return ast
-
-
-def identify_nested_algorithms_bodies(extern_body, list):
-    if extern_body.block_items:
-        for elem in extern_body.block_items:
-            if isinstance(elem, While) and (not WhileAlgoVisitor.check_if_recv_loop(elem)):
-                list.append(elem)
-                identify_nested_algorithms_bodies(elem.stmt, list)
-            if isinstance(elem, If):
-                if elem.iftrue:
-                    identify_nested_algorithms_bodies(elem.iftrue, list)
-                if elem.iffalse:
-                    identify_nested_algorithms_bodies(elem.iffalse, list)
-
-
-def identify_nested(ast_tree):
-    ast = ast_tree
-    old_stdout = sys.stdout
-    sys.stdout = mystdout = StringIO()
-    aux_ast = duplicate_element(ast)
-    list = []
-    extern_while = get_extern_while_body(aux_ast)
-    identify_nested_algorithms_bodies(extern_while, list)
-
-    labelname_inner = config.variables_2['round']
-    rounds_list_inner = config.rounds_list_2
-    delete_round_phase_inner = config.delete_round_phase
-    message_inner = config.msg_structure_fields_2
-    variables_inner = config.variables_2
-
-    if list:
-        list.reverse()
-        labels = config.rounds_list_2
-        labels.append('ERR_ROUND')
-        code = None
-        cop = duplicate_element(ast)
-        if len(list) >= config.number_of_nested_algorithms:
-            extern = get_extern_while_body(cop)
-            if isinstance(extern.block_items[0], If):
-                myif = extern.block_items[0]
-                list1 = []
-                list2 = []
-                aux1 = []
-                aux2 = []
-                identify_nested_algorithms_bodies(extern.block_items[0].iftrue, list1)
-                if list1:
-                    sys.stdout = old_stdout
-
-                    for elem in list1:
-                        conditii = []
-                        whiles_to_if(elem.stmt, conditii, None)
-                        identify_recv_exits(elem.stmt, conditii)
-                        remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
-                        aux1 = elem.stmt
-
-                        parent = find_parent(ast, elem)
-                        index = parent.block_items.index(elem)
-                        parent.block_items.remove(elem)
-                        coord = elem.coord
-                        new_id = ID("inner_algorithm", coord)
-                        func = FuncCall(new_id, None, coord)
-                        assign_unique_coord(func, coord)
-                        parent.block_items.insert(index, func)
-
-                identify_nested_algorithms_bodies(extern.block_items[0].iffalse, list2)
-                if list2:
-                    for elem in list2:
-                        conditii = []
-                        whiles_to_if(elem.stmt, conditii, None)
-                        identify_recv_exits(elem.stmt, conditii)
-                        remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
-                        aux2 = elem.stmt
-
-                        parent = find_parent(ast, elem)
-                        index = parent.block_items.index(elem)
-                        parent.block_items.remove(elem)
-                        coord = elem.coord
-                        new_id = ID("inner_algorithm", coord)
-                        func = FuncCall(new_id, None, coord)
-                        assign_unique_coord(func, coord)
-                        parent.block_items.insert(index, func)
-                if aux1 and aux2:
-                    myif.iftrue = None
-                    myif.iffalse = None
-                    myif.iftrue = aux1
-                    myif.iffalse = aux2
-
-                    trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels,
-                                                                           config.variables_2['round'])
-
-                    print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job,
-                                 delete_round_phase_inner,
-                                 message_inner, variables_inner, rounds_list_inner[0])
-
-                    code = mystdout.getvalue()
-                    sys.stdout = old_stdout
-
-                    return ast, code
-
-        else:
-            for elem in list:
-                # print generator.visit(elem), "AAAAAAAAAAA"
-                conditii = []
-                whiles_to_if(elem.stmt, conditii, None)
-
-                identify_recv_exits(elem.stmt, conditii)
-                remove_mbox(elem.stmt, config.mailbox_2, config.clean_mailbox_2)
-                # print generator.visit(elem)
-                trees_dict, trees_paths_dict, is_job = get_paths_trees(elem.stmt, labels, labels,
-                                                                       config.variables_2['round'])
-                # print_code(trees_dict, trees_paths_dict, labels)
-
-                print_rounds(labels, trees_dict, trees_paths_dict, config.variables_2['round'], is_job,
-                             delete_round_phase_inner,
-                             message_inner, variables_inner, rounds_list_inner[0])
-                parent = find_parent(ast, elem)
-                index = parent.block_items.index(elem)
-                parent.block_items.remove(elem)
-
-                coord = elem.coord
-
-                new_id = ID("inner_algorithm", coord)
-                func = FuncCall(new_id, None, coord)
-                assign_unique_coord(func, coord)
-                parent.block_items.insert(index, func)
-                # print generator.visit(parent.block_items[index])
-                # print generator.visit(ast)
-                # print generator.visit(func)
-
-                funcdecl = FuncDecl(None, TypeDecl('inner_algorithm', None, IdentifierType(['int'])))
-                decl = Decl('inner_algorithm', None, None, None, funcdecl, None, None)
-                funcdef = FuncDef(decl, None, None)
-                code = mystdout.getvalue()
-                funcdef.body = Compound([code])
-
-                # print generator.visit(ast)
-
-            sys.stdout = old_stdout
-            return ast, code
-    else:
-        sys.stdout = old_stdout
-        print "pe else"
-        return ast_tree
-
-
-def check_inner_algo(ast_tree):
-    list = []
-    extern_while = get_extern_while_body(ast_tree)
-    identify_nested_algorithms_bodies(extern_while, list)
-    if list:
-        return True
-    else:
-        return False
-
-
-def take_code_from_file(ast, filename, labelname, round_list, delete_round_phase, message, variables):
-    cop = copy.deepcopy(ast)
-    # labels_sorted = get_labels_order(filename, labelname)
-    # labels = get_labels(filename, labelname)
-    # labels.append('ERR_ROUND')
-    labels_sorted = round_list
-
-    test = get_recv_whiles(cop)
-    # print len(test)
-    # for elem in test:
-    # print elem.coord
-
-    # print labels
-    # labels= ['CEpoch_ROUND', 'NewEpoch_ROUND', 'Ack_E_ROUND', 'AUX_ROUND', 'ERR_ROUND']
-    # more_epoch_jumps(cop, 'view')
-    # print identify_epoch_jumps(ast, 'epoch')
-    # print labels, labels_sorted
-    # print generator.visit(ast)
-
-    if config.number_of_nested_algorithms > 1:
-
-        print "\n\nLaunched procedure for nested algorithms\n\n"
-        # outer algo rounds
-        labs = round_list
-        labs.append('ERR_ROUND')
-        cop, code = identify_nested(cop)
-        if code:
-            print "Inner algo code:\n"
-            print code
-            print "End of inner algo code\n\n"
-
-        # labs = ['FIRST_ROUND', 'SECOND_ROUND', 'AUX_ROUND']
-        # print generator.visit(cop)
-        print "Outer Algo code \n"
-        trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labs, labs, labelname)
-        print_rounds(labs, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, round_list)
-        # print generator.visit(ast)
-    else:
-        print "No inner algorithm detected\n"
-
-        labels = round_list
-        labels.append('ERR_ROUND')
-
-        trees_dict, trees_paths_dict, is_job = get_paths_trees(cop, labels, labels, labelname)
-
-        # print generator.visit(cop)
-        print_rounds(labels, trees_dict, trees_paths_dict, labelname, is_job, delete_round_phase, message, variables, round_list)
 
 
 def syntax_each_algo(ast_tree, rounds_list, msg_structure_fields):
