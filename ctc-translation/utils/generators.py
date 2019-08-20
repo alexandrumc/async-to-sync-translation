@@ -1224,7 +1224,6 @@ class RoundGenerator(c_generator.CGenerator):
         return ''
 
     def visit_FuncCall(self, n):
-        #print "Functia:   " + n.name.name
         if self.path is not None:
             if n in self.path or self.extend_visit or self.visit_cond:
                 if self.mode == "send" and not self.send_reached \

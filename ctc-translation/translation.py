@@ -8,7 +8,7 @@ from main_logic.mbox_removal import remove_mbox
 
 from main_logic.take_lab import get_extern_while_body_from_func, get_paths_trees, \
     turn_nested_algo_marked_compound, print_rounds, get_param_list, turn_send_loops_funcs, syntax_each_algo, \
-    add_old_vars_filter, apply_ifs_for_phasejumps
+    add_old_vars_filter, apply_ifs_for_phasejumps, isolate_jump_phase
 
 import config
 
@@ -132,6 +132,7 @@ while i >= 0:
             break
 
     if check_jumps:
+        isolate_jump_phase(trees_dict, trees_paths_dict, i, config.msg_structure_fields)
         apply_ifs_for_phasejumps(trees_dict, trees_paths_dict)
         is_job = True
 

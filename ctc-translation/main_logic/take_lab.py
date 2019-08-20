@@ -1106,6 +1106,66 @@ def apply_ifs_for_phasejumps(trees_dict, trees_paths_dict):
             while_node.stmt = Compound([if_node], while_node.coord)
 
 
+def isolate_jump_phase(trees_dict, trees_paths_dict, rank, msg_structure_fields):
+
+    offset = 0
+    initial_checks = []
+    for tree_list in trees_dict.values():
+        for tree in tree_list:
+            v = JumpPhaseVisitor(msg_structure_fields[rank]["phase_field"])
+            v.visit(get_extern_while(tree))
+
+            isolate_jump_phase_tree(v.assig_list, get_main_function(tree), offset, initial_checks)
+            offset += len(v.assig_list)
+
+        if len(tree_list) > 0:
+            while_node = get_extern_while(tree_list[0])
+
+            for el in initial_checks:
+                el.iftrue.block_items[len(el.iftrue.block_items) - 1].rvalue.name = "True"
+
+                while_node.stmt.block_items.insert(0, el)
+
+
+def isolate_jump_phase_tree(assig_list, start_node, offset, initial_checks):
+
+    for assig in assig_list:
+        if isinstance(assig.lvalue, ID):
+            assig.lvalue.name = "PHASE"
+        p = find_parent(start_node, assig)
+
+        if not isinstance(p, Compound):
+            continue
+
+        ind = p.block_items.index(assig)
+
+        nodes_list = []
+        aux_ind = ind + 1
+        while aux_ind < len(p.block_items):
+            nodes_list.append(p.block_items[aux_ind])
+            aux_ind += 1
+
+        while ind < len(p.block_items) - 1:
+            del p.block_items[ind+1]
+
+        nodes_list.append(Assignment("=", ID("b" + str(offset+assig_list.index(assig)), assig.coord),
+                                     ID("False", assig.coord), assig.coord))
+        # Create the if node
+        id_iter = ID("iter", assig.coord)
+        id_phase = ID("PHASE", assig.coord)
+        cond_node = BinaryOp("==", id_iter, id_phase, assig.coord)
+        comp = Compound(nodes_list, assig.coord)
+        comp_false = Compound([Assignment("=", ID("b" + str(offset+assig_list.index(assig)), assig.coord),
+                                          ID("True", assig.coord), assig.coord)], assig.coord)
+        if_node = If(cond_node, comp, comp_false, assig.coord)
+
+        # Now, for the initial execution
+        cond_node2 = UnaryOp('!', ID("b" + str(offset+assig_list.index(assig)), assig.coord), assig.coord)
+        initial_checks.append(If(cond_node2, copy.deepcopy(comp), None, assig.coord))
+
+        p.block_items.append(if_node)
+
+
 def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_details, rounds_list,
                                      msg_structure_fields):
     """
@@ -1145,6 +1205,8 @@ def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_d
         # Check if this algo has phase jumps
         (result, assig_list) = check_phase_jump(elem, rank, msg_structure_fields)
 
+        #isolate_jump_phase(assig_list, main_func_node)
+
         # Add start/stop markers
         new_id = ID("marker_start", elem.coord)
         func = FuncCall(new_id, None, elem.coord)
@@ -1157,7 +1219,10 @@ def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_d
         elem.stmt.block_items.append(func)
 
         # Consider that 0 is the most outer algorithm
+        # Paths extracting is based on outer while (true)
+        # so that has to stay
         if rank == 0:
+            nested_algos_details.append((rank, elem.stmt, parent, result))
             continue
         del parent.block_items[ind]
 
