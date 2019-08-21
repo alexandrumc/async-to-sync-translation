@@ -1085,6 +1085,27 @@ def check_phase_jump(node, rank, msg_structure_field):
     return v.result, v.assig_list
 
 
+def apply_ifs_for_roundjumps(trees_dict, trees_paths_dict, round_name):
+    """
+    If I detect round jumps, then every round has to execute only
+    if round variable is equal to the current round value
+    :param trees_dict:
+    :param trees_paths_dict:
+    :return:
+    """
+    # Insert round jump ifs extracting from FileAST
+    for keys, list_asts in trees_dict.iteritems():
+        for _ast_ in list_asts:
+            while_node = get_extern_while(_ast_)
+
+            # Create the if node
+            id_iter = ID(round_name, while_node.coord)
+            id_phase = ID(keys, while_node.coord)
+            cond_node = BinaryOp("==", id_iter, id_phase, while_node.coord)
+            if_node = If(cond_node, while_node.stmt, None, while_node.coord)
+            while_node.stmt = Compound([if_node], while_node.coord)
+
+
 def apply_ifs_for_phasejumps(trees_dict, trees_paths_dict):
     """
     If I detect phase jumps, then every round has to execute only
@@ -1106,7 +1127,7 @@ def apply_ifs_for_phasejumps(trees_dict, trees_paths_dict):
             while_node.stmt = Compound([if_node], while_node.coord)
 
 
-def isolate_jump_phase(trees_dict, trees_paths_dict, rank, msg_structure_fields):
+def isolate_jump_phase(trees_dict, trees_paths_dict, rank, msg_structure_fields, first_round_name):
 
     offset = 0
     initial_checks = []
@@ -1115,16 +1136,26 @@ def isolate_jump_phase(trees_dict, trees_paths_dict, rank, msg_structure_fields)
             v = JumpPhaseVisitor(msg_structure_fields[rank]["phase_field"])
             v.visit(get_extern_while(tree))
 
+            # Change to name to PHASE for unary op and incr assig
+            for el in v.incr_unary:
+                el.expr.name = "PHASE"
+
+            for el in v.incr_assig:
+                el.lvalue.name = "PHASE"
+                el.rvalue.left.name = "PHASE"
+
             isolate_jump_phase_tree(v.assig_list, get_main_function(tree), offset, initial_checks)
             offset += len(v.assig_list)
 
-        if len(tree_list) > 0:
-            while_node = get_extern_while(tree_list[0])
+    # Add initial ifs for each jump at the beginning of first round
+    tree_list = trees_dict[first_round_name]
+    if len(tree_list) > 0:
+        while_node = get_extern_while(tree_list[0])
 
-            for el in initial_checks:
-                el.iftrue.block_items[len(el.iftrue.block_items) - 1].rvalue.name = "True"
+        for el in initial_checks:
+            el.iftrue.block_items[len(el.iftrue.block_items) - 1].rvalue.name = "True"
 
-                while_node.stmt.block_items.insert(0, el)
+            while_node.stmt.block_items.insert(0, el)
 
 
 def isolate_jump_phase_tree(assig_list, start_node, offset, initial_checks):

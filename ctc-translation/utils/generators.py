@@ -273,12 +273,24 @@ class JumpPhaseVisitor(c_ast.NodeVisitor):
     """
     Checks on a while loop algo if there is a
     phase jump - an assignment to phase different from
-    phase + 1
+    phase + 1. phase++m phase-- and phase = phase + 1
+    will be stored such that they can be modified and
+    then printed in the synchronous code
     """
     def __init__(self, phase_var_name):
         self.__result = False
         self.__assig_list = []
+        self.__incr_assig = []
+        self.__incr_unary = []
         self.__phase_var_name = phase_var_name
+
+    @property
+    def incr_assig(self):
+        return self.__incr_assig
+
+    @property
+    def incr_unary(self):
+        return self.__incr_unary
 
     @property
     def assig_list(self):
@@ -305,10 +317,18 @@ class JumpPhaseVisitor(c_ast.NodeVisitor):
             if node.rvalue.op == "+":
                 if isinstance(node.rvalue.left, ID) and node.rvalue.left.name == self.phase_var_name:
                     if isinstance(node.rvalue.right, Constant) and node.rvalue.right.value == "1":
+                        self.incr_assig.append(node)
                         return
 
         self.result = True
         self.assig_list.append(node)
+
+    def visit_UnaryOp(self, node):
+
+        if node.op == "p++" or node.op == "p--":
+            if isinstance(node.expr, ID) and node.expr.name == self.phase_var_name:
+                self.incr_unary.append(node)
+
 
 
 class WhileAlgoVisitor(c_ast.NodeVisitor):
