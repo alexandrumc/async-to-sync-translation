@@ -592,7 +592,10 @@ def take_cond_name(cond, lista):
 
 
 def create_new_cond_name(cond_name, count):
-    new_name = 'old' + "_" + str(count) + "_" + cond_name
+    if "iter" in cond_name:
+        new_name = cond_name
+    else:
+        new_name = 'old' + "_" + str(count) + "_" + cond_name
 
     return new_name
 
@@ -600,6 +603,8 @@ def create_new_cond_name(cond_name, count):
 def create_new_assign(old_cond, new_cond, coord):
     global coord_aux
 
+    if "iter" in old_cond:
+        return None
     coord_aux -= 1
     # coord = old_cond.coord
     new_coord = Coord(coord.file, coord.line, coord.column)
@@ -637,7 +642,8 @@ def add_ghost_assign_in_tree(tree, context, used_old_vars, added_ifs_assignment,
                 new_conds_list.append(new_cond)
                 assign = create_new_assign(cond, new_cond, elem.coord)
                 # print generator.visit(assign)
-                parent.block_items.insert(index, assign)
+                if assign:
+                    parent.block_items.insert(index, assign)
 
                 #
         #         added_vars.append(new_cond)
@@ -1163,6 +1169,11 @@ def isolate_jump_phase_tree(assig_list, start_node, offset, initial_checks):
     for assig in assig_list:
         if isinstance(assig.lvalue, ID):
             assig.lvalue.name = "PHASE"
+
+        if isinstance(assig.rvalue, BinaryOp):
+            if isinstance(assig.rvalue.left, ID):
+                assig.rvalue.left.name = "PHASE"
+        continue
         p = find_parent(start_node, assig)
 
         if not isinstance(p, Compound):

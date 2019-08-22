@@ -136,7 +136,7 @@ while i >= 0:
         is_job = False
         isolate_jump_phase(trees_dict, trees_paths_dict, i, config.msg_structure_fields,
                            config.rounds_list[i][0])
-        apply_ifs_for_phasejumps(trees_dict, trees_paths_dict)
+        #apply_ifs_for_phasejumps(trees_dict, trees_paths_dict)
 
     if is_job:
         is_job = False

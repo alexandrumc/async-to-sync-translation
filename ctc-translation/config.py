@@ -132,7 +132,7 @@ rounds_list.append(['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'AUX_ROUND'])
 delete_round_phase = []
 
 delete_round_phase.append(False)
-delete_round_phase.append(False)
+delete_round_phase.append(True)
 
 # Add as many fields as you need
 
