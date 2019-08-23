@@ -92,6 +92,7 @@ class UselessFuncVisitor(c_ast.NodeVisitor):
 
     def visit_FuncCall(self, node):
         stat = False
+
         if node.name.name in self.dispose_funcs_names:
             stat = True
 
@@ -849,27 +850,37 @@ class LocateParentNodeUpdated(c_generator.CGenerator):
         self.discovered_node = None
 
     def visit_If(self, n):
-        if self.node_to_find == n:
-            self.discovered_node = n
         s = ''
         if n.iftrue:
-            for stmt in n.iftrue.block_items:
-                if stmt == self.node_to_find:
-                    self.discovered_node = n
-                    break
-                self._generate_stmt(stmt)
+            if n.iftrue == self.node_to_find:
+                self.discovered_node = n
+            elif isinstance(n.iftrue, Compound):
+                for stmt in n.iftrue.block_items:
+                    if stmt == self.node_to_find:
+                        self.discovered_node = n.iftrue
+                        break
+                    self._generate_stmt(stmt)
         if n.iffalse:
-            for stmt in n.iffalse.block_items:
-                if stmt == self.node_to_find:
-                    self.discovered_node = n
-                    break
-                self._generate_stmt(stmt)
+            if n.iffalse == self.node_to_find:
+                self.discovered_node = n
+            elif isinstance(n.iffalse, Compound):
+                for stmt in n.iffalse.block_items:
+                    if stmt == self.node_to_find:
+                        self.discovered_node = n.iffalse
+                        break
+                    self._generate_stmt(stmt)
 
         return s
 
-    def visit_Compound(self, n):
-        if self.node_to_find == n:
+    def visit_While(self, n):
+        s = ''
+        self._generate_stmt(n.stmt)
+
+        if n.stmt == self.node_to_find:
             self.discovered_node = n
+        return s
+
+    def visit_Compound(self, n):
         s = ''
         if n.block_items:
             for stmt in n.block_items:

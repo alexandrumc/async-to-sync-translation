@@ -1208,19 +1208,115 @@ def isolate_jump_phase_tree(assig_list, start_node, offset, initial_checks):
         p.block_items.append(if_node)
 
 
+def construct_if_cond_node(left_name, right_name, coord):
+    """
+    Given, two names, returns a node if (left_name == right_name)
+    :param left_name:
+    :param right_name:
+    :param coord
+    :return:
+    """
+    id_left = ID(left_name, coord)
+    id_right = ID(right_name, coord)
+
+    cond = BinaryOp("==", id_left, id_right, coord)
+
+    if_node = If(cond, None, None, coord)
+
+    return if_node
+
+
+def update_code_nondet(while_algo, assig_list, outer_while):
+    """
+    After finding all jumps, add nondeterministic variables
+    :param while_algo:
+    :param assig_list:
+    :return:
+    """
+
+    for assig in assig_list:
+        p = find_parent(while_algo.stmt, assig)
+        if not isinstance(p, Compound):
+            continue
+
+        parent_p = find_parentUpdated(while_algo.stmt, p)
+
+        ind = p.block_items.index(assig)
+        del p.block_items[ind]
+
+        if not isinstance(parent_p, If):
+            raise ValueError("Phase jumps are implemented only under ifs")
+
+        parent_parent_p = find_parent(while_algo.stmt, parent_p)
+
+        if not isinstance(parent_parent_p, Compound):
+            continue
+
+        # Check not to have code after this compound
+        raise_warning = False
+        aux_parent = parent_parent_p
+        old_parent = find_parentUpdated(outer_while, parent_parent_p)
+        while old_parent != outer_while:
+            if not isinstance(old_parent, Compound):
+                aux_parent = old_parent
+                old_parent = find_parentUpdated(outer_while, aux_parent)
+                continue
+            # Last Compound will be repeated so force exit with exception
+            try:
+                ind = old_parent.block_items.index(aux_parent)
+            except ValueError:
+                break
+            if ind + 1 < len(old_parent.block_items):
+                raise_warning = True
+                break
+            else:
+                aux_parent = old_parent
+                old_parent = find_parentUpdated(outer_while, aux_parent)
+
+        ind = parent_parent_p.block_items.index(parent_p)
+
+        if_node = construct_if_cond_node("iter", "PHASE", parent_p.coord)
+
+        # Capture everything under if (iter == PHASE)
+        nodes_list = []
+        aux_ind = ind
+        while ind < len(parent_parent_p.block_items):
+            nodes_list.append(parent_parent_p.block_items[ind])
+            ind += 1
+
+        while aux_ind < len(parent_parent_p.block_items):
+            del parent_parent_p.block_items[aux_ind]
+
+        if_node.iftrue = Compound(nodes_list, parent_p.coord)
+        parent_parent_p.block_items.append(if_node)
+
+        # Define if node which introduces nondeterministic execution
+        cond = FuncCall(ID("rand_bool", parent_p.coord), None, parent_p.coord)
+        nondet_rand = FuncCall(ID("rand_int", parent_p.coord), None, parent_p.coord)
+        nondet_phase_assig = Assignment("=", ID("PHASE", parent_p.coord),
+                                        BinaryOp("+", ID("PHASE", parent_p.coord), nondet_rand), parent_p.coord)
+        if_true_branch = Compound([nondet_phase_assig], parent_p.coord)
+
+        if_nondet = If(cond, if_true_branch, None, parent_p.coord)
+
+        parent_parent_p.block_items.insert(aux_ind, if_nondet)
+
+        return raise_warning
+
+
 def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_details, rounds_list,
-                                     msg_structure_fields):
+                                     msg_structure_fields, outer_while):
     """
     Found that we have nested algorithms from the config file
     Iterate through every statement and check for non recv while loops
 
     For each non recv while loop, take the compound and add markers before
     and after it
-    :return:
+    :return: True/False if there is something not implemented discovered
     """
     v = WhileAlgoVisitor(rounds_list, msg_structure_fields)
     v.visit(main_func_node)
-
+    raise_warning = False
     for el in v.result_list:
         parent = find_parent(main_func_node, el)
 
@@ -1246,6 +1342,11 @@ def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_d
 
         # Check if this algo has phase jumps
         (result, assig_list) = check_phase_jump(elem, rank, msg_structure_fields)
+
+        if result:
+            aux_warn = update_code_nondet(elem, assig_list, outer_while)
+            if aux_warn:
+                raise_warning = aux_warn
 
         #isolate_jump_phase(assig_list, main_func_node)
 
@@ -1275,6 +1376,8 @@ def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_d
             ind += 1
             j += 1
         nested_algos_details.append((rank, elem.stmt, parent, result))
+
+    return raise_warning
 
 
 def add_to_param_list(ast, decl_vars, all_vars, mbox_name):

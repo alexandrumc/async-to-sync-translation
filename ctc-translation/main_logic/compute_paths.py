@@ -719,7 +719,10 @@ def find_all_paths_util(current_node, source_node, dest_node, path, parent_list,
                             condition += gen.visit(child.cond)
 
                             new_parent.cond = ID(condition, child.coord)
-                            new_parent.iffalse = Compound([], new_parent.iftrue.coord)
+                            if new_parent.iftrue:
+                                new_parent.iffalse = Compound([], new_parent.iftrue.coord)
+                            else:
+                                new_parent.iffalse = None
                             new_parent.iftrue = None
 
                             path.append(new_parent)
@@ -736,7 +739,7 @@ def find_all_paths_util(current_node, source_node, dest_node, path, parent_list,
 
                             if last_if is not None:
                                 last_if_in_new_tree = find_node(new_tree, last_if)
-                                if find_node(last_if_in_new_tree, new_parent) is None:
+                                if last_if_in_new_tree and find_node(last_if_in_new_tree, new_parent) is None:
                                     last_if_in_new_tree.block_items.append(new_parent)
 
                             new_grandparent = find_node(new_tree, grandparent)

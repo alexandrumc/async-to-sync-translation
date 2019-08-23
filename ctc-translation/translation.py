@@ -1,7 +1,7 @@
 from pycparser import parse_file
 
 from utils.utils import duplicate_element, find_parent, get_global_vars, get_vars_table, get_recv_whiles, \
-                        get_main_function, get_extern_while_body
+                        get_main_function, get_extern_while_body, get_extern_while
 
 from main_logic.modify_whiles import *
 from main_logic.mbox_removal import remove_mbox
@@ -62,8 +62,11 @@ raise AttributeError
 # Turn all while algos into marked compounds
 nested_algos_details = []
 
-turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_details, config.rounds_list,
-                                 config.msg_structure_fields)
+raise_warning = turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_details, config.rounds_list,
+                                                 config.msg_structure_fields, get_extern_while(ast))
+
+if raise_warning:
+    print "WARNING: Too much code after a phase jump. Rewriting might not be correct\n\n"
 
 # Delete unnecessary operations, like disposes and timeouts from code
 # First, get a list of all messages names

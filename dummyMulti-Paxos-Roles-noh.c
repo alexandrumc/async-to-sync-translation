@@ -416,7 +416,6 @@ int main(int argc, char **argv)
                         }
                         if (mboxB != NULL && mboxB->size >= 1) {
                             ltype *logi = list_get(log,i);
-                            i = mboxB->message->i;
                             if(logi != 0){
                                 logi->commit = 1;
                                 out(logi);
