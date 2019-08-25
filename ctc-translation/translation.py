@@ -143,7 +143,7 @@ while i >= 0:
 
     if is_job:
         is_job = False
-        apply_ifs_for_roundjumps(trees_dict, trees_paths_dict)
+        apply_ifs_for_roundjumps(trees_dict, trees_paths_dict, config.msg_structure_fields[i]["round_field"])
 
     print_rounds(labs, trees_dict, trees_paths_dict, config.variables[i]['round'], is_job,
                  config.delete_round_phase[i], config.msg_structure_fields[i], config.variables[i], is_upon)
