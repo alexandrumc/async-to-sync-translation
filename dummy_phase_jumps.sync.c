@@ -1,3 +1,6 @@
+WARNING: Too much code after a phase jump. Rewriting might not be correct
+
+
 Launched procedure for nested algorithms
 
 
@@ -29,7 +32,7 @@ def round FIRST_ROUND:
   UPDATE():
 
 
-  if ((bround == FIRST_ROUND) && !(pid == coord(n)) && (iter == epoch) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)) && (((old_2_mbox != NULL) && (old_2_mbox->size == 1)) && (old_2_mbox->next == NULL)))
+  if ((bround == FIRST_ROUND) && !(pid == coord(n)) && (iter == PHASE) && (((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
   {
     if (((((mboxB != NULL) && (mboxB->size >= 1)) && (mboxB->message != NULL)) && (mboxB->message->sender == leader)))
     {
@@ -63,7 +66,7 @@ def round SECOND_ROUND:
     mB->sender = pid;
     send_msgb(mB, leader);
   }
-  if ((bround == SECOND_ROUND) && !(pid == coord(n)) && (iter == epoch) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)) && (((old_2_mbox != NULL) && (old_2_mbox->size == 1)) && (old_2_mbox->next == NULL)))
+  if ((bround == SECOND_ROUND) && !(pid == coord(n)) && (iter == PHASE) && (((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
   {
     mB = (msgb *) malloc(sizeof(msgb));
     if ((mB == 0))
@@ -123,10 +126,13 @@ def round THIRD_ROUND:
     ltype *newEntry = create_ltype(in(), 0);
     list_add(log, newEntry);
   }
-  if ((bround == THIRD_ROUND) && !(pid == coord(n)) && (iter == epoch) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)) && (((old_2_mbox != NULL) && (old_2_mbox->size == 1)) && (old_2_mbox->next == NULL)))
+  if ((bround == THIRD_ROUND) && !(pid == coord(n)) && (iter == PHASE) && (((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
   {
-    PHASE = PHASE + rand();
-    if ((iter == i))
+    if ((rand_bool()))
+    {
+      PHASE = PHASE + rand_int();
+    }
+    if ((iter == PHASE))
     {
       if (((mboxB != NULL) && (mboxB->size >= 1)))
       {
@@ -171,15 +177,14 @@ def round NewEpoch:
   }
   if ((round == NewEpoch) && !(pid == coord(n)))
   {
-    PHASE = PHASE + rand();
-    if ((iter == epoch))
+    if ((rand_bool()))
     {
-      old_1_mbox = mbox;
-      if ((((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
-      {
-        leader = mbox->message->sender;
-        round = Ack_E;
-      }
+      PHASE = PHASE + rand_int();
+    }
+    if ((iter == PHASE) && (((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
+    {
+      leader = mbox->message->sender;
+      round = Ack_E;
     }
   }
 
@@ -187,7 +192,7 @@ def round NewEpoch:
 def round Ack_E:
   SEND():
 
-  if ((round == Ack_E) && !(pid == coord(n)) && (iter == epoch) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
+  if ((round == Ack_E) && !(pid == coord(n)) && (iter == PHASE) && (((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
   {
     m = (msg *) malloc(sizeof(msg));
     if ((m == 0))
@@ -212,7 +217,7 @@ def round Ack_E:
       round = New_Leader;
     }
   }
-  if ((round == Ack_E) && !(pid == coord(n)) && (iter == epoch) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
+  if ((round == Ack_E) && !(pid == coord(n)) && (iter == PHASE) && (((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
   {
     round = New_Leader;
   }
@@ -249,9 +254,9 @@ def round New_Leader:
   {
     round = BCAST;
   }
-  if ((round == New_Leader) && !(pid == coord(n)) && (iter == epoch) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
+  if ((round == New_Leader) && !(pid == coord(n)) && (iter == PHASE) && (((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
   {
-    old_2_mbox = mbox;
+    old_1_mbox = mbox;
     if ((((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
     {
       lastIndex = mbox->message->history_lenght;
@@ -259,9 +264,9 @@ def round New_Leader:
       round = BCAST;
     }
   }
-  if ((round == New_Leader) && !(pid == coord(n)) && (iter == epoch) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
+  if ((round == New_Leader) && !(pid == coord(n)) && (iter == PHASE) && (((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
   {
-    old_2_mbox = mbox;
+    old_1_mbox = mbox;
     if (!(((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)))
     {
       PHASE++;
@@ -289,11 +294,11 @@ def round BCAST:
       list_add(log, newEntry);
     }
     bround = FIRST_ROUND;
-    inner_algorithm_B(struct arraylist* log, int lastIndex, int leader, list* old_0_mbox, list* old_1_mbox, list* old_2_mbox);
+    inner_algorithm_B(struct arraylist* log, int lastIndex, int leader, list* old_0_mbox, list* old_1_mbox, list* mbox);
     PHASE++;
     round = NewEpoch;
   }
-  if ((round == BCAST) && !(pid == coord(n)) && (iter == epoch) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)) && (((old_2_mbox != NULL) && (old_2_mbox->size == 1)) && (old_2_mbox->next == NULL)))
+  if ((round == BCAST) && !(pid == coord(n)) && (iter == PHASE) && (((mbox != NULL) && (mbox->size == 1)) && (mbox->next == NULL)) && (((old_1_mbox != NULL) && (old_1_mbox->size == 1)) && (old_1_mbox->next == NULL)))
   {
     i = lastIndex;
     ltype *lastEntry = list_get(log, lastIndex);
@@ -306,7 +311,7 @@ def round BCAST:
       list_add(log, newEntry);
     }
     bround = FIRST_ROUND;
-    inner_algorithm_B(struct arraylist* log, int lastIndex, int leader, list* old_0_mbox, list* old_1_mbox, list* old_2_mbox);
+    inner_algorithm_B(struct arraylist* log, int lastIndex, int leader, list* old_0_mbox, list* old_1_mbox, list* mbox);
     PHASE++;
     round = NewEpoch;
   }

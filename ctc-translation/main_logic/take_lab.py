@@ -516,7 +516,7 @@ def take_cond_name(cond, lista):
     :param lista:
     :return:
     """
-    strings = ['pid', 'old', 'timeout', 'id', 'myid']
+    strings = ['pid', 'old', 'timeout', 'id', 'myid', 'iter']
 
     # print generator.visit(cond), generator.visit(cond.right), type(cond.right)
     # print generator.visit(cond)
@@ -592,10 +592,7 @@ def take_cond_name(cond, lista):
 
 
 def create_new_cond_name(cond_name, count):
-    if "iter" in cond_name:
-        new_name = cond_name
-    else:
-        new_name = 'old' + "_" + str(count) + "_" + cond_name
+    new_name = 'old' + "_" + str(count) + "_" + cond_name
 
     return new_name
 
@@ -603,8 +600,6 @@ def create_new_cond_name(cond_name, count):
 def create_new_assign(old_cond, new_cond, coord):
     global coord_aux
 
-    if "iter" in old_cond:
-        return None
     coord_aux -= 1
     # coord = old_cond.coord
     new_coord = Coord(coord.file, coord.line, coord.column)
@@ -1103,12 +1098,13 @@ def apply_ifs_for_roundjumps(trees_dict, trees_paths_dict, round_name):
     for keys, list_asts in trees_dict.iteritems():
         for _ast_ in list_asts:
             while_node = get_extern_while(_ast_)
+            my_coord = Coord(while_node.stmt.coord.file, -1, -1)
 
             # Create the if node
-            id_iter = ID(round_name, while_node.coord)
-            id_phase = ID(keys, while_node.coord)
-            cond_node = BinaryOp("==", id_iter, id_phase, while_node.coord)
-            if_node = If(cond_node, while_node.stmt, None, while_node.coord)
+            id_iter = ID(round_name, my_coord)
+            id_phase = ID(keys, my_coord)
+            cond_node = BinaryOp("==", id_iter, id_phase, my_coord)
+            if_node = If(cond_node, while_node.stmt, None, my_coord)
             while_node.stmt = Compound([if_node], while_node.coord)
 
 
@@ -1124,12 +1120,13 @@ def apply_ifs_for_phasejumps(trees_dict, trees_paths_dict):
     for list_asts in trees_dict.values():
         for _ast_ in list_asts:
             while_node = get_extern_while(_ast_)
+            my_coord = Coord(while_node.stmt.coord.file, -1, -1)
 
             # Create the if node
-            id_iter = ID("iter", while_node.coord)
-            id_phase = ID("PHASE", while_node.coord)
-            cond_node = BinaryOp("==", id_iter, id_phase, while_node.coord)
-            if_node = If(cond_node, while_node.stmt, None, while_node.coord)
+            id_iter = ID("iter", my_coord)
+            id_phase = ID("PHASE", my_coord)
+            cond_node = BinaryOp("==", id_iter, id_phase, my_coord)
+            if_node = If(cond_node, while_node.stmt, None, my_coord)
             while_node.stmt = Compound([if_node], while_node.coord)
 
 
@@ -1233,7 +1230,8 @@ def update_code_nondet(while_algo, assig_list, outer_while):
     :param assig_list:
     :return:
     """
-
+    raise_warning = False
+    my_coord = Coord(while_algo.stmt.coord.file, -1, -1)
     for assig in assig_list:
         p = find_parent(while_algo.stmt, assig)
         if not isinstance(p, Compound):
@@ -1253,7 +1251,6 @@ def update_code_nondet(while_algo, assig_list, outer_while):
             continue
 
         # Check not to have code after this compound
-        raise_warning = False
         aux_parent = parent_parent_p
         old_parent = find_parentUpdated(outer_while, parent_parent_p)
         while old_parent != outer_while:
@@ -1275,7 +1272,7 @@ def update_code_nondet(while_algo, assig_list, outer_while):
 
         ind = parent_parent_p.block_items.index(parent_p)
 
-        if_node = construct_if_cond_node("iter", "PHASE", parent_p.coord)
+        if_node = construct_if_cond_node("iter", "PHASE", my_coord)
 
         # Capture everything under if (iter == PHASE)
         nodes_list = []
@@ -1287,21 +1284,21 @@ def update_code_nondet(while_algo, assig_list, outer_while):
         while aux_ind < len(parent_parent_p.block_items):
             del parent_parent_p.block_items[aux_ind]
 
-        if_node.iftrue = Compound(nodes_list, parent_p.coord)
+        if_node.iftrue = Compound(nodes_list, my_coord)
         parent_parent_p.block_items.append(if_node)
 
         # Define if node which introduces nondeterministic execution
-        cond = FuncCall(ID("rand_bool", parent_p.coord), None, parent_p.coord)
-        nondet_rand = FuncCall(ID("rand_int", parent_p.coord), None, parent_p.coord)
-        nondet_phase_assig = Assignment("=", ID("PHASE", parent_p.coord),
-                                        BinaryOp("+", ID("PHASE", parent_p.coord), nondet_rand), parent_p.coord)
-        if_true_branch = Compound([nondet_phase_assig], parent_p.coord)
+        cond = FuncCall(ID("rand_bool", parent_p.coord), None, my_coord)
+        nondet_rand = FuncCall(ID("rand_int", parent_p.coord), None, my_coord)
+        nondet_phase_assig = Assignment("=", ID("PHASE", my_coord),
+                                        BinaryOp("+", ID("PHASE", my_coord), nondet_rand), my_coord)
+        if_true_branch = Compound([nondet_phase_assig], my_coord)
 
-        if_nondet = If(cond, if_true_branch, None, parent_p.coord)
+        if_nondet = If(cond, if_true_branch, None, my_coord)
 
         parent_parent_p.block_items.insert(aux_ind, if_nondet)
 
-        return raise_warning
+    return raise_warning
 
 
 def turn_nested_algo_marked_compound(main_func_node, syntax_dict, nested_algos_details, rounds_list,

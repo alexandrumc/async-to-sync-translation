@@ -83,7 +83,7 @@ variables = []
 
 # Modify with phase and round variables names
 variables.append(dict(
-    phase="epoch",
+    phase="ballot",
     round="round"
 ))
 
@@ -92,7 +92,7 @@ msg_structure_fields = []
 # Modify with phase and round fields names in the message structure
 msg_structure_fields.append(dict(
     name="m",
-    phase_field="epoch",
+    phase_field="ballot",
     round_field="round"
 ))
 
@@ -108,11 +108,13 @@ clean_mailbox.append("list_dispose")
 
 rounds_list = []
 
-rounds_list.append(['FIRST_ROUND', 'SECOND_ROUND', 'THIRD_ROUND', 'FOURTH_ROUND', 'AUX_ROUND'])
+rounds_list.append(['NewBallot_ROUND', 'AckBallot_ROUND', 'AUX_ROUND'])
 
 delete_round_phase = []
 
 delete_round_phase.append(False)
+
 # Add as many fields as you need
 
 ######################################################################################################################
+
