@@ -277,12 +277,12 @@ def whiles_to_if(extern_while_body, recv_loops, recv_loops_out_internal, syntax_
                     round_name = recv_loops_out_internal[(element.coord.line, element.coord.column)][1]
                     new_id = ID("return_from_inner", assign_coord)
                     func = FuncCall(new_id, None, assign_coord)
-                    new_if.iffalse = Compound([recv_loops_out_internal[(element.coord.line, element.coord.column)][0], func], new_coord)
+                    # recv_loops_out_internal[(element.coord.line, element.coord.column)][0]
+                    new_if.iffalse = Compound([func], new_coord)
                     aux_assig = Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)
                     new_if.iffalse.block_items.append(aux_assig)
                 else:
-                    # TODO: recv_loops does not return all loops
-                    # Only a quick fix
+                    # Only a quick fix - might be some problems with recv_loops
                     if (element.coord.line, element.coord.column) in recv_loops_out_internal:
                         round_name = recv_loops_out_internal[(element.coord.line, element.coord.column)][1]
                     else:
@@ -294,8 +294,6 @@ def whiles_to_if(extern_while_body, recv_loops, recv_loops_out_internal, syntax_
                 aux.block_items.insert(i, new_if)
                 if new_if.iftrue:
                     whiles_to_if(new_if.iftrue, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
-
-                # TODO: Get marker_stop() out of a newly created if
 
                 break
             else:
@@ -363,8 +361,7 @@ def whiles_to_if(extern_while_body, recv_loops, recv_loops_out_internal, syntax_
                                 round_name = recv_loops_out_internal[(item.coord.line, item.coord.column)][1]
                                 new_id = ID("return_from_inner", None)
                                 func = FuncCall(new_id, None, assign_coord)
-                                new_if.iffalse = Compound([recv_loops_out_internal[(item.coord.line, item.coord.column)][0], func],
-                                                          new_coord)
+                                new_if.iffalse = Compound([func], new_coord)
                                 aux_assig = Assignment('=', ID(round_name), ID("ERR_ROUND"), assign_coord)
                                 new_if.iffalse.block_items.append(aux_assig)
                             else:
@@ -375,8 +372,6 @@ def whiles_to_if(extern_while_body, recv_loops, recv_loops_out_internal, syntax_
                             element.iftrue.block_items.insert(index, new_if)
                             if new_if.iftrue:
                                 whiles_to_if(new_if.iftrue, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
-
-                            # TODO: Get marker_stop out of the newly created if
 
                             break
                         else:
@@ -418,8 +413,6 @@ def whiles_to_if(extern_while_body, recv_loops, recv_loops_out_internal, syntax_
                                 element.iffalse.block_items.insert(index, new_if)
                                 if new_if.iffalse:
                                     whiles_to_if(new_if.iffalse, recv_loops, recv_loops_out_internal, syntax_dict, conditions)
-
-                                # TODO: Get marker_stop out of the newly created if
 
                                 break
                             else:

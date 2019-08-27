@@ -1605,6 +1605,7 @@ class RoundGenerator(c_generator.CGenerator):
                             self.remember_round = cond_visitor.save_round
 
                 # s += self.visit(n.cond)
+                # TODO: Might need change here
                 if self.current_round == self.remember_round:
                     if self.remember_round in s:
                         return ""
@@ -2145,7 +2146,7 @@ class RoundGenerator(c_generator.CGenerator):
                             self.remember_round = cond_visitor.save_round
 
                 # s += self.visit(n.cond)
-
+                # TODO: might need change in here
                 if self.current_round == self.remember_round:
                     if self.remember_round in s:
                         return ""

@@ -135,15 +135,9 @@ while i >= 0:
             break
 
     if check_jumps:
-        apply_ifs_for_roundjumps(trees_dict, trees_paths_dict, config.msg_structure_fields[i]["round_field"])
-        is_job = False
-        isolate_jump_phase(trees_dict, trees_paths_dict, i, config.msg_structure_fields,
-                           config.rounds_list[i][0])
-        #apply_ifs_for_phasejumps(trees_dict, trees_paths_dict)
-
-    if is_job:
-        is_job = False
-        apply_ifs_for_roundjumps(trees_dict, trees_paths_dict, config.msg_structure_fields[i]["round_field"])
+        # apply_ifs_for_roundjumps(trees_dict, trees_paths_dict, config.msg_structure_fields[i]["round_field"])
+        is_job = True
+        isolate_jump_phase(trees_dict, trees_paths_dict, i, config.msg_structure_fields)
 
     print_rounds(labs, trees_dict, trees_paths_dict, config.variables[i]['round'], is_job,
                  config.delete_round_phase[i], config.msg_structure_fields[i], config.variables[i], is_upon)

@@ -1107,6 +1107,22 @@ def apply_ifs_for_roundjumps(trees_dict, trees_paths_dict, round_name):
             if_node = If(cond_node, while_node.stmt, None, my_coord)
             while_node.stmt = Compound([if_node], while_node.coord)
 
+    # Insert round jump for paths with multiple round assigs
+    for keys, _list_ in trees_paths_dict.iteritems():
+        for _tuple_list_ in _list_:
+            for _tuple_ in _tuple_list_:
+                my_coord = Coord(_tuple_[0].coord.file, -1, -1)
+                # Create the if node
+                id_iter = ID(round_name, my_coord)
+                id_phase = ID(keys, my_coord)
+                cond_node = BinaryOp("==", id_iter, id_phase, my_coord)
+                if_node = If(cond_node, _tuple_[0], None, my_coord)
+                comp = Compound([if_node], _tuple_[0].coord)
+                aux_lst = list(_tuple_)
+                aux_lst[0] = comp
+                ind = _tuple_list_.index(_tuple_)
+                _tuple_list_[ind] = tuple(aux_lst)
+
 
 def apply_ifs_for_phasejumps(trees_dict, trees_paths_dict):
     """
@@ -1129,11 +1145,25 @@ def apply_ifs_for_phasejumps(trees_dict, trees_paths_dict):
             if_node = If(cond_node, while_node.stmt, None, my_coord)
             while_node.stmt = Compound([if_node], while_node.coord)
 
+        # Insert phase jump for paths with multiple round assigs
+        for keys, _list_ in trees_paths_dict.iteritems():
+            for _tuple_list_ in _list_:
+                for _tuple_ in _tuple_list_:
+                    my_coord = Coord(_tuple_[0].coord.file, -1, -1)
+                    # Create the if node
+                    id_iter = ID("iter", my_coord)
+                    id_phase = ID("PHASE", my_coord)
+                    cond_node = BinaryOp("==", id_iter, id_phase, my_coord)
+                    if_node = If(cond_node, _tuple_[0], None, my_coord)
+                    comp = Compound([if_node], _tuple_[0].coord)
+                    aux_lst = list(_tuple_)
+                    aux_lst[0] = comp
+                    ind = _tuple_list_.index(_tuple_)
+                    _tuple_list_[ind] = tuple(aux_lst)
 
-def isolate_jump_phase(trees_dict, trees_paths_dict, rank, msg_structure_fields, first_round_name):
 
-    offset = 0
-    initial_checks = []
+def isolate_jump_phase(trees_dict, trees_paths_dict, rank, msg_structure_fields):
+
     for tree_list in trees_dict.values():
         for tree in tree_list:
             v = JumpPhaseVisitor(msg_structure_fields[rank]["phase_field"])
@@ -1147,10 +1177,24 @@ def isolate_jump_phase(trees_dict, trees_paths_dict, rank, msg_structure_fields,
                 el.lvalue.name = "PHASE"
                 el.rvalue.left.name = "PHASE"
 
-            isolate_jump_phase_tree(v.assig_list, get_main_function(tree), offset, initial_checks)
-            offset += len(v.assig_list)
+    for keys, _list_ in trees_paths_dict.iteritems():
+        for _tuple_list_ in _list_:
+            for _tuple_ in _tuple_list_:
+                v = JumpPhaseVisitor(msg_structure_fields[rank]["phase_field"])
+                v.visit(_tuple_[0])
+
+                # Change to name to PHASE for unary op and incr assig
+                for el in v.incr_unary:
+                    el.expr.name = "PHASE"
+
+                for el in v.incr_assig:
+                    el.lvalue.name = "PHASE"
+                    el.rvalue.left.name = "PHASE"
+
+            # isolate_jump_phase_tree(v.assig_list, get_main_function(tree), offset, initial_checks)
 
     # Add initial ifs for each jump at the beginning of first round
+    """
     tree_list = trees_dict[first_round_name]
     if len(tree_list) > 0:
         while_node = get_extern_while(tree_list[0])
@@ -1159,6 +1203,7 @@ def isolate_jump_phase(trees_dict, trees_paths_dict, rank, msg_structure_fields,
             el.iftrue.block_items[len(el.iftrue.block_items) - 1].rvalue.name = "True"
 
             while_node.stmt.block_items.insert(0, el)
+    """
 
 
 def isolate_jump_phase_tree(assig_list, start_node, offset, initial_checks):

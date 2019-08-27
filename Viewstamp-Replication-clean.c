@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 enum NormalOperations {Prepare_ROUND, PrepareOk_ROUND};
 enum ViewChange {DoViewChange_ROUND, StartView_ROUND};
 enum Recovery {Recovery_ROUND, RecoveryResponse_ROUND};
